@@ -61,6 +61,16 @@ const RAMP_RUN := 1.0
 
 const TRIM_SLOT := "painted_wood"
 const TRIM_TINT := Color(1.0, 0.99, 0.96)
+
+## Roof edge. The ridge cap is the run of tiles laid over the joint where the two slopes meet:
+## without it the ridge is a mitred seam no real roof has. The gutter is a channel with two
+## sides and a floor rather than a solid bar, because the aerial view looks straight into it.
+const RIDGE_CAP_HALF := 0.17
+const RIDGE_CAP_RISE := 0.06
+const GUTTER_WIDTH := 0.12
+const GUTTER_DEPTH := 0.10
+const GUTTER_WALL := 0.014
+const DOWNSPOUT_R := 0.038
 ## The door reads as a door because it contrasts with the wall around it, not because of its
 ## panel lines alone.
 const GARAGE_DOOR_TINT := Color(1.06, 1.04, 0.99)
@@ -129,7 +139,7 @@ static func build(plan: FloorPlan) -> Node3D:
 	shell.name = "Shell"
 	root.add_child(shell)
 	for roof: RoofDef in plan.roofs:
-		_build_roof(shell, roof)
+		_build_roof(shell, plan, roof)
 	TerrainBuilder.build(shell, plan)
 	return root
 
@@ -142,7 +152,7 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 
 	var tucked := _grown(room.polygon)
 	var top := room.floor_y(storey.base_y)
-	var floor_mat := Mats.of(room.floor_slot, room.floor_tint, 0.65, 1.0, true)
+	var floor_mat := Mats.of(room.floor_slot, room.floor_tint, 0.65, room.floor_scale, true)
 	var deck := plan.deck_for(room.id)
 	if deck != null:
 		# A deck has no slab: boards on a beam on posts, all of it built from this same polygon.
@@ -378,7 +388,7 @@ static func _face_material(plan: FloorPlan, storey: StoreyDef, room_id: StringNa
 		# PlanProbe reports it. The magenta is so it is impossible to miss in a render too.
 		push_error("HouseBuilder: wall names unknown room '%s'" % room_id)
 		return Props.mat(Color(1, 0, 1))
-	return Mats.of(room.wall_slot, Color(1.32, 1.34, 1.36), 0.95, 1.0, true)
+	return Mats.of(room.wall_slot, Color(1.32, 1.34, 1.36), 0.95, room.wall_scale, true)
 
 static func _side_name(room_id: StringName) -> String:
 	return "outside" if room_id == &"" else String(room_id)
@@ -604,14 +614,16 @@ static func surface(parent: Node3D, mesh: ArrayMesh, materials: Array, node_name
 
 ## The roof is generated from the plan like everything else, so the attic is inside the roof
 ## volume by construction rather than by an author remembering to keep it there.
-static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
+static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef) -> void:
 	var holder := Node3D.new()
 	holder.name = "Roof"
 	parent.add_child(holder)
 	var tiles := Mats.of(roof.slot, Color(0.92, 0.90, 0.90), 0.95, 1.0, true)
-	var boards := Mats.of(roof.underside_slot, roof.underside_tint, 0.9, 1.0, true)
+	# Sawn roof boards are not varnished: on the scan's own roughness the bulb below put two
+	# mirror highlights on the underside, the one thing in the attic that read as plastic.
+	var boards := Mats.of(roof.underside_slot, roof.underside_tint, 0.88, 0.55, true, true)
 	var fascia := Mats.of(roof.fascia_slot, TRIM_TINT, 0.75)
-	var gable := Mats.of(roof.gable_slot, roof.gable_tint, 0.85, 1.0, true)
+	var gable := Mats.of(plan.siding_slot, plan.siding_tint, 0.85, 1.0, true)
 
 	var fp := roof.footprint
 	var oh := roof.overhang
@@ -660,19 +672,62 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 		surface(holder, Props.slab_poly(tri, roof.wall_thickness, _uv(along_x, 1.0, 0.0, 0.0)),
 				[gable], "Gable", true)
 
+	# The ridge cap: a run of capping tiles over the joint, sitting on the two slopes it covers.
+	# Its flat underside is inside the roof solid, which is where a real ridge tile's bed of
+	# mortar is, and is never seen.
+	var across := Vector3.BACK if along_x else Vector3.RIGHT
+	var along := Vector3.RIGHT if along_x else Vector3.BACK
+	var cap_foot := ridge - tan(deg_to_rad(roof.pitch_deg)) * RIDGE_CAP_HALF
+	var cap_poly := PackedVector2Array([Vector2(vm - RIDGE_CAP_HALF, cap_foot),
+			Vector2(vm, ridge + RIDGE_CAP_RISE), Vector2(vm + RIDGE_CAP_HALF, cap_foot)])
+	surface(holder, Props.extrude(cap_poly, Vector3.ZERO, across, Vector3.UP, along, u0, u1),
+			[tiles], "RidgeCap", false)
+
 	# Fascia along both eaves: the board that closes the tile edge. A roof without one reads as
-	# a sheet of card laid on the walls.
+	# a sheet of card laid on the walls. The gutter hangs off it and the downspout runs from the
+	# gutter to the ground, all in one mesh: they share a material and never move apart.
+	var edge: Array = []
+	var near_u := u0 + 0.4 if not roof.abut_start else u1 - 0.4
+	var far_u := u1 - 0.4 if not roof.abut_end else u0 + 0.4
+	var spouts: Array[float] = [near_u, far_u]
+	var e := 0
 	for v: float in [v0, v1] as Array[float]:
-		var a := _uv(along_x, u0, low, v)
-		var b := _uv(along_x, u1, low, v)
-		var mid := (a + b) * 0.5 + Vector3(0.0, -0.09, 0.0)
-		var size := _uv(along_x, u1 - u0, 0.18, 0.05) if along_x else _uv(along_x, u1 - u0, 0.18, 0.05)
-		holder.add_child(Props.mi(Props.box(Vector3(absf(size.x), 0.18, absf(size.z))), fascia, mid))
+		var length := u1 - u0
+		var mid := _uv(along_x, (u0 + u1) * 0.5, low - 0.09, v)
+		edge.append(Props.part(_size(along_x, length, 0.18, 0.05), mid))
+		# outward from the roof, so the gutter hangs clear of the fascia board
+		var sgn := -1.0 if is_equal_approx(v, v0) else 1.0
+		var g_in := v + sgn * 0.025
+		var g_mid := g_in + sgn * GUTTER_WIDTH * 0.5
+		var g_top := low - 0.03
+		var g_bot := g_top - GUTTER_DEPTH
+		edge.append(Props.part(_size(along_x, length, GUTTER_WALL, GUTTER_WIDTH),
+				_uv(along_x, (u0 + u1) * 0.5, g_bot + GUTTER_WALL * 0.5, g_mid)))
+		for side: float in [g_in, g_in + sgn * GUTTER_WIDTH] as Array[float]:
+			edge.append(Props.part(_size(along_x, length, GUTTER_DEPTH, GUTTER_WALL),
+					_uv(along_x, (u0 + u1) * 0.5, g_bot + GUTTER_DEPTH * 0.5, side)))
+		# The downspout leaves the gutter, elbows back to the wall it runs down, and stops a
+		# finger above the ground: a pipe ending in mid-air is the first thing the eye catches.
+		var wall_v := (fp.position.y if along_x else fp.position.x) if sgn < 0.0 \
+				else (fp.end.y if along_x else fp.end.x)
+		var at_wall := wall_v + sgn * (DOWNSPOUT_R + 0.02)
+		var su: float = spouts[e]
+		edge.append([Props.tube(PackedVector3Array([
+				_uv(along_x, su, g_bot + GUTTER_WALL, g_mid),
+				_uv(along_x, su, g_bot - 0.18, g_mid),
+				_uv(along_x, su, g_bot - 0.45, at_wall),
+				_uv(along_x, su, GRADE + 0.07, at_wall)]), DOWNSPOUT_R, 10), Transform3D.IDENTITY])
+		e += 1
+	surface(holder, Props.with_tangents(Props.union(edge)), [fascia], "Fascia", false)
 
 ## Maps an (along-ridge, height, across-ridge) triple into world space for either ridge
 ## direction, so the roof is written once instead of twice.
 static func _uv(along_x: bool, u: float, y: float, v: float) -> Vector3:
 	return Vector3(u, y, v) if along_x else Vector3(v, y, u)
+
+## The same mapping for a box size, where every component is a length rather than a coordinate.
+static func _size(along_x: bool, along: float, up: float, across: float) -> Vector3:
+	return Vector3(absf(along), up, absf(across)) if along_x else Vector3(absf(across), up, absf(along))
 
 # --- Stairs -------------------------------------------------------------------------------------
 

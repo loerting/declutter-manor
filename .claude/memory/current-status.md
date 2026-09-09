@@ -6,8 +6,8 @@ metadata:
 ---
 
 **As of 2026-09-09.** Phase 0 committed (`175cbc4`). Phase 1 manor committed (`d13d771`),
-design pass committed (`081c5d7`). The **deck and the pool are built and uncommitted** — the
-last two exterior items on the Phase 1 gate list.
+design pass (`081c5d7`), deck and pool (`a47aa58`). The **render-review finish and the render
+harness fix are uncommitted** — see below.
 
 ## The decision that matters
 
@@ -15,50 +15,42 @@ last two exterior items on the Phase 1 gate list.
 names `room_a` / `room_b` (side A on your right walking a to b); materials derive from that.
 `WallDeriver` derives walls from room rectangles; plans pierce by room name / compass point.
 
-## Deck and pool (uncommitted, verified in `screenshots/manor3/`)
+## The render harness was lying (uncommitted, fixed)
 
-`world/ExteriorBuilder.gd` (new) builds the two exterior zones that are structures rather than
-paving; `DeckDef` and `PoolDef` (new, in `data/`) name a zone and hang the parameters off it,
-so the polygon still lives once, on the `RoomDef`.
-- Deck: `floor_drop` 0 puts the boards level with the hall, so the back door needs no steps by
-  the existing rule. Boards + rim beam + posts, a flight down the south edge to the lawn and
-  one east onto the pool paving. Joists deliberately not modelled (never visible at 0.45 m).
-- Pool: `PoolDef.hole()` is cut from the zone paving (`HouseBuilder`) *and* from the lawn
-  (`TerrainBuilder`) — a basin under an unbroken lawn is invisible. Shell of solid boxes,
-  coping over the joint, water as a volume so only its top face is front-facing.
-- `HouseBuilder._cut_rect/_bounds/_ground_level/_surface` are now public (`cut_rect`, …)
-  because `TerrainBuilder` and `ExteriorBuilder` share them rather than re-deriving them.
-- Cost: 17 draw calls. High empty 1573, low empty 1465, budget 1800.
-- Removed a dead `glass.specular = 0.6` (Godot 3 property; the engine warned on every load).
+A process frame is not a drawn frame. With the window uncomposited the engine ticks at 1 fps
+and draws nothing: `Engine.get_frames_drawn()` stayed at 0 while `HouseView` saved black PNGs
+with no error, and `PerfProbe` timed frames that were never rendered. `HouseView`, `PropView`
+and `PerfProbe` now call `RenderingServer.force_draw()` per settle frame; `PerfProbe` also
+disables vsync first, or every tier measures 16.7 ms — the monitor, not the house. Numbers
+after the fix match the old ones (8.98 / 6.90 ms), so the recorded table was sound.
 
-## Design pass after the Fable render review (committed in `081c5d7`)
+## Render-review finish (uncommitted, verified in `screenshots/manor4/`)
 
-Review found the house read as an architectural model. Done, all render-verified in
-`screenshots/manor2/`:
-- Ground floor raised 0.45 m (`ManorPlan.FLOOR_ABOVE_GRADE`), concrete plinth band, steps at
-  every exterior door, ramp at the garage door, front walk folded into the driveway polygon.
-- Windows: frame + mullions + meeting rail at the wall mid-plane; smooth non-metallic glass.
-- Bulbs in rooms with glazing run at `DAYLIT_BULB` 0.4 by day (0 made the kitchen a cave).
-- Flush ceiling fixture per lit room; skirting on every interior wall; balustrades derived
-  (rake rail on open flight sides, guards round the well).
-- `Props.union` bakes per-wall trim/glass/plinth into one mesh each: 440 → 306 meshes.
-- Openings measured from the higher floor of the wall's two rooms (`_datum`).
-- Bug found by render: interior upper walls footed down to the ceiling plane below and
-  z-fought with it (pale bands on kitchen and hall ceilings). Interior footing is now
-  `FOUNDATION - CEILING_PLANE`; exterior keeps the full slab so siding stays unbroken.
+- Roof edge: ridge cap along the ridge, gutter along both eaves with a downspout each,
+  elbowed to the wall and stopped above the ground. Fascia + gutters + spouts = one mesh.
+- Gable now takes `plan.siding_slot` / `siding_tint`; `RoofDef.gable_slot`/`gable_tint` gone.
+- Horizon fog from 30 m, sky unfogged (fogging it flattened the dome to grey); the sky's
+  ground colour is hazy green now instead of brown.
+- Lawn macro variation: `Props.ground_slab` + `Mats.of(..., vertex_tint)` — 4 m quads coloured
+  from value noise on a 14 m lattice, a pure function of world position so seams agree.
+- `RoomDef.wall_scale` / `floor_scale`: attic knee walls 0.28 (the siding scan is a 1.2 m
+  panel), kitchen floor 0.75 (the stone scan is a 1.2 m worktop). At 0.38 the kitchen read as
+  lino — no scan in the manifest has tile joints, so this is scale only.
+- `Mats.of(..., matte)` drops the ORM map for a flat roughness; the roof boards use it, which
+  killed the two mirror highlights of the attic bulb.
+- Side garden gravel tinted to 0.50 (the scan is near white and read as concrete).
+- Cost: 1585 high, 1476 low, budget 1800. Suite 29 checks pass, PlanProbe 0, Diag clean.
 
 ## Next concrete step
 
-Commit the deck and pool, then the remaining review items: gable in siding material, ridge cap
-+ gutters, horizon fog + lawn macro variation, attic knee-wall texture scale + roof-board
-specular, kitchen floor tiles, and a medium-tier interior pass. Mesh merging by material was
-dropped on measurement: the per-wall trim union already put both tiers inside the budget.
+Commit this batch, then the Phase 1 gate proper: the same views at all three tiers, and the
+remaining open loops below. Mesh merging by material stays dropped — measured, not needed.
 
 ## Open loops
 
-- The side garden's gravel does not read at all in the aerial render — unverified whether the
-  zone builds or the tint is simply invisible at distance.
-- BC7 texture import decided and documented in `docs/PACING.md`.
+- Shadow acne: a serrated dark band under the eaves on the siding at grazing sun (west view).
 - Attic east/west knee walls leave a triangular gap to the roof (flagged, not fixed).
+- No texture in the manifest has tile joints, so no floor reads as laid tiles.
+- BC7 texture import decided and documented in `docs/PACING.md`.
 - Confirm separate demo location before Phase 5; measure 30 s search at the Phase 2 gate;
   localization pass after Phase 4.

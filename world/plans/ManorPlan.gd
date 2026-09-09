@@ -101,6 +101,12 @@ static func _room(id: StringName, x0: float, z0: float, x1: float, z1: float, fl
 	r.floor_slot = floor
 	return r
 
+## A stone floor laid as tiles rather than as one slab: the scan is a worktop, so its published
+## 1.2 m has to be scaled down to a tile the room is actually paved in.
+static func _tiled(r: RoomDef, scale: float) -> RoomDef:
+	r.floor_scale = scale
+	return r
+
 static func _outdoor(id: StringName, x0: float, z0: float, x1: float, z1: float, floor: String) -> RoomDef:
 	var r := _room(id, x0, z0, x1, z1, floor)
 	_outside(r, floor)
@@ -110,7 +116,12 @@ static func _outdoor(id: StringName, x0: float, z0: float, x1: float, z1: float,
 static func _outside(r: RoomDef, floor: String) -> void:
 	r.zone = RoomDef.Zone.EXTERIOR
 	r.floor_drop = FLOOR_ABOVE_GRADE
-	r.floor_tint = Color(0.62, 0.62, 0.60) if floor == "concrete" else Color(0.85, 0.85, 0.85)
+	# The gravel scan is nearly white (mean 218/255); at 0.85 it read as a slab of concrete in
+	# the aerial, which is the whole reason the side garden did not look like a garden.
+	match floor:
+		"concrete": r.floor_tint = Color(0.62, 0.62, 0.60)
+		"gravel": r.floor_tint = Color(0.50, 0.47, 0.42)
+		_: r.floor_tint = Color(0.85, 0.85, 0.85)
 	r.has_ceiling = false
 	r.light_energy = 0.0
 
@@ -164,7 +175,7 @@ static func _ground(s: StoreyDef) -> void:
 		_room(&"office", 4, 6, 8, 10.5),
 		_room(&"living", 4, 10.5, 8, 15.5),
 		_room(&"dining", 11, 6, 17, 9),
-		_room(&"kitchen", 11, 9, 17, 13, "worktop_stone"),
+		_tiled(_room(&"kitchen", 11, 9, 17, 13, "worktop_stone"), 0.75),
 		_room(&"mudroom", 11, 13, 14, 15.5, "concrete"),
 		_room(&"powder", 14, 13, 17, 15.5, "porcelain"),
 		garage,
@@ -237,6 +248,8 @@ static func _attic(s: StoreyDef) -> void:
 	attic.has_ceiling = false   # the roof is the ceiling, boards and all
 	attic.ceiling_slot = ""
 	attic.wall_slot = "painted_wood"
+	# tongue-and-groove boarding, not the 1.2 m exterior panel the scan was taken from
+	attic.wall_scale = 0.28
 	attic.light_energy = 2.2
 	attic.light_range = 12.0
 	s.rooms = [attic]

@@ -67,9 +67,13 @@ Outdoors: driveway north of the garage, deck behind the hall, pool surround behi
 wing, side garden along the west wall. The deck is 6 x 3 m of boards level with the floor
 inside, on a rim beam and posts, with a flight down its south edge to the lawn and another east
 onto the pool paving. The pool is a 6.6 x 1.7 m lap pool 1.5 m deep, cut through the paving and
-the lawn under it, with a coped rim and steps at the shallow end. The front walk is part of the driveway zone — an L from
+the lawn under it, with a coped rim and steps at the shallow end. The side garden is gravel, tinted well down from the scan: that scan is near white, and at the
+tint the other paving uses it read as a concrete slab in the aerial. The front walk is part of the driveway zone — an L from
 the driveway's west edge to the front stoop — because a path is not a place items live, and an
 exterior zone may be any polygon since only walls need rectangles.
+
+The roof carries a ridge cap along the ridge and a gutter along each eave, with a downspout at
+one end of each running to the ground. The gable ends are siding, the same wall continued up.
 
 The finished ground floor is 0.45 m above grade (`ManorPlan.FLOOR_ABOVE_GRADE`), which puts
 three concrete steps at every outside door, a ramp at the garage door, and a plinth band under

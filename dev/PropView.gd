@@ -61,8 +61,11 @@ func _ready() -> void:
 	cam.position = centre + Vector3(sin(a) * cos(e), sin(e), cos(a) * cos(e)) * dist
 	cam.look_at(centre)
 	if shot != "":
+		# force_draw, because a process frame is not a drawn frame: an uncomposited window
+		# ticks without rendering and the capture below is then a black PNG. See HouseView.
 		for i in range(12):
 			await get_tree().process_frame
+			RenderingServer.force_draw()
 		get_viewport().get_texture().get_image().save_png(shot)
 		print("shot: ", shot)
 		get_tree().quit()

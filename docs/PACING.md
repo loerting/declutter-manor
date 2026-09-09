@@ -102,6 +102,13 @@ while a BC7 one is handed to the GPU exactly as it sits on disk. Side-by-side in
 show no visible difference at the scales the game is played at. The lesson is worth keeping: the
 suspicion was "the geometry is slow", and the measurement said the geometry was 3% of the cost.
 
+**Every measured frame is forced to draw, with vsync off.** A process frame is not a drawn
+frame: when the window is not composited the engine ticks at 1 fps and draws nothing, and a
+probe that times process frames then reports the frame budget of a scene that was never
+rendered — while `HouseView` saves a black PNG that no error reports. Both now call
+`RenderingServer.force_draw()`, and `PerfProbe` disables vsync first, or every tier measures
+16.7 ms and that is the monitor rather than the house.
+
 **Measured on the full 26-zone manor after the design pass (2026-09-09, editor open on the
 same GPU, so frame times are pessimistic):**
 
@@ -114,7 +121,10 @@ same GPU, so frame times are pessimistic):**
 | static memory | 73 MB | 102 MB | 67 MB | 98 MB |
 
 Measured again with the deck and the pool built: they cost 17 draw calls between them, because
-each is one union per material. The empty house is inside every budget on both tiers. It was not before the design pass: the
+each is one union per material. And again with the roof edge and the lawn's macro variation:
+**1585 high, 1476 low**, twelve calls over the line above, for two ridge caps, four gutter runs
+and four downspouts — the gutters cost nothing on their own because they were folded into the
+fascia mesh that was already being drawn. The empty house is inside every budget on both tiers. It was not before the design pass: the
 manor's first build was 1894 draw calls on high, 5% over, and the plan was a mesh-merging pass
 by material. That pass was not needed. Baking each wall's casings, frames, sills and skirting
 into one mesh (`Props.union`) took the house from 440 meshes to 306 while *adding* frames,

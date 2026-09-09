@@ -42,10 +42,16 @@ static func _tex(slot: String, map: String) -> Texture2D:
 ##  `world_space` projects in world coordinates instead of the object's own. Props want local,
 ##  so a mug keeps its glaze when it is picked up; architecture wants world, so plaster and
 ##  siding run continuously across a corner instead of restarting on every wall segment.
+## `matte` drops the packed ORM map and takes `rough_mul` as a flat roughness instead of a
+## multiplier. It exists for surfaces the scan was not taken from: the roof boards are sawn
+## timber, and every wood scan here is a finished floor or panel at roughness ~0.53, which put
+## two mirror highlights of the attic bulb on the underside of the roof. The cost is the map's
+## baked ambient occlusion, which is nothing on a flat board.
 static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul := 1.0,
-		world_space := false) -> Material:
+		world_space := false, matte := false, vertex_tint := false) -> Material:
 	_load_specs()
-	var key := "%s|%s|%.3f|%.3f|%s" % [slot, tint.to_html(), rough_mul, scale_mul, world_space]
+	var key := "%s|%s|%.3f|%.3f|%s|%s|%s" % [slot, tint.to_html(), rough_mul, scale_mul,
+			world_space, matte, vertex_tint]
 	if _cache.has(key):
 		return _cache[key]
 
@@ -69,12 +75,12 @@ static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul :=
 	m.normal_enabled = true
 	m.normal_texture = _tex(slot, "normal")
 	m.normal_scale = float(spec.get("normal_scale", 1.0))
-	m.ao_enabled = true
-	m.orm_texture = _tex(slot, "orm")
+	m.ao_enabled = not matte
+	m.orm_texture = null if matte else _tex(slot, "orm")
 	# ORMMaterial3D multiplies the map by these, so they must not sit at zero or the
 	# packed roughness/metallic channels are thrown away.
 	m.roughness = clampf(rough_mul, 0.0, 1.0)
-	m.metallic = 1.0
+	m.metallic = 0.0 if matte else 1.0
 	m.ao_light_affect = 0.5
 
 	# Mipmaps kill the moire that unfiltered textures show at a distance, but on their own
@@ -82,6 +88,9 @@ static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul :=
 	# angle - which is most of a floor or a sofa. Anisotropic filtering keeps that detail.
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
+	# `vertex_tint` multiplies the albedo by the mesh's own vertex colours: macro variation the
+	# texture cannot carry, for surfaces far larger than one tile. See `Props.ground_slab`.
+	m.vertex_color_use_as_albedo = vertex_tint
 	m.uv1_triplanar = true
 	m.uv1_world_triplanar = world_space
 	m.uv1_triplanar_sharpness = 4.0

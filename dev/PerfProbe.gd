@@ -53,15 +53,23 @@ func _ready() -> void:
 
 	_measure(startup, items.get_child_count())
 
+## Every frame is forced to draw. A process frame is not a drawn frame: when the window is not
+## composited the engine ticks at 1 fps and draws nothing, and a probe that times process frames
+## then reports the frame budget of a scene that was never rendered.
 func _measure(startup: float, item_count: int) -> void:
+	# Without this the forced frames below queue behind the display refresh and every tier
+	# measures 16.7 ms, which is the monitor, not the house.
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	for i in range(WARMUP_FRAMES):
 		await get_tree().process_frame
+		RenderingServer.force_draw()
 	var worst := 0.0
 	var total := 0.0
 	var draws := 0
 	for i in range(MEASURE_FRAMES):
 		var t := Time.get_ticks_usec()
 		await get_tree().process_frame
+		RenderingServer.force_draw()
 		var ms := float(Time.get_ticks_usec() - t) / 1000.0
 		total += ms
 		worst = maxf(worst, ms)

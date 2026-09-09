@@ -34,9 +34,9 @@ enum Kind { GABLE, HIP, SHED }
 ## What the attic sees looking up.
 @export var underside_slot := "oak"
 @export var underside_tint := Color(0.55, 0.50, 0.42)
-## The triangle of wall between the eave and the slope at a gable end.
-@export var gable_slot := "painted_wood"
-@export var gable_tint := Color(0.80, 0.82, 0.73)
+## The triangle of wall between the eave and the slope at a gable end is siding, and it takes
+## the plan's siding slot and tint rather than carrying its own: it is the same wall, continued
+## upwards, and two copies of one colour drift apart the first time the house is repainted.
 @export var fascia_slot := "painted_wood"
 
 ## Height of the ridge above the eave.

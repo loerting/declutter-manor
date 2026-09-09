@@ -42,7 +42,10 @@ static func base_environment() -> Environment:
 	var skymat := ProceduralSkyMaterial.new()
 	skymat.sky_top_color = Color(0.45, 0.62, 0.85)
 	skymat.sky_horizon_color = Color(0.85, 0.80, 0.72)
-	skymat.ground_bottom_color = Color(0.35, 0.30, 0.25)
+	# Below the horizon the sky's own ground shows wherever the lot's grass runs out. Brown
+	# earth there reads as a hole in the world from anything above eye level, so it is the
+	# colour of land seen through haze instead.
+	skymat.ground_bottom_color = Color(0.44, 0.48, 0.38)
 	skymat.ground_horizon_color = Color(0.85, 0.80, 0.72)
 	var sky := Sky.new()
 	sky.sky_material = skymat
@@ -58,6 +61,22 @@ static func base_environment() -> Environment:
 	env.glow_hdr_threshold = 1.5
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 1.08
+	# Distance fog. The lot's grass runs 45 m past the fence so no view ends in a hard edge
+	# (`TerrainBuilder.SURROUND`), but without haze that far grass stays as saturated as the
+	# lawn underfoot and the horizon reads as a painted backdrop. Depth fog, beginning past the
+	# far side of the property so nothing the player walks through is touched by it.
+	env.fog_enabled = true
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_depth_begin = 30.0
+	env.fog_depth_end = 220.0
+	env.fog_depth_curve = 0.6
+	env.fog_density = 0.7
+	env.fog_light_color = Color(0.80, 0.83, 0.86)
+	env.fog_sun_scatter = 0.12
+	env.fog_aerial_perspective = 0.25
+	# The sky is not fogged at all. It already carries its own haze band at the horizon, and
+	# fogging it as well turned the whole dome one flat grey — visible in the first aerial.
+	env.fog_sky_affect = 0.0
 	return env
 
 static func apply(env: Environment, tier: Tier) -> void:

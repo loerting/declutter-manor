@@ -131,6 +131,66 @@ static func extrude(polygon: PackedVector2Array, origin: Vector3, u: Vector3, v:
 		_quad(st, at.call(a, w0), at.call(b, w0), at.call(b, w1), at.call(a, w1), n3)
 	return with_tangents(st.commit())
 
+## A rectangular ground slab whose top face is subdivided into `cell`-metre quads so it can
+## carry a colour that varies across the lot. One tiled texture stretched over a hundred metres
+## reads as a billiard table however good the texture is, and the variation that breaks it up is
+## far larger than the tile: it belongs in the mesh rather than in another texture. `tint` is
+## called with the world (x, z) of each grid vertex and returns that corner's colour; it must be
+## a function of world position alone, or two neighbouring slabs will not agree along their seam.
+static func ground_slab(rect: Rect2, y_bottom: float, y_top: float, cell: float,
+		tint: Callable) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var nx := maxi(1, int(ceil(rect.size.x / cell)))
+	var nz := maxi(1, int(ceil(rect.size.y / cell)))
+	var edge := Color.WHITE
+	for i in range(nx):
+		for j in range(nz):
+			var x0 := rect.position.x + rect.size.x * float(i) / float(nx)
+			var x1 := rect.position.x + rect.size.x * float(i + 1) / float(nx)
+			var z0 := rect.position.y + rect.size.y * float(j) / float(nz)
+			var z1 := rect.position.y + rect.size.y * float(j + 1) / float(nz)
+			_quad_tinted(st, Vector3(x0, y_top, z0), Vector3(x1, y_top, z0),
+					Vector3(x1, y_top, z1), Vector3(x0, y_top, z1), Vector3.UP,
+					[tint.call(x0, z0), tint.call(x1, z0), tint.call(x1, z1), tint.call(x0, z1)])
+	var a := rect.position
+	var b := rect.end
+	var corners := [Vector2(a.x, a.y), Vector2(b.x, a.y), Vector2(b.x, b.y), Vector2(a.x, b.y)]
+	_quad_tinted(st, Vector3(a.x, y_bottom, a.y), Vector3(b.x, y_bottom, a.y),
+			Vector3(b.x, y_bottom, b.y), Vector3(a.x, y_bottom, b.y), Vector3.DOWN,
+			[edge, edge, edge, edge])
+	for i in range(4):
+		var p: Vector2 = corners[i]
+		var q: Vector2 = corners[(i + 1) % 4]
+		var out := Vector3(q.y - p.y, 0.0, p.x - q.x).normalized()
+		_quad_tinted(st, Vector3(p.x, y_bottom, p.y), Vector3(q.x, y_bottom, q.y),
+				Vector3(q.x, y_top, q.y), Vector3(p.x, y_top, p.y), out,
+				[edge, edge, tint.call(q.x, q.y), tint.call(p.x, p.y)])
+	return with_tangents(st.commit())
+
+## `_quad` with a colour per corner. Every vertex carries one, because a surface where some
+## vertices have a colour and some do not is a format mismatch, not a default.
+static func _quad_tinted(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3,
+		n: Vector3, colors: Array) -> void:
+	var ca: Color = colors[0]
+	var cb: Color = colors[1]
+	var cc: Color = colors[2]
+	var cd: Color = colors[3]
+	if (b - a).cross(c - a).dot(n) > 0.0:
+		var t := b
+		var tc := cb
+		b = d
+		cb = cd
+		d = t
+		cd = tc
+	var fn := -(b - a).cross(c - a).normalized()
+	var verts := [a, b, c, a, c, d]
+	var cols := [ca, cb, cc, ca, cc, cd]
+	for i in range(6):
+		st.set_normal(fn)
+		st.set_color(cols[i])
+		st.add_vertex(verts[i])
+
 static func _signed_area(polygon: PackedVector2Array) -> float:
 	var s := 0.0
 	for i in range(polygon.size()):

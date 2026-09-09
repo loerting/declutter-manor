@@ -120,9 +120,42 @@ thirty draw calls and is now four. The pieces themselves are:
   need `CULL_DISABLED` and nothing here relies on that. The coping covers the joint. The water
   is the volume rather than a plane on it: only its top face is ever front-facing, so the liner
   shows through the tint at the depth it actually has.
+- **The roof edge.** A ridge cap runs the length of the ridge over the joint where the two
+  slopes meet, and a gutter hangs off the fascia along both eaves with a downspout at one end
+  of each, elbowed back to the wall and stopped a finger above the ground. The gutter is a
+  channel with two sides and a floor rather than a solid bar, because the aerial view looks
+  straight into it. Fascia, gutters and downspouts are one mesh per roof: they share a material
+  and never move apart.
+- **The gable takes the plan's siding.** It is the same wall continued upwards, so it reads
+  `plan.siding_slot` and `plan.siding_tint` rather than carrying a copy on `RoofDef` — two
+  copies of one colour drift apart the first time the house is repainted.
 - **Fixtures.** Every room light hangs a flush fixture — disc and frosted dome — so the hotspot
   on the ceiling has something at it. Rooms with glazing run their bulb at `DAYLIT_BULB` while
   the sun is up; every window glowing warm at noon is the single strongest model-not-house tell.
+
+### Texture scale is in metres, and a room may deviate from it
+
+Every slot in `assets/textures.json` carries the real-world size of one tile, and `Mats` sets
+`uv1_scale` from it; that physical scale is most of what separates a scene that reads as real
+from one that reads as plastic. Two rooms need a size the scan was not taken at, so `RoomDef`
+carries `wall_scale` and `floor_scale` as explicit, documented multipliers: the attic's knee
+walls are boarded and the siding scan is a 1.2 m panel, which put one board across a wall
+0.9 m tall; the kitchen floor is stone and the stone scan is a 1.2 m worktop slab. `Mats.of`
+also takes `matte`, which drops the packed ORM map for a flat roughness — the roof boards are
+sawn timber and every wood scan here is a finished floor at roughness ~0.53, which put two
+mirror highlights of the attic bulb on the underside of the roof.
+
+### The ground is one texture and two things that hide it
+
+The lawn tiles every 1.4 m and runs `SURROUND` past the lot in every direction, and neither
+fact may be visible. Distance fog (`Graphics.base_environment`) begins at 30 m, past the far
+side of the property, so nothing the player walks through is touched by it and the grass fades
+into haze instead of ending at a line. The tiling itself is broken by macro variation carried
+in the mesh: `Props.ground_slab` subdivides the grass into 4 m quads and colours their vertices
+from value noise on a 14 m lattice, which `Mats.of(..., vertex_tint)` multiplies into the
+albedo. The noise is a pure function of world position, so two pieces meeting at a seam agree
+on the colour of the grass along it, and an integer hash rather than a seeded RNG, so the lawn
+is the same in every render.
 
 ### Walls are derived, not typed
 

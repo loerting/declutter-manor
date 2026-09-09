@@ -17,12 +17,18 @@ const SURROUND := 45.0
 const GRASS_DEPTH := 0.4
 ## Grass sits a hair below the paving so the two never fight for the same pixel.
 const GRASS_TOP := -0.02
+## Macro variation. The lawn texture tiles every 1.4 m; over a 116 m square that repeat is the
+## whole reason a big flat lawn reads as a billiard table. The mesh carries a second, much
+## slower variation on a 14 m lattice — dry patches and shade, the scale a real lawn varies at.
+const MACRO_LATTICE := 14.0
+const MACRO_CELL := 4.0
+const MACRO_RANGE := 0.16
 
 static func build(parent: Node3D, plan: FloorPlan) -> void:
 	var holder := Node3D.new()
 	holder.name = "Terrain"
 	parent.add_child(holder)
-	var grass := Mats.of(plan.ground_slot, Color(0.92, 1.0, 0.88), 1.0, 1.0, true)
+	var grass := Mats.of(plan.ground_slot, Color(0.92, 1.0, 0.88), 1.0, 1.0, true, false, true)
 
 	var built := _building_bounds(plan)
 	var lot := plan.lot.grow(SURROUND)
@@ -55,7 +61,12 @@ static func build(parent: Node3D, plan: FloorPlan) -> void:
 			j += 1
 			var mi := MeshInstance3D.new()
 			mi.name = "Grass%d_%d" % [i, j]
-			mi.mesh = Props.prism(poly, GRASS_TOP - GRASS_DEPTH, GRASS_TOP)
+			# Every piece is a rectangle — the strips are, and cutting a rectangle out of one
+			# leaves rectangles — so the tinted slab covers each exactly. Anything else would
+			# be a plan the decomposition does not produce, and gets the plain solid.
+			mi.mesh = Props.ground_slab(HouseBuilder.bounds(poly), GRASS_TOP - GRASS_DEPTH,
+					GRASS_TOP, MACRO_CELL, _tint) if poly.size() == 4 \
+					else Props.prism(poly, GRASS_TOP - GRASS_DEPTH, GRASS_TOP)
 			mi.set_surface_override_material(0, grass)
 			holder.add_child(mi)
 			var body := StaticBody3D.new()
@@ -63,6 +74,30 @@ static func build(parent: Node3D, plan: FloorPlan) -> void:
 			shape.shape = mi.mesh.create_trimesh_shape()
 			body.add_child(shape)
 			holder.add_child(body)
+
+## Lawn colour at a world point: value noise on `MACRO_LATTICE`, smoothed, as a multiplier on
+## the grass albedo. A pure function of world position, so two pieces meeting at a seam agree
+## on the colour of the grass along it.
+static func _tint(x: float, z: float) -> Color:
+	var u := x / MACRO_LATTICE
+	var v := z / MACRO_LATTICE
+	var ix := int(floor(u))
+	var iz := int(floor(v))
+	var fx := smoothstep(0.0, 1.0, u - float(ix))
+	var fz := smoothstep(0.0, 1.0, v - float(iz))
+	var n := lerpf(lerpf(_lattice(ix, iz), _lattice(ix + 1, iz), fx),
+			lerpf(_lattice(ix, iz + 1), _lattice(ix + 1, iz + 1), fx), fz)
+	var k := 1.0 + (n - 0.5) * 2.0 * MACRO_RANGE
+	# the bright patches are the dry ones, so they lose a little green as they gain value
+	return Color(k, k * (1.0 - (k - 1.0) * 0.6), k * 0.99)
+
+## Deterministic 0..1 value at a lattice point. Integer hash rather than a seeded RNG: the
+## lawn has to look the same in every session and in every render, including the aerial the
+## gate is judged on.
+static func _lattice(ix: int, iz: int) -> float:
+	var h := ix * 374761393 + iz * 668265263
+	h = (h ^ (h >> 13)) * 1274126177
+	return float((h ^ (h >> 16)) & 0xFFFF) / 65535.0
 
 ## Plan-space rectangle the building occupies. Exterior zones are ground, not building, so
 ## they do not push the grass back.

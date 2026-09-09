@@ -31,6 +31,8 @@ const MANOR_VIEWS := {
 	"pool": [Vector3(23.0, 2.6, 21.5), Vector3(16.0, -0.5, 17.2)],
 	"deck_steps": [Vector3(9.0, 1.5, 22.5), Vector3(9.2, 0.1, 18.4)],
 	"pool_edge": [Vector3(13.2, 1.5, 19.6), Vector3(18.0, -0.6, 17.2)],
+	# the north-west corner, where the gutter, its downspout and the plinth all meet
+	"eave": [Vector3(0.6, 2.4, 2.2), Vector3(4.6, 2.9, 6.4)],
 }
 
 const VIEWS := {
@@ -109,7 +111,7 @@ func _warm_materials(plan: FloorPlan) -> void:
 			if not slots.has(slot):
 				slots.append(slot)
 	for roof: RoofDef in plan.roofs:
-		for slot: String in [roof.slot, roof.gable_slot, roof.fascia_slot]:
+		for slot: String in [roof.slot, roof.fascia_slot]:
 			if not slots.has(slot):
 				slots.append(slot)
 	for slot: String in slots:
@@ -158,9 +160,15 @@ func _meshes(node: Node) -> Array[MeshInstance3D]:
 		out.append_array(_meshes(child))
 	return out
 
+## A process frame is not a drawn frame. When the window is not composited — a headless X
+## session, another workspace, a screen that blanked — the engine keeps ticking at 1 fps and
+## `Engine.get_frames_drawn()` stays at 0, so the viewport texture is whatever it was: black.
+## Every render is then a black PNG that no error reports. `force_draw()` makes each settle
+## iteration a real frame, which is also what SDFGI and the VoxelGI bake need to converge.
 func _screenshot(path: String) -> void:
 	for i in range(SETTLE_FRAMES):
 		await get_tree().process_frame
+		RenderingServer.force_draw()
 	var img := get_viewport().get_texture().get_image()
 	var err := img.save_png(path)
 	if err != OK:
