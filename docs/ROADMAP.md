@@ -52,6 +52,10 @@ with its FSM and openable furniture, crosshair and reach. The kitchen is the ref
 implementation: a drawer whose spoon group stacks twelve deep, and a cabinet holding clutter that
 belongs elsewhere.
 
+Standing on the first commit of the phase: the controller, `WorldBuilder` as the single path
+into a lit house, stair ramps, the plan-authored spawn, and `dev/WalkProbe.gd`, which drops a
+real body into all 26 zones and walks it up all three flights.
+
 **Gate:** the author can walk the entire property, open every container, and put twelve spoons away
 one at a time into a correctly stacking drawer. Human verification, explicitly — and this is also
 where the 30 s search budget gets its first real measurement.

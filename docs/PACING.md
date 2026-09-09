@@ -136,6 +136,23 @@ by material. That pass was not needed. Baking each wall's casings, frames, sills
 into one mesh (`Props.union`) took the house from 440 meshes to 306 while *adding* frames,
 mullions, plinth, steps, fixtures and balustrades — and the draw-call count fell with it.
 
+**The medium tier misses the cold-start budget, and it was the measurement that was wrong.**
+`PerfProbe` built the house, timed that, and lit the scene afterwards — so the VoxelGI bake, the
+one thing the medium tier does that the others do not, sat outside the number it was being judged
+by, and the probe was not baking at all. Both are fixed: the probe lights the scene through
+`WorldBuilder` exactly as the game does, and the bake is inside the startup timing, because it is
+time the player waits. Measured then, empty house: **high 0.88 s, low 0.95 s, medium 4.31 s** —
+0.91 s of house and 3.4 s of bake, against a 4 s budget. Frame times are unaffected (high 9.1 ms,
+medium 7.2 ms with its GI, low 6.9 ms) and the draw calls are 1476 on all three.
+
+Three things were measured against that bake and none of them is the fix: `SUBDIV_64` instead of
+128 saves 0.3 s, excluding the lawn from the bake saves 0.4 s, and fitting the bake volume to the
+lot instead of to the geometry costs 0.7 s (finer voxels over the house, more of them to fill).
+The cost is the house itself, 306 meshes with 2K textures, rendered into the volume. The fix that
+would work is to stop baking at runtime: the house is fixed content, so the `VoxelGIData` can be
+baked once by a dev tool, keyed by `plan_hash` so a changed plan invalidates it, and loaded. That
+is not built. Until it is, the medium tier costs about 4.3 s to enter.
+
 At 500 stress items both tiers are over the draw-call budget by the items alone: each stress
 item is its own draw. That is the Phase 3 `MultiMesh` lever, and it is the items' problem, not
 the house's. Frame times stay inside budget with them.

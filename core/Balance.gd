@@ -14,6 +14,25 @@ const ACCELERATION := 14.0
 const MOUSE_SENSITIVITY := 0.0022
 const PITCH_LIMIT := 1.45
 
+## The body. Eye height is where a first-person camera has to sit for a room to read at the
+## size it was built at: 1.65 m is adult eye height, and the doors, worktops and handrails in
+## `HouseBuilder` are all dimensioned for it. The capsule is the whole of the player's physics
+## — there is no visible body (`docs/VISION.md`), so nothing else about it is ever seen.
+const PLAYER_HEIGHT := 1.75
+const PLAYER_RADIUS := 0.3
+const EYE_HEIGHT := 1.65
+const GRAVITY := 9.8
+## Kept in contact with the floor over the crest of a stair ramp, so walking down a flight is
+## a walk rather than a series of falls.
+const FLOOR_SNAP := 0.4
+## Steeper than any flight the plan may contain. The attic ladder in the manor is 65 degrees
+## and is the only way into the attic, so the limit has to clear it; the roof at 32 degrees
+## would also qualify, and cannot be reached. A proper climb interaction may replace this.
+const FLOOR_MAX_ANGLE_DEG := 70.0
+## Vertical field of view. Wider than the 65 the gate renders use, because a render is looked
+## at from outside and a corridor is walked through: at 65 the hall reads narrower than it is.
+const FOV := 70.0
+
 # --- Reach and placement (docs/ARCHITECTURE.md, "Placement") -------------------------------
 
 ## How far the interaction ray reaches for picking up and for opening containers.

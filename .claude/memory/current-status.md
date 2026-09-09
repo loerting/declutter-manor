@@ -1,68 +1,59 @@
 ---
 name: current-status
 description: "READ FIRST — where Declutter Manor stands, what is next, and what is still open"
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: f6ecb723-ec95-4513-bc14-46c3964660c9
-  modified: 2026-09-09T14:37:07.601Z
+  modified: 2026-09-09T00:00:00.000Z
 ---
 
-**As of 2026-09-09.** Phase 0 committed (`175cbc4`). Phase 1: manor (`d13d771`), design pass
-(`081c5d7`), deck and pool (`a47aa58`), render harness + review finish (`dd03aec`). The
-**shadow fix, the attic gable walls and the three-tier gate renders are uncommitted** — below.
+**As of 2026-09-09.** Phase 0 committed (`175cbc4`). Phase 1 complete and gated: manor
+(`d13d771`), design pass (`081c5d7`), deck and pool (`a47aa58`), render harness (`dd03aec`),
+gate + shadow fix + attic gables (`3f5d00f`). **Phase 2 is in progress** — the first tranche
+(player, bootstrap, walk probe) is below.
 
-## The decision that matters
+## The decisions that matter
 
-**A wall is one mesh with two faces and a rim, cut by one list of openings.** `WallSegment`
-names `room_a` / `room_b` (side A on your right walking a to b); materials derive from that.
-`WallDeriver` derives walls from room rectangles; plans pierce by room name / compass point.
+- **A wall is one mesh with two faces and a rim, cut by one list of openings.** `WallSegment`
+  names `room_a` / `room_b` (side A on your right walking a to b); materials derive from that.
+  `WallDeriver` derives walls from room rectangles; plans pierce by room name / compass point.
+- **`WorldBuilder` is the only path from a plan to a lit house.** Game, gate renders and
+  `PerfProbe` all go through it, so the game cannot be lit differently from the render that
+  approved it. It also owns the settle-and-capture every screenshot uses.
+- **A flight collides as a ramp, not as its treads.** A body cannot climb a 17 cm nose;
+  `WalkProbe` measured all three manor flights failing before the ramp existed.
 
-## The render harness was lying (fixed in `dd03aec`)
+## Phase 2, tranche 1 (this batch)
 
-A process frame is not a drawn frame. With the window uncomposited the engine ticks at 1 fps
-and draws nothing: `Engine.get_frames_drawn()` stayed at 0 while `HouseView` saved black PNGs
-with no error. `HouseView`, `PropView` and `PerfProbe` call `RenderingServer.force_draw()` per
-settle frame; `PerfProbe` disables vsync first, or every tier measures 16.7 ms — the monitor.
+`player/Player.tscn` + `PlayerController` (capsule, head, eye at `Balance.EYE_HEIGHT`, walk at
+the 2.8 m/s the pacing budget is derived from), input map, `scenes/World.tscn` +
+`GameWorld` booted from `Main`, spawn as plan data (`FloorPlan.spawn_room/offset/facing`,
+manor: inside the front door looking down the hall), stair ramps, `dev/WalkProbe.gd`.
 
-## Shadows: one cascade, 8192 on high (uncommitted)
-
-The eave sawtooth was **texel size, nothing else**. Measured against it and rejected: shadow
-bias, normal bias 2.0 → 0.5, cascade split ratios at 4096, a shorter max distance. What fixed
-it was resolution. `Graphics.make_sun` now uses `SHADOW_ORTHOGONAL` on every tier with
-`RenderingServer.directional_shadow_atlas_set_size(SHADOW_ATLAS[tier], true)` — 8192 high,
-4096 medium and low. One cascade instead of two costs 109 *fewer* draw calls, because a
-cascade is the whole house re-rendered into the shadow map.
-
-## The attic closes to the roof (uncommitted)
-
-`WallSegment.gable_rise` puts a triangle on top of a wall, peaking at the middle of its length;
-`Props.holed_slab(size, holes, split, gable_rise)` builds it into the same three surfaces, so
-the wall stays one object. The peak is forced into the column cuts, so the slopes are exact
-rather than tessellated, and the end columns are triangles (a quad there would leave a
-zero-area face with a zero normal for Diag to count). `ManorPlan._attic` sets the rise from
-`ATTIC.size.y * 0.5 * tan(PITCH)`. Diag has a `gable_slab` case: 0 backwards, 0 inward.
-
-## Phase 1 gate (uncommitted, `screenshots/manor5/`)
-
-Eight views — front, west, aerial, rear_pool, entry, living, kitchen, attic — at all three
-tiers, 24 renders, 35 MB. Cost with the house alone: **1476 draw calls on every tier**, budget
-1800; 9.3 ms high, 6.9 ms medium and low; 80.7 MB high; startup 0.9 s. Suite 29 checks pass,
-PlanProbe 0 violations (manor hash `872acd2866f4ed8b`), Diag clean, `--import` clean.
+`WalkProbe`: 26 of 26 zones hold a body up, all three flights climbed (40.3, 37.4 and 64.6
+degrees). Both failure modes proven red first. `Balance.FLOOR_MAX_ANGLE_DEG` is 70 because the
+attic ladder is 65.
 
 ## Next concrete step
 
-Commit the batch, then the author's call on the low tier's colour cast (below). After that,
-Phase 2.
+Phase 2 tranche 2: `PlaceSlotGroup`, `CarryComponent`, `Inventory`, the ghost preview with the
+white inverted-hull outline, `ContainerComponent`'s FSM, the crosshair, and the kitchen
+reference (a drawer stacking twelve spoons, a cabinet holding clutter).
 
 ## Open loops
 
+- **The medium tier costs ~4.3 s to enter, against a 4 s budget** — 0.9 s of house and 3.4 s of
+  VoxelGI bake. Found by fixing the measurement (`PerfProbe` now lights through `WorldBuilder`
+  and counts the bake as startup). Subdiv, excluding the lawn and refitting the bake volume were
+  all measured and none of them is the fix; the fix is to bake once in a dev tool and ship the
+  `VoxelGIData` keyed by `plan_hash`. Written up in `docs/PACING.md`.
 - **The low tier's interiors are cool and green.** Ambient is the sky at `LOW_AMBIENT` 2.0 with
-  no bounce, and the sky's lower hemisphere is now hazy green, so ceilings tint green and
-  doorways read as blue voids (`screenshots/manor5/entry_low.png`, `living_low.png`). High and
-  medium are warm and right. `Graphics.gd` says the tier gap is the author's call, so it is not
-  tuned unasked; the levers are `ambient_light_sky_contribution` and `ambient_light_color`.
+  no bounce and the sky's lower hemisphere is hazy green. `Graphics.gd` says the tier gap is the
+  author's call; levers are `ambient_light_sky_contribution` and `ambient_light_color`.
+- **Door reveals read dark.** In the spawn render the office doorway's reveal is a dark brown
+  band: correct geometry, unlit, and nothing lines it. A reveal lining or casing return would
+  fix it. Author's call.
 - No texture in the manifest has tile joints, so no floor reads as laid tiles.
-- BC7 texture import decided and documented in `docs/PACING.md`.
 - Confirm separate demo location before Phase 5; measure 30 s search at the Phase 2 gate;
   localization pass after Phase 4.

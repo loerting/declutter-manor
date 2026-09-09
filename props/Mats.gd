@@ -62,7 +62,11 @@ static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul :=
 		# scene has to stay runnable without them rather than crashing.
 		if not _warned:
 			_warned = true
-			push_warning("No textures in %s - run: python3 tools/fetch_textures.py" % DIR)
+			# Named, because "no textures" is two different problems: none downloaded at all,
+			# and one slot in the manifest that nothing on disk answers to. The second one is
+			# a flat-coloured surface in a render nobody notices is flat.
+			push_warning("No texture for slot '%s' in %s - run: python3 tools/fetch_textures.py"
+					% [slot, DIR])
 		var flat := Props.mat(tint, clampf(0.85 * rough_mul, 0.0, 1.0))
 		_cache[key] = flat
 		return flat

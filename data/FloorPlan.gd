@@ -20,6 +20,14 @@ extends Resource
 ## Plan-space extent of the lot, used for terrain and for the probe's bounds checks.
 @export var lot := Rect2(0, 0, 26, 19)
 
+## Where the player starts: a room, an offset from its centroid in plan metres, and which way
+## they face. It is plan data for the same reason the walls are — a spawn node placed in a
+## scene would have to be kept in step with a room that is generated (`WorldBuilder.spawn_point`).
+@export var spawn_room: StringName = &""
+@export var spawn_offset := Vector2.ZERO
+## Degrees of yaw. 0 looks north, up the plan's -Z, which is the way a camera faces unrotated.
+@export var spawn_facing := 0.0
+
 func all_rooms() -> Array[RoomDef]:
 	var out: Array[RoomDef] = []
 	for s: StoreyDef in storeys:

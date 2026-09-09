@@ -118,6 +118,9 @@ const LADDER_WIDTH := 0.8
 ## side is open and needs a rail; no floor means a wall, which is its own guard.
 const OPEN_PROBE := 0.3
 const GUARD_INSET := 0.05
+## Depth of the collision ramp under a flight. Only its top face is ever touched; the rest is
+## there so a body cannot tunnel through it on a fast frame.
+const RAMP_THICKNESS := 0.4
 
 static func build(plan: FloorPlan) -> Node3D:
 	var root := Node3D.new()
@@ -767,7 +770,8 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 	var holder := Node3D.new()
 	holder.name = "Stair_%s_%s" % [stair.lower_room, stair.upper_room]
 	parent.add_child(holder)
-	surface(holder, mesh, [Mats.of(stair.tread_slot, Color.WHITE, 0.7, 1.0, true)], "Flight", true)
+	surface(holder, mesh, [Mats.of(stair.tread_slot, Color.WHITE, 0.7, 1.0, true)], "Flight", false)
+	_stair_ramp(holder, stair, origin, u, w, rise)
 
 	if stair.width < LADDER_WIDTH:
 		return
@@ -803,6 +807,32 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 
 ## Newel at the foot, newel at the head, a raked handrail through the nosings between them and
 ## two balusters on every tread. Everything stands on the tread it belongs to.
+## A flight collides as a ramp, not as its treads. A `CharacterBody3D` cannot climb a 17 cm
+## nose — every step is a vertical wall to it — and `dev/WalkProbe.gd` measured exactly that:
+## with the treads as the collider, a body driven at all three flights climbed none of them.
+## The ramp's top plane runs from the lower floor at the foot to the upper floor at the head,
+## so it meets both without a lip; the treads it passes under stand up to one riser above it,
+## which nobody sees, because there is no visible body to see them against (`docs/VISION.md`).
+static func _stair_ramp(holder: Node3D, stair: StairDef, origin: Vector3, u: Vector3, w: Vector3,
+		rise: float) -> void:
+	var along := (u * stair.run + Vector3.UP * rise).normalized()
+	var normal := w.cross(along).normalized()
+	if normal.y < 0.0:
+		normal = -normal
+	var length := sqrt(stair.run * stair.run + rise * rise)
+	var centre := origin + u * (stair.run * 0.5) + Vector3.UP * (rise * 0.5) \
+			- normal * (RAMP_THICKNESS * 0.5)
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(stair.width, RAMP_THICKNESS, length)
+	var node := CollisionShape3D.new()
+	node.shape = shape
+	# X across the flight, Y its face normal, Z along it. Right-handed, so Z is -along.
+	node.transform = Transform3D(Basis(w, normal, -along), centre)
+	var body := StaticBody3D.new()
+	body.name = "FlightBody"
+	body.add_child(node)
+	holder.add_child(body)
+
 static func _build_rake_rail(rails: Dictionary, stair: StairDef, s: float, y0: float,
 		riser: float, going: float, steps: int) -> void:
 	var u := Vector3(stair.direction.x, 0.0, stair.direction.y)

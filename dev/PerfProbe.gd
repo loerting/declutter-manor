@@ -32,14 +32,11 @@ func _ready() -> void:
 	add_child(house)
 	var items := _fill(plan, _items)
 	add_child(items)
+	# The same lighting the game and the gate renders get, bake included — a medium tier
+	# measured without its VoxelGI is a measurement of a tier nobody plays, and the bake is
+	# time the player waits, so it is inside the cold-start budget rather than beside it.
+	WorldBuilder.light(self, WorldBuilder.bounds(house), _tier)
 	var startup := float(Time.get_ticks_msec() - t_start) / 1000.0
-
-	var env := Graphics.base_environment()
-	Graphics.apply(env, _tier)
-	var we := WorldEnvironment.new()
-	we.environment = env
-	add_child(we)
-	add_child(Graphics.make_sun(_tier))
 
 	var cam: Camera3D = $Camera3D
 	cam.fov = 65.0
@@ -47,9 +44,7 @@ func _ready() -> void:
 	# the stairs, the arch into the living room and the arch into the dining room all in view.
 	cam.position = Vector3(9.5, 2.05, 6.4)
 	cam.look_at(Vector3(9.5, 1.75, 15.0))
-	var culler := LightCuller.new()
-	culler.initialize(LightCuller.collect(house), cam)
-	add_child(culler)
+	WorldBuilder.attach_culler(self, house, cam)
 
 	_measure(startup, items.get_child_count())
 

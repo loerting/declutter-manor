@@ -191,6 +191,15 @@ floor it arrives through and the ceiling it leaves through. `PlanProbe` checks t
 lies in the lower room and the head in the upper one, and reachability is computed across the
 whole plan through doors *and* stairs — a storey with no stair is a storey that does not exist.
 
+**A flight collides as a ramp, not as its treads.** A `CharacterBody3D` cannot climb a 17 cm
+nose — every step is a vertical wall to it — and `dev/WalkProbe.gd` measured exactly that: with
+the treads as the collider, a body driven at all three of the manor's flights climbed none of
+them. The collider is a box whose top plane runs from the lower floor at the foot to the upper
+floor at the head, so it meets both without a lip. The treads it passes under stand up to one
+riser above it, which nobody sees, because there is no visible body to see them against. The
+manor's attic ladder rises at 65 degrees, which is why `Balance.FLOOR_MAX_ANGLE_DEG` is 70 and
+not the engine's 45; a proper climb interaction may replace that.
+
 Balustrades are derived, not authored. A side of the flight with floor beyond it
 (`OPEN_PROBE` out from the edge, inside the lower room) is open and gets a raked rail with a
 newel at each end and two balusters per tread; a side with a wall beyond it is guarded by the
@@ -214,8 +223,43 @@ fail on a deliberate break:
 | `wall.room` / `wall.sides` | a wall naming a room that does not exist, or belonging to none |
 | `stair.foot` / `.head` / `.storeys` | a flight starting or arriving outside its rooms, or between rooms on one storey |
 
+### What `dev/WalkProbe.gd` proves
+
+`PlanProbe` proves the plan is consistent and the renders prove it looks right. Neither can say
+whether the floor under a room is solid, whether a doorway is a hole a body fits through, or
+whether a flight can be climbed — those are properties of the collision the builder generated,
+and they are measured by dropping a real `PlayerController` into the house and watching where it
+ends up. It is headless, takes seconds, and exits with its violation count.
+
+| Check | Catches |
+|---|---|
+| `room.floor` | a zone with no floor collision, a slab at the wrong storey, a pool basin you fall through |
+| `spawn.floor` / `spawn.room` | a spawn inside a wall, over a stairwell, or outside its own room |
+| `stair.pitch` | a flight steeper than a body can stand on, before anyone tries to walk it |
+| `stair.climb` | a flight that cannot be walked up: no ramp, a lip at either end, a gap |
+
+Both failure modes have been shown: with floor collision removed every zone reported falling
+through, and with the stair ramps removed all three flights reported failing to climb.
+
 Occluder generation from the same walk is planned for the end of Phase 1, once `PerfProbe` says
 whether the draw-call budget needs it. It is not built yet.
+
+## The player, and the one bootstrap
+
+`player/Player.tscn` is a capsule, a head that pitches and a camera at eye height. There is no
+visible body and there never will be (`docs/VISION.md`), so that is the whole character. Its
+dimensions are set from `Balance` in `_ready()` rather than typed into the scene: the scene owns
+the node structure, `Balance` owns every number, and the eye height the house is dimensioned for
+must not exist in two places. The pointer is grabbed on the first input event rather than in
+`_ready`, because a window the window manager has not focused yet cannot take it and says so.
+
+`world/WorldBuilder.gd` is the one path from a `FloorPlan` to a lit, walkable house: geometry,
+sky, sun, the tier's global illumination, the light culler, the material warm-up and the
+settle-and-capture that every screenshot goes through. The game (`scenes/World.tscn`), the gate
+renders (`dev/HouseView.tscn`) and the performance probe all call it, so a house lit one way in
+a render and another way in the game is not a mistake that can be made. The spawn is plan data
+for the same reason the walls are — a spawn node placed in a scene would have to be kept in step
+with rooms that are generated.
 
 ## Items
 

@@ -86,6 +86,11 @@ static func build() -> FloorPlan:
 	garage_roof.abut_start = true   # meets the house's east wall; no gable, no overhang there
 	main_roof.underside_tint = Color(0.74, 0.68, 0.58)
 	plan.roofs = [main_roof, garage_roof]
+	# Inside the front door, looking down the hall into the house — the first thing the player
+	# sees is the centre-hall plan this house is organised around, not a wall.
+	plan.spawn_room = &"entry_hall"
+	plan.spawn_offset = Vector2(0.0, -3.5)
+	plan.spawn_facing = 180.0
 	return plan
 
 static func _storey(id: StringName, base: float, height: float) -> StoreyDef:

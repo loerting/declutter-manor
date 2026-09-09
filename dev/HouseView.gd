@@ -47,10 +47,6 @@ const VIEWS := {
 	"shared_door": [Vector3(15.0, 1.60, 10.6), Vector3(17.6, 1.15, 9.3)],
 }
 
-## SDFGI and the VoxelGI bake both need time to settle; capturing early gives a render lit by
-## direct light alone, which is a different-looking game.
-const SETTLE_FRAMES := 180
-
 var _tier := Graphics.Tier.HIGH
 
 func _ready() -> void:
@@ -75,17 +71,17 @@ func _ready() -> void:
 	# which is already over the 4 s cold-start budget in docs/PACING.md for three rooms. Guessing
 	# which half is slow would have been wrong: it is almost entirely texture load.
 	var t_mat := Time.get_ticks_msec()
-	_warm_materials(plan)
+	WorldBuilder.warm_materials(plan)
 	t_mat = Time.get_ticks_msec() - t_mat
 	var t0 := Time.get_ticks_msec()
 	var house := HouseBuilder.build(plan)
 	add_child(house)
-	var bounds := _bounds(house)
+	var bounds := WorldBuilder.bounds(house)
 	print("built '%s' in %d ms (+%d ms materials) — %d meshes, %s, tier %s" % [
-			plan.id, Time.get_ticks_msec() - t0, t_mat, _mesh_count(house), bounds,
+			plan.id, Time.get_ticks_msec() - t0, t_mat, WorldBuilder.meshes(house).size(), bounds,
 			Graphics.tier_name(_tier)])
 
-	_build_lighting(bounds)
+	WorldBuilder.light(self, bounds, _tier)
 
 	if not views.has(view):
 		push_error("HouseView: no such view '%s' — have %s" % [view, ", ".join(views.keys())])
@@ -97,82 +93,11 @@ func _ready() -> void:
 	cam.yaw = cam.rotation.y
 	cam.pitch = cam.rotation.x
 	cam.fov = 65.0
-	_attach_culler(house, cam)
+	WorldBuilder.attach_culler(self, house, cam)
 
 	if shot != "":
 		_screenshot(shot)
 
-## Touches every material the plan will ask for, so the build timing that follows measures
-## geometry rather than the first texture load.
-func _warm_materials(plan: FloorPlan) -> void:
-	var slots := PackedStringArray([plan.siding_slot, plan.ground_slot])
-	for room: RoomDef in plan.all_rooms():
-		for slot: String in [room.floor_slot, room.ceiling_slot, room.wall_slot]:
-			if not slots.has(slot):
-				slots.append(slot)
-	for roof: RoofDef in plan.roofs:
-		for slot: String in [roof.slot, roof.fascia_slot]:
-			if not slots.has(slot):
-				slots.append(slot)
-	for slot: String in slots:
-		Mats.of(slot, Color.WHITE, 1.0, 1.0, true)
-
-func _attach_culler(house: Node3D, cam: Camera3D) -> void:
-	var culler := LightCuller.new()
-	culler.initialize(LightCuller.collect(house), cam)
-	add_child(culler)
-
-func _build_lighting(bounds: AABB) -> void:
-	var env := Graphics.base_environment()
-	Graphics.apply(env, _tier)
-	var we := WorldEnvironment.new()
-	we.environment = env
-	add_child(we)
-
-	add_child(Graphics.make_sun(_tier))
-
-	var gi := Graphics.make_voxel_gi(_tier, bounds.grow(1.0))
-	if gi == null:
-		return
-	add_child(gi)
-	var t0 := Time.get_ticks_msec()
-	gi.bake(self, false)
-	print("VoxelGI baked in %d ms" % [Time.get_ticks_msec() - t0])
-
-func _bounds(node: Node3D) -> AABB:
-	var out := AABB()
-	var first := true
-	for mi: MeshInstance3D in _meshes(node):
-		var box := mi.global_transform * mi.get_aabb()
-		out = box if first else out.merge(box)
-		first = false
-	return out
-
-func _mesh_count(node: Node3D) -> int:
-	return _meshes(node).size()
-
-func _meshes(node: Node) -> Array[MeshInstance3D]:
-	var out: Array[MeshInstance3D] = []
-	var mi := node as MeshInstance3D
-	if mi != null:
-		out.append(mi)
-	for child: Node in node.get_children():
-		out.append_array(_meshes(child))
-	return out
-
-## A process frame is not a drawn frame. When the window is not composited — a headless X
-## session, another workspace, a screen that blanked — the engine keeps ticking at 1 fps and
-## `Engine.get_frames_drawn()` stays at 0, so the viewport texture is whatever it was: black.
-## Every render is then a black PNG that no error reports. `force_draw()` makes each settle
-## iteration a real frame, which is also what SDFGI and the VoxelGI bake need to converge.
 func _screenshot(path: String) -> void:
-	for i in range(SETTLE_FRAMES):
-		await get_tree().process_frame
-		RenderingServer.force_draw()
-	var img := get_viewport().get_texture().get_image()
-	var err := img.save_png(path)
-	if err != OK:
-		push_error("HouseView: could not write %s (%d)" % [path, err])
-	else:
-		print("screenshot saved: ", path)
+	var err := await WorldBuilder.capture(self, path)
 	get_tree().quit(0 if err == OK else 1)
