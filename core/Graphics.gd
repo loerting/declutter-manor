@@ -23,6 +23,15 @@ const LOW_AMBIENT := 2.0
 const MEDIUM_AMBIENT := 1.3
 const HIGH_AMBIENT := 1.0
 
+## The directional shadow map, per tier. This is the one setting the eave sawtooth actually
+## responded to: bias, normal bias and cascade count all left it, and resolution removed it.
+## The high tier doubles the engine default and pays for it in memory, measured by PerfProbe;
+## the other two keep the default, which is already the density the low tier's single 25 m
+## cascade needs.
+const SHADOW_ATLAS := {Tier.LOW: 4096, Tier.MEDIUM: 4096, Tier.HIGH: 8192}
+## 16-bit depth over a 40 m cascade resolves to well under a millimetre and halves the atlas.
+const SHADOW_16_BITS := true
+
 static func tier_name(tier: Tier) -> String:
 	match tier:
 		Tier.LOW: return "low"
@@ -100,12 +109,15 @@ static func make_sun(tier: Tier) -> DirectionalLight3D:
 	sun.rotation_degrees = Vector3(-46, -45, 0)
 	sun.shadow_enabled = true
 	sun.light_angular_distance = 1.5 if tier != Tier.LOW else 0.0
-	# Two cascades, not four: every cascade re-renders the whole house, and PerfProbe measured
-	# the four-split default at 2069 draw calls for the empty manor on the high tier — the house
-	# drawn once and then four more times for its own shadow. The lot is 26 m across.
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL if tier == Tier.LOW \
-			else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	# One cascade, not two and not the four of the default. Every cascade re-renders the whole
+	# house into the shadow map: PerfProbe measured the four-split default at 2069 draw calls for
+	# the empty manor, two splits at 1585, and this at 1476. The lot is 26 m across, so one
+	# 40 m box covers everything the player can see a shadow on, and at 8192 its texels are finer
+	# than the two-split arrangement ever gave the house: the sawtooth along the eave's shadow in
+	# the west view is gone.
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	sun.directional_shadow_max_distance = 40.0 if tier != Tier.LOW else 25.0
+	RenderingServer.directional_shadow_atlas_set_size(SHADOW_ATLAS[tier], SHADOW_16_BITS)
 	return sun
 
 ## The medium tier's global illumination: one VoxelGI baked once, at load, over the house that

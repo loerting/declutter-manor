@@ -129,6 +129,18 @@ thirty draw calls and is now four. The pieces themselves are:
 - **The gable takes the plan's siding.** It is the same wall continued upwards, so it reads
   `plan.siding_slot` and `plan.siding_tint` rather than carrying a copy on `RoofDef` — two
   copies of one colour drift apart the first time the house is repainted.
+- **A wall under the roof closes to it.** `WallSegment.gable_rise` puts a triangle on top of a
+  wall, peaking at the middle of its length, and `Props.holed_slab` builds it as part of the
+  same three surfaces — the wall does not become two objects. The attic needs it: its knee
+  walls stop where the roof meets them, but its end walls run across the slope, and rectangular
+  ones left a triangle of the roof void open to the room. The plan sets the rise, because only
+  the plan knows the pitch. Openings are cut from the rectangle only.
+- **The sun casts one shadow cascade, not four.** Every cascade re-renders the whole house into
+  the shadow map, and the lot is 26 m across: one 40 m orthogonal box covers everything the
+  player can see a shadow on. The saving buys an 8192 map on the high tier, which is what
+  removed the sawtooth along the eave's shadow on the siding. Bias, normal bias and cascade
+  count were all measured against that sawtooth first and none of them touched it; the shadow
+  map's texel size was the whole of it.
 - **Fixtures.** Every room light hangs a flush fixture — disc and frosted dome — so the hotspot
   on the ceiling has something at it. Rooms with glazing run their bulb at `DAYLIT_BULB` while
   the sun is up; every window glowing warm at noon is the single strongest model-not-house tell.

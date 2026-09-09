@@ -21,6 +21,12 @@ extends Resource
 ## height.
 @export var height_override := 0.0
 
+## Height of a triangular top above the wall's head, peaking at the middle of the wall. It is
+## what closes a room whose ceiling is the roof: the attic's end walls stop at knee height and
+## the roof above them keeps climbing to the ridge, so a rectangular wall leaves a triangle of
+## the roof void open to the room. The plan sets it, because only the plan knows the pitch.
+@export var gable_rise := 0.0
+
 func dir() -> Vector2:
 	return (b - a).normalized()
 

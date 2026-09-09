@@ -124,7 +124,13 @@ Measured again with the deck and the pool built: they cost 17 draw calls between
 each is one union per material. And again with the roof edge and the lawn's macro variation:
 **1585 high, 1476 low**, twelve calls over the line above, for two ridge caps, four gutter runs
 and four downspouts — the gutters cost nothing on their own because they were folded into the
-fascia mesh that was already being drawn. The empty house is inside every budget on both tiers. It was not before the design pass: the
+fascia mesh that was already being drawn.
+
+And once more after the sun's shadow went from two cascades to one (`Graphics.make_sun`):
+**1476 on all three tiers**, 109 fewer on high than the two-cascade arrangement, because a
+cascade is the whole house re-rendered into the shadow map. High pays 9.3 ms a frame instead of
+9.0 for the 8192 map it spends the saving on; medium and low measure 6.9 ms. The empty house is
+inside every budget on all three tiers. It was not before the design pass: the
 manor's first build was 1894 draw calls on high, 5% over, and the plan was a mesh-merging pass
 by material. That pass was not needed. Baking each wall's casings, frames, sills and skirting
 into one mesh (`Props.union`) took the house from 440 meshes to 306 while *adding* frames,

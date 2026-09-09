@@ -339,7 +339,8 @@ static func _build_wall(parent: Node3D, plan: FloorPlan, storey: StoreyDef, wall
 
 	# Slab local space: +X along the wall, +Y toward side A, +Z downward. Surface 0 is the
 	# side-A face, 1 the side-B face, 2 the rim — including every opening's reveal.
-	var mesh := Props.holed_slab(Vector3(length, wall.thickness, total), holes, true)
+	var mesh := Props.holed_slab(Vector3(length, wall.thickness, total), holes, true,
+			wall.gable_rise)
 
 	var holder := Node3D.new()
 	holder.name = "Wall_%s_%s" % [_side_name(wall.room_a), _side_name(wall.room_b)]

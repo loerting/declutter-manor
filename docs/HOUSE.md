@@ -61,7 +61,9 @@ Upper floor: children's rooms over the office and living room, family bath over 
 the hall, landing over the back of it, closet and master bath over the dining room, master
 bedroom over the kitchen. Basement: laundry / rec room west, storage / workshop / utility east,
 stair hall in the middle. The attic is a 12.4 x 2.5 m band astride the ridge, reached by a
-steep ladder-flight from the landing, with knee walls derived from the roof pitch.
+steep ladder-flight from the landing, with knee walls derived from the roof pitch and gable
+tops on its two end walls, which run across the slope and would otherwise stop at knee height
+with the roof still climbing above them.
 
 Outdoors: driveway north of the garage, deck behind the hall, pool surround behind the kitchen
 wing, side garden along the west wall. The deck is 6 x 3 m of boards level with the floor

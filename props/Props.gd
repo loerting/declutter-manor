@@ -450,8 +450,10 @@ static func dished(outline: PackedVector2Array, secs: Array) -> ArrayMesh:
 static func _tine_hw(x: float, x0: float, x1: float, w0: float, w1: float) -> float:
 	return lerpf(w0, w1, clampf((x - x0) / maxf(x1 - x0, 1e-6), 0.0, 1.0))
 
-static func _cuts(lo: float, hi: float, holes: Array, on_x: bool) -> PackedFloat32Array:
+static func _cuts(lo: float, hi: float, holes: Array, on_x: bool,
+		extra := PackedFloat32Array()) -> PackedFloat32Array:
 	var vals := PackedFloat32Array([lo, hi])
+	vals.append_array(extra)
 	for h: Rect2 in holes:
 		vals.append(h.position.x if on_x else h.position.y)
 		vals.append(h.end.x if on_x else h.end.y)
@@ -462,6 +464,12 @@ static func _cuts(lo: float, hi: float, holes: Array, on_x: bool) -> PackedFloat
 			out.append(v)
 	return out
 
+## Height of the gable line at `x`: the head `z0` at either end, `z0 - rise` over the middle.
+## Z runs down the wall in slab space, so a smaller z is higher up.
+static func _gable_z(x: float, x0: float, x1: float, z0: float, rise: float) -> float:
+	var half := (x1 - x0) * 0.5
+	return z0 - rise * (1.0 - absf(x - (x0 + half)) / half)
+
 ## Flat slab (thickness along Y) with real rectangular through-holes cut out of it.
 ## `holes` are Rect2 in the slab's local XZ plane and must lie fully inside it.
 ##
@@ -470,7 +478,12 @@ static func _cuts(lo: float, hi: float, holes: Array, on_x: bool) -> PackedFloat
 ## on one side and siding on the other while still being a single mesh cut by a single list of
 ## openings: an opening cannot exist on one face and not the other, because there is only one
 ## piece of geometry. Surface order is fixed: 0 = +Y, 1 = -Y, 2 = rim.
-static func holed_slab(size: Vector3, holes: Array, split := false) -> ArrayMesh:
+##
+## `gable_rise` adds a triangle on top of the slab — above -Z, which is the head of a wall —
+## peaking at the middle of its length. The two slopes are exact, not tessellated: the peak is
+## forced into the column cuts, so every column is a trapezoid whose top edge lies on the roof
+## line. Holes are only cut from the rectangle; a window in the triangle is not supported.
+static func holed_slab(size: Vector3, holes: Array, split := false, gable_rise := 0.0) -> ArrayMesh:
 	var top := SurfaceTool.new()
 	top.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var bot := SurfaceTool.new() if split else top
@@ -485,6 +498,8 @@ static func holed_slab(size: Vector3, holes: Array, split := false) -> ArrayMesh
 	var z1 := size.z * 0.5
 	var xs := _cuts(x0, x1, holes, true)
 	var zs := _cuts(z0, z1, holes, false)
+	if gable_rise > 0.0:
+		xs = _cuts(x0, x1, holes, true, PackedFloat32Array([(x0 + x1) * 0.5]))
 	for i in range(xs.size() - 1):
 		for j in range(zs.size() - 1):
 			var centre := Vector2((xs[i] + xs[i + 1]) * 0.5, (zs[j] + zs[j + 1]) * 0.5)
@@ -496,7 +511,36 @@ static func holed_slab(size: Vector3, holes: Array, split := false) -> ArrayMesh
 				Vector3(xs[i + 1], hy, zs[j + 1]), Vector3(xs[i], hy, zs[j + 1]), Vector3.UP)
 			_quad(bot, Vector3(xs[i], -hy, zs[j]), Vector3(xs[i + 1], -hy, zs[j]),
 				Vector3(xs[i + 1], -hy, zs[j + 1]), Vector3(xs[i], -hy, zs[j + 1]), Vector3.DOWN)
-	_quad(rim, Vector3(x0, -hy, z0), Vector3(x1, -hy, z0), Vector3(x1, hy, z0), Vector3(x0, hy, z0), Vector3(0, 0, -1))
+	if gable_rise > 0.0:
+		# The head of the wall is a ridge line, so its rim is two sloping strips rather than one
+		# flat one, and each face gains a trapezoid per column under them.
+		var peak := Vector3(0.0, 0.0, z0 - gable_rise)
+		for i in range(xs.size() - 1):
+			var za := _gable_z(xs[i], x0, x1, z0, gable_rise)
+			var zb := _gable_z(xs[i + 1], x0, x1, z0, gable_rise)
+			# The first and last columns rise from nothing, so they are triangles. Emitting them
+			# as quads with two coincident corners would leave a zero-area triangle whose normal
+			# is the zero vector, and Diag would be counting a face that does not exist.
+			for face: Array in [[top, hy, Vector3.UP], [bot, -hy, Vector3.DOWN]]:
+				var st: SurfaceTool = face[0]
+				var y: float = face[1]
+				var n: Vector3 = face[2]
+				if za >= z0 - 1e-6:
+					_tri(st, Vector3(xs[i], y, z0), Vector3(xs[i + 1], y, z0),
+						Vector3(xs[i + 1], y, zb), n)
+				elif zb >= z0 - 1e-6:
+					_tri(st, Vector3(xs[i], y, z0), Vector3(xs[i + 1], y, z0),
+						Vector3(xs[i], y, za), n)
+				else:
+					_quad(st, Vector3(xs[i], y, z0), Vector3(xs[i + 1], y, z0),
+						Vector3(xs[i + 1], y, zb), Vector3(xs[i], y, za), n)
+		var slope_w := Vector3(peak.z - z0, 0.0, -(0.0 - x0)).normalized()
+		_quad(rim, Vector3(x0, -hy, z0), Vector3(0.0, -hy, peak.z), Vector3(0.0, hy, peak.z),
+			Vector3(x0, hy, z0), Vector3(slope_w.x, 0.0, slope_w.z))
+		_quad(rim, Vector3(0.0, -hy, peak.z), Vector3(x1, -hy, z0), Vector3(x1, hy, z0),
+			Vector3(0.0, hy, peak.z), Vector3(-slope_w.x, 0.0, slope_w.z))
+	else:
+		_quad(rim, Vector3(x0, -hy, z0), Vector3(x1, -hy, z0), Vector3(x1, hy, z0), Vector3(x0, hy, z0), Vector3(0, 0, -1))
 	_quad(rim, Vector3(x0, -hy, z1), Vector3(x1, -hy, z1), Vector3(x1, hy, z1), Vector3(x0, hy, z1), Vector3(0, 0, 1))
 	_quad(rim, Vector3(x0, -hy, z0), Vector3(x0, -hy, z1), Vector3(x0, hy, z1), Vector3(x0, hy, z0), Vector3(-1, 0, 0))
 	_quad(rim, Vector3(x1, -hy, z0), Vector3(x1, -hy, z1), Vector3(x1, hy, z1), Vector3(x1, hy, z0), Vector3(1, 0, 0))

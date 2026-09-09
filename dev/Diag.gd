@@ -49,6 +49,9 @@ func _init() -> void:
 	# A split slab is a wall: surface 0 is one face, 1 the other, 2 the rim. Only the rim may
 	# report anything, and for the same reason as above - its hole reveals face into the hole.
 	_check("wall_slab", Props.holed_slab(Vector3(3, 0.2, 2.7), [Rect2(-0.45, -0.45, 0.9, 2.05)], true), Vector3.ZERO)
+	# The same wall with a gable top: the two faces gain a trapezoid per column and the rim's
+	# flat head becomes two slopes, all of which have to face outwards like the rest of it.
+	_check("gable_slab", Props.holed_slab(Vector3(3, 0.2, 2.7), [], true, 0.8), Vector3.ZERO)
 	# prism derives its winding from the polygon, so it is checked wound both ways round: a
 	# plan author must not be able to break the house by listing a room clockwise.
 	var square := PackedVector2Array([Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)])

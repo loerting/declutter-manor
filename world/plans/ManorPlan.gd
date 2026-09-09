@@ -254,3 +254,11 @@ static func _attic(s: StoreyDef) -> void:
 	attic.light_range = 12.0
 	s.rooms = [attic]
 	s.walls = WallDeriver.derive(s.rooms)
+	# The knee walls north and south stop where the roof meets them, which is what their height
+	# is derived from. The two end walls do not: the roof over them keeps climbing to the ridge,
+	# and a rectangular wall left a triangle of the roof void open to the room — visible in the
+	# attic render as a grey gap over the west wall. The attic band is centred on the ridge, so
+	# the triangle peaks at the middle of each end wall, which is what `gable_rise` builds.
+	var rise := ATTIC.size.y * 0.5 * tan(deg_to_rad(PITCH))
+	for facing: Vector2 in [WallDeriver.EAST, WallDeriver.WEST] as Array[Vector2]:
+		WallDeriver.facing_wall(s.walls, &"attic", facing).gable_rise = rise
