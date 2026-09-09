@@ -125,6 +125,8 @@ boundary that appears in the floor plan, or a colour/material that appears in `M
     godot --headless --path . --script res://dev/Diag.gd     # mesh winding + normals
     godot --headless --path . --import                       # after adding any class_name
     godot --headless --path . --script res://dev/PlanProbe.gd # house consistency, interior vs exterior
+    godot --headless --path . dev/WalkProbe.tscn             # the house can be walked and climbed
+    godot --headless --path . dev/InteractProbe.tscn         # pick up, open, put away, stack
     godot --path . -- --view=<name> --screenshot=<abs path>   # the only proof of anything visual
 
 A headless boot exits 0 even when a script failed to compile — always grep the log for

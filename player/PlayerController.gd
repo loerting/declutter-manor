@@ -13,6 +13,8 @@ extends CharacterBody3D
 @onready var _body: CollisionShape3D = %Body
 @onready var _head: Node3D = %Head
 @onready var _camera: Camera3D = %Camera
+@onready var _carry: CarryComponent = %Carry
+@onready var _interactor: Interactor = %Interactor
 
 var _yaw := 0.0
 var _pitch := 0.0
@@ -33,14 +35,29 @@ func _ready() -> void:
 	_body.position = Vector3(0.0, Balance.PLAYER_HEIGHT * 0.5, 0.0)
 	_head.position = Vector3(0.0, Balance.EYE_HEIGHT, 0.0)
 	_camera.fov = Balance.FOV
+	# Its own layer: the interaction ray starts inside this capsule, and a ray that can hit the
+	# body it came from picks up nothing ever again.
+	collision_layer = Layers.bit(Layers.PLAYER)
+	collision_mask = Layers.bit(Layers.WORLD)
 	floor_max_angle = deg_to_rad(Balance.FLOOR_MAX_ANGLE_DEG)
 	floor_snap_length = Balance.FLOOR_SNAP
+	# The hands and the crosshair hang off the head, so both travel with the eye. They are
+	# wired here because this is what owns both of them; neither reaches for the other (rule 5).
+	_interactor.initialize(_camera, _carry)
 	_yaw = rotation.y
 
 ## The eye. Anything that needs to know where the player is looking — the interactor, the
 ## light culler, a screenshot — asks for this rather than walking the tree.
 func camera() -> Camera3D:
 	return _camera
+
+## The hands. The world hands items to them; nothing walks the tree to find them.
+func carry() -> CarryComponent:
+	return _carry
+
+## What the crosshair is on, and what a click would do. The HUD connects to its prompt.
+func interactor() -> Interactor:
+	return _interactor
 
 ## Puts the player somewhere and points them, without the physics interpolating the jump.
 func teleport(to: Vector3, facing_degrees := 0.0) -> void:
@@ -50,6 +67,17 @@ func teleport(to: Vector3, facing_degrees := 0.0) -> void:
 	rotation = Vector3(0.0, _yaw, 0.0)
 	_head.rotation = Vector3.ZERO
 	velocity = Vector3.ZERO
+
+## Points the eye at a place in the world. It is the same yaw and pitch the mouse writes, so
+## nothing about the controller has to know it was not the mouse that moved.
+func aim_at(target: Vector3) -> void:
+	var to := target - _camera.global_position
+	if to.length() < 0.001:
+		return
+	_yaw = atan2(-to.x, -to.z)
+	_pitch = clampf(atan2(to.y, Vector2(to.x, to.z).length()), -Balance.PITCH_LIMIT, Balance.PITCH_LIMIT)
+	rotation.y = _yaw
+	_head.rotation.x = _pitch
 
 ## Whether the player wants to be looking around. The pointer follows when the window can
 ## take it — `_sync_mouse` is where that is decided, and it is the only writer of `mouse_mode`.

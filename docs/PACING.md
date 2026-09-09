@@ -153,6 +153,18 @@ would work is to stop baking at runtime: the house is fixed content, so the `Vox
 baked once by a dev tool, keyed by `plan_hash` so a changed plan invalidates it, and loaded. That
 is not built. Until it is, the medium tier costs about 4.3 s to enter.
 
+**Measured again with the kitchen in it (2026-09-09).** The reference kitchen — a 1.2 m run of
+base units with two drawers, two doors and twelve spoons — costs **129 draw calls**, taking the
+empty house from 1476 to **1605 against a budget of 1800**. It is not 26 meshes' worth because a
+mesh is drawn once per shadow-casting light that sees it as well as once for the camera: the
+kitchen's own bulb and the sun's cascade each redraw all of it. Startup is 1.10 s high, 0.93 s
+low; the medium tier's bake grew with the geometry it bakes, 4.31 s to **4.68 s**, which is the
+same finding as before and the same fix.
+
+That leaves 195 calls of headroom for 250 items in twenty-odd more rooms, and it will not be
+enough. This is the number that makes the Phase 3 `MultiMesh` pass load-bearing rather than
+optional, and it is worth knowing now rather than after the content is authored.
+
 At 500 stress items both tiers are over the draw-call budget by the items alone: each stress
 item is its own draw. That is the Phase 3 `MultiMesh` lever, and it is the items' problem, not
 the house's. Frame times stay inside budget with them.

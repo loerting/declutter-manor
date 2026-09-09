@@ -10,6 +10,7 @@ value appears there, it must never be re-typed anywhere else.
     resources/  .tres instances of the above — the content itself
     world/      floor plan -> geometry: HouseBuilder, WallDeriver, ExteriorBuilder, TerrainBuilder
     props/      Props.gd (mesh toolkit) and the item family generators
+    items/      ItemNode and the ItemFactory that turns an ItemDef into one
     player/     first-person controller and its components
     ui/         HUD, set tracker, room panel, menus
     dev/        probes and tools — never shipped, gated on BuildConfig.is_dev_only()
@@ -241,6 +242,31 @@ ends up. It is headless, takes seconds, and exits with its violation count.
 Both failure modes have been shown: with floor collision removed every zone reported falling
 through, and with the stair ramps removed all three flights reported failing to climb.
 
+### What `dev/InteractProbe.gd` proves
+
+The same idea one level up: a real body, in the real house, with the authored items in it,
+driven through the whole of the core verb. Nothing in it calls a placement function with a slot
+index it worked out for itself — every spoon is picked up by looking at it and pressing the
+button, and every one is put away by looking at the drawer and pressing it again, because a
+probe that reaches past the ray is a probe that can pass while the game does not work.
+
+| Check | Catches |
+|---|---|
+| `content.*` | an item naming a family that does not exist, a home no group answers to, an off-ladder slot cost, an item that starts nowhere |
+| `slots.arith` | generated slot transforms that drift, a stack taller than the drawer it is in |
+| `slots.closed` | a container's slots offered while it is shut — a ghost inside a carcass |
+| `container.fsm` | a container that does not open, does not shut, or does not start closed. Every container in the house, not just the kitchen's |
+| `reach.take` | the ray, the reach and the prompt: looking at a spoon from a stride away must say `Take` |
+| `carry.full` | a second item taken into a one-slot inventory, and a full inventory that does not say so |
+| `carry.return` | an item put back anywhere but exactly where it was picked up |
+| `place.stack` | the twelve-spoon gate: each spoon at the slot the group generated, in order, and a full drawer that stops offering |
+| `place.travel` | slots hung off the carcass instead of the drawer, so what is in a drawer stays behind when it shuts |
+
+Three failure modes have been shown red: with the slot step removed the group was rejected as
+inconsistent; with the slots hung off the carcass the ghost never appeared and nothing travelled
+with the drawer; and with `requires_open` cleared, a shut drawer swallowed a spoon the player
+should have been told they had no room for.
+
 Occluder generation from the same walk is planned for the end of Phase 1, once `PerfProbe` says
 whether the draw-call budget needs it. It is not built yet.
 
@@ -327,6 +353,39 @@ goes back to where it was picked up.
 **Containers** are a `ContainerComponent` with a `CLOSED / OPENING / OPEN / CLOSING` FSM and a
 tweened door or drawer. A container holds both `PlaceSlotGroup`s (homes) and authored `start`
 placements (clutter that belongs elsewhere), so opening a drawer can both solve and create work.
+
+### Where each half of the state lives
+
+`PlaceSlotGroup` is the Resource and holds no occupancy: a resource is shared by every instance
+that references it, so twelve drawers sharing one group would share one set of filled slots.
+The occupancy is on the `PlaceSlots` **node**, and that node is attached where the items belong
+— inside the drawer, not on the carcass — so the slot transforms travel with the thing they are
+in. `InteractProbe`'s `place.travel` check exists because that is easy to get wrong and
+invisible until someone shuts a drawer.
+
+`Inventory` is an autoload and holds the capacity and the list of carried `ItemDef`s, because
+capacity is the progression and it is what the save records. `CarryComponent` is a node on the
+player and holds the corresponding `ItemNode`s as its children — carried items stay in the tree
+the whole time, under the hands instead of under the world, so nothing is ever an orphan and an
+item put back goes back as the same node it was.
+
+**A refused action changes nothing.** `Inventory.take` returns false before it moves anything,
+and a placement asks the slot whether it will take the item before the item leaves the hands.
+That ordering is the difference between "the click did nothing" and an item that has been
+silently teleported.
+
+### The kitchen, which is the reference implementation
+
+`world/FurnitureBuilder.gd` builds a run of base units against the kitchen's north wall — two
+bays, each with a drawer over a cupboard, all four of which open. The west drawer is the home of
+twelve spoons; six of them start on the worktop and six shut in the east cupboard, so the first
+container the player opens both solves work and creates it. The run's position is derived from
+the room rectangle and the wall thickness, and the authored spoon positions are expressed
+against the run, so moving the kitchen moves all of it together.
+
+The spoons' base slot transform is **measured from the spoon's own mesh** at build time rather
+than typed, so the bottom one rests on the drawer floor whatever the generator does next
+(modelling rule 5). The stack step is 4 mm — one spoon thick.
 
 ## Audio
 

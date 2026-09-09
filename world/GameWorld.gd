@@ -9,6 +9,7 @@ extends Node3D
 ##     godot --path . -- --tier=low
 
 const PLAYER := preload("res://player/Player.tscn")
+const HUD := preload("res://ui/Hud.tscn")
 
 var _tier := Graphics.Tier.HIGH
 var _shot := ""
@@ -26,6 +27,9 @@ func _ready() -> void:
 	WorldBuilder.warm_materials(plan)
 	var house := HouseBuilder.build(plan)
 	add_child(house)
+	# Furniture and items before the light: the medium tier bakes its GI from what is in the
+	# tree at that moment, and a kitchen baked into nothing is a kitchen with no bounce in it.
+	WorldBuilder.furnish(self, plan)
 	WorldBuilder.light(self, WorldBuilder.bounds(house), _tier)
 
 	_player = PLAYER.instantiate() as PlayerController
@@ -33,6 +37,11 @@ func _ready() -> void:
 	add_child(_player)
 	_player.teleport(WorldBuilder.spawn_point(plan), plan.spawn_facing)
 	WorldBuilder.attach_culler(self, house, _player.camera())
+
+	var hud := HUD.instantiate() as Hud
+	assert(hud != null, "GameWorld: Hud.tscn is not a Hud")
+	add_child(hud)
+	hud.watch(_player.interactor())
 	print("world ready in %d ms — plan '%s' (%s), tier %s" % [
 			Time.get_ticks_msec() - t0, plan.id, plan.plan_hash(), Graphics.tier_name(_tier)])
 

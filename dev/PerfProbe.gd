@@ -30,6 +30,7 @@ func _ready() -> void:
 	var t_start := Time.get_ticks_msec()
 	var house := HouseBuilder.build(plan)
 	add_child(house)
+	WorldBuilder.furnish(self, plan)
 	var items := _fill(plan, _items)
 	add_child(items)
 	# The same lighting the game and the gate renders get, bake included — a medium tier

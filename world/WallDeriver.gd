@@ -12,12 +12,15 @@ class_name WallDeriver
 ## shared edges disappear automatically.
 
 const EPS := 0.001
+## The thickness every derived wall gets, and the number anything standing against a wall has
+## to know to find its face — `FurnitureBuilder` is the second reader.
+const DEFAULT_THICKNESS := 0.20
 
 ## Every wall implied by `rooms`, with sides correctly assigned. Openings are added afterwards
 ## with `pierce()`; a derived wall starts solid.
 ## Exterior zones are ground, not building, so they imply no walls — a driveway does not put a
 ## wall between itself and the lawn. A fence or a parapet is authored explicitly.
-static func derive(all_rooms: Array[RoomDef], thickness := 0.20) -> Array[WallSegment]:
+static func derive(all_rooms: Array[RoomDef], thickness := DEFAULT_THICKNESS) -> Array[WallSegment]:
 	var rooms: Array[RoomDef] = []
 	for room: RoomDef in all_rooms:
 		if room.zone != RoomDef.Zone.EXTERIOR:

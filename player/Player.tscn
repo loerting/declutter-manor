@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://player/PlayerController.gd" id="1"]
+[ext_resource type="Script" path="res://player/CarryComponent.gd" id="2"]
+[ext_resource type="Script" path="res://player/Interactor.gd" id="3"]
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1")
@@ -13,3 +15,11 @@ unique_name_in_owner = true
 
 [node name="Camera" type="Camera3D" parent="Head"]
 unique_name_in_owner = true
+
+[node name="Carry" type="Node3D" parent="Head"]
+unique_name_in_owner = true
+script = ExtResource("2")
+
+[node name="Interactor" type="Node3D" parent="Head"]
+unique_name_in_owner = true
+script = ExtResource("3")

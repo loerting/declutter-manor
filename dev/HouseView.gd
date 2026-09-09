@@ -19,7 +19,9 @@ const MANOR_VIEWS := {
 	"entry": [Vector3(9.5, 2.05, 6.4), Vector3(9.5, 1.75, 15.0)],
 	"hall_stairs": [Vector3(9.5, 2.05, 9.0), Vector3(8.8, 2.85, 14.5)],
 	"living": [Vector3(7.6, 2.0, 11.0), Vector3(4.5, 1.45, 15.0)],
-	"kitchen": [Vector3(11.4, 2.0, 9.4), Vector3(16.5, 1.45, 12.8)],
+	"kitchen": [Vector3(13.6, 2.0, 11.6), Vector3(16.5, 1.45, 12.8)],
+	# the base run against the kitchen's north wall, with the spoons that start on its worktop
+	"kitchen_run": [Vector3(13.3, 1.62, 11.3), Vector3(11.7, 1.10, 9.5)],
 	"landing": [Vector3(9.5, 5.05, 15.2), Vector3(9.0, 4.05, 10.0)],
 	"master_bed": [Vector3(11.4, 5.05, 15.2), Vector3(16.5, 4.45, 10.5)],
 	"attic": [Vector3(15.8, 7.45, 10.75), Vector3(5.0, 7.75, 10.75)],
@@ -76,6 +78,7 @@ func _ready() -> void:
 	var t0 := Time.get_ticks_msec()
 	var house := HouseBuilder.build(plan)
 	add_child(house)
+	WorldBuilder.furnish(self, plan)
 	var bounds := WorldBuilder.bounds(house)
 	print("built '%s' in %d ms (+%d ms materials) — %d meshes, %s, tier %s" % [
 			plan.id, Time.get_ticks_msec() - t0, t_mat, WorldBuilder.meshes(house).size(), bounds,

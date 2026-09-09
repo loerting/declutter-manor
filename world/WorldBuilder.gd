@@ -71,6 +71,48 @@ static func warm_materials(plan: FloorPlan) -> void:
 	for slot: String in slots:
 		Mats.of(slot, Color.WHITE, 1.0, 1.0, true)
 
+## The furniture and the items that stand in it, added to `parent`. One call, so the game, the
+## gate renders and the performance probe cannot end up showing three different houses.
+##
+## Content is looked up by plan id. There is one plan, so this is a match on one name rather
+## than a registry; the registry arrives in Phase 3 with the second plan (the demo location).
+static func furnish(parent: Node3D, plan: FloorPlan) -> void:
+	parent.add_child(FurnitureBuilder.build(plan))
+	var items := Node3D.new()
+	items.name = "Items"
+	parent.add_child(items)
+	if plan.id == &"manor":
+		populate(items, ManorItems.build(plan))
+
+## Puts the authored items into the house, each in the wrong place it starts in. An item whose
+## placement names a container becomes a child of that container's static half — a spoon in a
+## cupboard is in the cupboard, not on the door.
+static func populate(parent: Node3D, defs: Array[ItemDef]) -> void:
+	for def: ItemDef in defs:
+		if def.start == null:
+			continue
+		var host := parent
+		if def.start.container != &"":
+			var container := find_container(parent, def.start.container)
+			if container == null:
+				push_error("WorldBuilder: item '%s' names no container '%s'"
+						% [def.id, def.start.container])
+				continue
+			host = container
+		var node := ItemFactory.build(def)
+		host.add_child(node)
+		node.transform = def.start.xform
+		node.remember_origin()
+
+## The container with that id, or null. By group rather than by path, because the furniture is
+## generated and a path into it would be a copy of a layout that moves (rule 5).
+static func find_container(parent: Node, id: StringName) -> ContainerComponent:
+	for node: Node in parent.get_tree().get_nodes_in_group(ContainerComponent.GROUP):
+		var c := node as ContainerComponent
+		if c != null and c.container_id == id:
+			return c
+	return null
+
 ## Where the player starts, from the plan rather than from a node placed in a scene — the house
 ## is generated, so a hand-placed spawn would have to be kept in step with rooms that move.
 static func spawn_point(plan: FloorPlan) -> Vector3:

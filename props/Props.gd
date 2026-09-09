@@ -1130,3 +1130,125 @@ static func kitchen_counter() -> Node3D:
 			root.add_child(mi(cyl(0.005, 0.005, 0.022, 10), metal, Vector3(x + sx * 0.085, 0.755, 0.318), Vector3(90, 0, 0)))
 		root.add_child(mi(cyl(0.006, 0.006, 0.19, 12), metal, Vector3(x, 0.755, 0.329), Vector3(0, 0, 90)))
 	return root
+
+# --- Kitchen carcassing ---------------------------------------------------------------------
+#
+# A run of base units with parts that move. `kitchen_counter` above is the style-test prop: one
+# fused block with doors that are panels. These are the same furniture built so a drawer can
+# come out of it — carcass, drawer box and door are separate nodes, and `ContainerComponent`
+# drives them (`docs/ARCHITECTURE.md`, "Placement").
+
+## 18 mm carcass panels, 12 mm drawer box, 19 mm fronts. Real sheet sizes, because a cabinet
+## built of 5 mm boards reads as a doll's house at eye height.
+const CARCASS_PANEL := 0.018
+const DRAWER_PANEL := 0.012
+const FRONT_PANEL := 0.019
+## Gap between two fronts, and between a front and the carcass edge.
+const FRONT_REVEAL := 0.003
+const PLINTH_HEIGHT := 0.10
+const PLINTH_SETBACK := 0.05
+const WORKTOP_THICK := 0.04
+const WORKTOP_NOSE := 0.03
+const UPSTAND_HEIGHT := 0.10
+
+## A bar pull: two standoffs and a rod, never a flat tab. `at` is on the face it is screwed to
+## and `along` is the rod's axis; the pull stands off in +Z, which is the way a front faces.
+static func bar_pull(length: float, at: Vector3, along: Vector3) -> Array:
+	var axis := along.normalized()
+	var out: Array = []
+	for s: float in [-1.0, 1.0]:
+		out.append([cyl(0.005, 0.005, 0.024, 10), Transform3D(aim_y(Vector3.BACK),
+				at + axis * (s * (length * 0.5 - 0.02)) + Vector3(0, 0, 0.012))])
+	out.append([cyl(0.006, 0.006, length, 12), Transform3D(aim_y(axis), at + Vector3(0, 0, 0.024))])
+	return out
+
+## The moving half of a drawer: the front, its pull, and a box behind it with a bottom, two
+## sides, a back and an inner front — five real panels, because a drawer is looked down into
+## and a shell with no outside would show its inside-out back the moment it is pulled open.
+##
+## Local origin is the centre of the front panel's outer face; the box extends into -Z.
+static func drawer(front: Vector2, depth: float) -> Node3D:
+	var root := Node3D.new(); root.name = "Drawer"
+	var face := Mats.of("painted_wood", Color(0.96, 0.97, 0.93), 0.65)
+	var ply := Mats.of("oak", Color(0.86, 0.80, 0.70), 0.85)
+	var metal := Mats.of("metal_brushed", BRASS, 0.35)
+	root.add_child(mi(rounded_box(Vector3(front.x, front.y, FRONT_PANEL), 0.004), face,
+			Vector3(0, 0, -FRONT_PANEL * 0.5)))
+	root.add_child(mi(union(bar_pull(minf(front.x - 0.14, 0.22), Vector3.ZERO, Vector3.RIGHT)),
+			metal))
+	var w := front.x - 0.04
+	var h := front.y - 0.03
+	var top := front.y * 0.5 - 0.01
+	var z0 := -FRONT_PANEL
+	var parts: Array = [
+		part(Vector3(w, DRAWER_PANEL, depth), Vector3(0, top - h + DRAWER_PANEL * 0.5, z0 - depth * 0.5)),
+		part(Vector3(DRAWER_PANEL, h, depth), Vector3(-(w - DRAWER_PANEL) * 0.5, top - h * 0.5, z0 - depth * 0.5)),
+		part(Vector3(DRAWER_PANEL, h, depth), Vector3((w - DRAWER_PANEL) * 0.5, top - h * 0.5, z0 - depth * 0.5)),
+		part(Vector3(w, h, DRAWER_PANEL), Vector3(0, top - h * 0.5, z0 - depth + DRAWER_PANEL * 0.5)),
+		part(Vector3(w, h, DRAWER_PANEL), Vector3(0, top - h * 0.5, z0 - DRAWER_PANEL * 0.5)),
+	]
+	root.add_child(mi(union(parts), ply))
+	return root
+
+## The centre of a drawer box's inside floor, in the drawer's own local space. Derived from the
+## same constants the box is built from, so the slots inside a drawer cannot drift out of it.
+static func drawer_floor(front: Vector2, depth: float) -> Vector3:
+	var top := front.y * 0.5 - 0.01
+	var h := front.y - 0.03
+	return Vector3(0, top - h + DRAWER_PANEL, -FRONT_PANEL - depth * 0.5)
+
+## A hinged door. The local origin is the hinge axis and the outer face is at z = 0, so a
+## container opens it by rotating this node and nothing has to know where the panel is.
+## `hinge_left` puts the hinge at the door's -X edge.
+static func cabinet_door(size: Vector2, hinge_left: bool) -> Node3D:
+	var root := Node3D.new(); root.name = "Door"
+	var face := Mats.of("painted_wood", Color(0.96, 0.97, 0.93), 0.65)
+	var metal := Mats.of("metal_brushed", BRASS, 0.35)
+	var sx := 1.0 if hinge_left else -1.0
+	var cx := sx * size.x * 0.5
+	root.add_child(mi(rounded_box(Vector3(size.x, size.y, FRONT_PANEL), 0.004), face,
+			Vector3(cx, 0, -FRONT_PANEL * 0.5)))
+	# The pull sits at the opening edge, which is the end away from the hinge.
+	root.add_child(mi(union(bar_pull(minf(size.y - 0.12, 0.19),
+			Vector3(sx * (size.x - 0.05), 0, 0), Vector3.UP)), metal))
+	return root
+
+## The static half of a run of base units: plinth, carcass with a divider per bay, worktop and
+## upstand. The fronts are separate nodes because they move; this is everything that does not.
+## Local origin is the centre of the run at floor level, fronts facing +Z.
+static func base_carcass(width: float, bays: int, height := 0.72, depth := 0.58) -> Node3D:
+	var root := Node3D.new(); root.name = "Carcass"
+	var box_mat := Mats.of("painted_wood", Color(0.90, 0.91, 0.87), 0.7)
+	var stone := Mats.of("worktop_stone", Color(0.93, 0.93, 0.95), 0.35)
+	var y0 := PLINTH_HEIGHT
+	var y1 := y0 + height
+	var p := CARCASS_PANEL
+	var parts: Array = [
+		part(Vector3(width - 2.0 * p, p, depth), Vector3(0, y0 + p * 0.5, 0)),
+		part(Vector3(width - 2.0 * p, p, depth), Vector3(0, y1 - p * 0.5, 0)),
+		part(Vector3(width, height, p), Vector3(0, (y0 + y1) * 0.5, -(depth - p) * 0.5)),
+	]
+	# One panel at each end and one on every bay division: a 1.2 m run is two boxes, not one
+	# box with a line drawn down it, and the divider is what a drawer runs against.
+	for i in range(bays + 1):
+		var x := -width * 0.5 + p * 0.5 + (width - p) * (float(i) / float(bays))
+		parts.append(part(Vector3(p, height, depth), Vector3(x, (y0 + y1) * 0.5, 0)))
+	root.add_child(mi(union(parts), box_mat))
+	# Recessed plinth: a carcass that sits flat on the floor reads as a crate.
+	root.add_child(mi(box(Vector3(width - 0.02, PLINTH_HEIGHT, depth - PLINTH_SETBACK)),
+			Mats.of("painted_wood", Color(0.62, 0.62, 0.60), 0.8),
+			Vector3(0, PLINTH_HEIGHT * 0.5, -PLINTH_SETBACK * 0.5)))
+	# The worktop overhangs the fronts at the front and stops flush with the carcass at the
+	# back, and the upstand stands on that back edge — so the run can be pushed to a wall
+	# without the stone disappearing into the plaster.
+	var top_depth := depth + WORKTOP_NOSE
+	var top_z := WORKTOP_NOSE * 0.5
+	root.add_child(mi(rounded_box(Vector3(width + 0.02, WORKTOP_THICK, top_depth), 0.008),
+			stone, Vector3(0, y1 + WORKTOP_THICK * 0.5, top_z)))
+	root.add_child(mi(box(Vector3(width + 0.02, UPSTAND_HEIGHT, 0.02)), stone,
+			Vector3(0, y1 + WORKTOP_THICK + UPSTAND_HEIGHT * 0.5, top_z - top_depth * 0.5 + 0.01)))
+	return root
+
+## The top of a run's worktop, in the run's local space: what stands on it stands here.
+static func worktop_y(height := 0.72) -> float:
+	return PLINTH_HEIGHT + height + WORKTOP_THICK

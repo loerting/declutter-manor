@@ -17,6 +17,10 @@ func _ready() -> void:
 	_test_backup_recovers_a_corrupt_main()
 	_test_a_bad_save_is_never_wiped()
 	_test_phase_transitions()
+	_test_slot_group_arithmetic()
+	_test_fill_orders()
+	_test_group_validation()
+	_test_inventory_capacity()
 
 	print("\n%d checks, %d failed" % [_checks, _failures])
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -154,3 +158,119 @@ func _test_phase_transitions() -> void:
 	_ok("a legal transition commits", GameState.request_phase(GameState.Phase.PLAYING))
 	_ok("and the phase actually changed", GameState.phase == GameState.Phase.PLAYING)
 	GameState.request_phase(GameState.Phase.MENU)
+
+# --- Placement ------------------------------------------------------------------------------------
+
+func _group(capacity: int, layout: PlaceSlotGroup.Layout,
+		order: PlaceSlotGroup.FillOrder) -> PlaceSlotGroup:
+	var g := PlaceSlotGroup.new()
+	g.id = &"probe"
+	g.accepts = [&"spoon"] as Array[StringName]
+	g.capacity = capacity
+	g.layout = layout
+	g.fill_order = order
+	g.step = Vector3(0, 0.004, 0)
+	return g
+
+func _occupancy(capacity: int, taken: Array) -> Array[bool]:
+	var out: Array[bool] = []
+	out.resize(capacity)
+	out.fill(false)
+	for i: int in taken:
+		out[i] = true
+	return out
+
+## Slot transforms are generated from a base and a step, which is the whole reason twelve
+## spoons cost one authored transform instead of twelve (docs/ARCHITECTURE.md, "Placement").
+func _test_slot_group_arithmetic() -> void:
+	print("Place-slot arithmetic")
+	var stack := _group(12, PlaceSlotGroup.Layout.STACK, PlaceSlotGroup.FillOrder.SEQUENTIAL)
+	stack.base_xform = Transform3D(Basis.IDENTITY, Vector3(1, 2, 3))
+	_ok("slot 0 is the base", stack.slot_xform(0).origin.is_equal_approx(Vector3(1, 2, 3)))
+	_ok("slot 11 is eleven steps up",
+		absf(stack.slot_xform(11).origin.y - (2.0 + 0.044)) < 0.0001,
+		"%.4f" % stack.slot_xform(11).origin.y)
+	_ok("a slot keeps the base orientation",
+		stack.slot_xform(5).basis.is_equal_approx(stack.base_xform.basis))
+	var grid := _group(6, PlaceSlotGroup.Layout.GRID, PlaceSlotGroup.FillOrder.NEAREST)
+	grid.step = Vector3(0.1, 0, 0)
+	grid.row_step = Vector3(0, 0, 0.2)
+	grid.row_length = 3
+	_ok("a grid wraps to the next row",
+		grid.slot_xform(3).origin.is_equal_approx(Vector3(0, 0, 0.2)),
+		str(grid.slot_xform(3).origin))
+	_ok("a grid walks along its row",
+		grid.slot_xform(5).origin.is_equal_approx(Vector3(0.2, 0, 0.2)),
+		str(grid.slot_xform(5).origin))
+
+## SEQUENTIAL is what makes a stack read correctly; NEAREST is what makes a shelf read
+## correctly; PAIRED is what stops a rack of shoes ending up with two odd ones.
+func _test_fill_orders() -> void:
+	print("Fill orders")
+	var seq := _group(4, PlaceSlotGroup.Layout.STACK, PlaceSlotGroup.FillOrder.SEQUENTIAL)
+	_ok("SEQUENTIAL takes the lowest free slot",
+		seq.next_index(_occupancy(4, [0, 1])) == 2)
+	_ok("SEQUENTIAL fills a hole left by a removal",
+		seq.next_index(_occupancy(4, [0, 2])) == 1)
+	_ok("a full group offers nothing", seq.next_index(_occupancy(4, [0, 1, 2, 3])) == -1)
+
+	var near := _group(4, PlaceSlotGroup.Layout.ROW, PlaceSlotGroup.FillOrder.NEAREST)
+	near.step = Vector3(0.5, 0, 0)
+	_ok("NEAREST offers the slot under the crosshair",
+		near.next_index(_occupancy(4, []), Vector3(1.4, 0, 0)) == 3,
+		str(near.next_index(_occupancy(4, []), Vector3(1.4, 0, 0))))
+	_ok("NEAREST skips an occupied slot for the next closest",
+		near.next_index(_occupancy(4, [3]), Vector3(1.4, 0, 0)) == 2)
+
+	var pair := _group(4, PlaceSlotGroup.Layout.ROW, PlaceSlotGroup.FillOrder.PAIRED)
+	# Slot 3 is taken and slot 0 is free, so SEQUENTIAL would start a new pair at 0 and leave
+	# two odd shoes. PAIRED completes the pair 3 belongs to.
+	_ok("PAIRED finishes a half-filled pair before opening a new one",
+		pair.next_index(_occupancy(4, [3])) == 2,
+		str(pair.next_index(_occupancy(4, [3]))))
+	_ok("PAIRED opens a new pair when none is half-filled",
+		pair.next_index(_occupancy(4, [0, 1])) == 2)
+
+## Content validation. A group that fails this places items wrongly inside a drawer, where no
+## render would ever show it.
+func _test_group_validation() -> void:
+	print("Place-slot validation")
+	var good := _group(12, PlaceSlotGroup.Layout.STACK, PlaceSlotGroup.FillOrder.SEQUENTIAL)
+	_ok("a stack of twelve with a step is consistent", good.is_consistent())
+	var no_step := _group(12, PlaceSlotGroup.Layout.STACK, PlaceSlotGroup.FillOrder.SEQUENTIAL)
+	no_step.step = Vector3.ZERO
+	_ok("twelve slots in one place is rejected", not no_step.is_consistent())
+	# You cannot slide a spoon into the middle of a pile, so a stack is only ever sequential.
+	var picky := _group(12, PlaceSlotGroup.Layout.STACK, PlaceSlotGroup.FillOrder.NEAREST)
+	_ok("a NEAREST stack is rejected", not picky.is_consistent())
+	var free := _group(3, PlaceSlotGroup.Layout.FREE, PlaceSlotGroup.FillOrder.SEQUENTIAL)
+	_ok("a FREE group holding more than one is rejected", not free.is_consistent())
+	var anything := _group(1, PlaceSlotGroup.Layout.FREE, PlaceSlotGroup.FillOrder.SEQUENTIAL)
+	anything.accepts = [] as Array[StringName]
+	_ok("a group that accepts nothing is rejected", not anything.is_consistent())
+	var spoon := ItemDef.make(&"spoon_01", &"spoon", &"probe")
+	var mug := ItemDef.make(&"mug_01", &"mug", &"probe")
+	_ok("a group takes its own family", good.takes(spoon))
+	_ok("a group refuses another family", not good.takes(mug))
+
+## The slot economy is the progression, so the arithmetic of it is checked here rather than
+## discovered when a set completes (docs/PACING.md, "The slot ladder").
+func _test_inventory_capacity() -> void:
+	print("Inventory")
+	Inventory.reset()
+	var spoon := ItemDef.make(&"spoon_01", &"spoon", &"probe")
+	var heavy := ItemDef.make(&"chair", &"chair", &"probe")
+	heavy.slot_cost = 4
+	_ok("a run starts at the documented capacity", Inventory.capacity == Balance.START_SLOTS)
+	_ok("the first item fits", Inventory.take(spoon))
+	_ok("the second does not", not Inventory.take(spoon))
+	_ok("a refused take changes nothing", Inventory.used() == 1)
+	_ok("releasing frees the slot", Inventory.release(spoon) and Inventory.free_slots() == 1)
+	_ok("releasing something not carried fails", not Inventory.release(spoon))
+	Inventory.grant_slot(3)
+	_ok("a granted slot raises capacity", Inventory.capacity == Balance.START_SLOTS + 3)
+	_ok("an item costing four fits four slots", Inventory.take(heavy))
+	_ok("and fills them", Inventory.free_slots() == 0)
+	Inventory.reset()
+	_ok("a reset run is empty and back to the start",
+		Inventory.used() == 0 and Inventory.capacity == Balance.START_SLOTS)

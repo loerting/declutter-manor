@@ -42,6 +42,18 @@ const PLACE_SNAP_RADIUS := 1.6
 ## A container must be at least this open before its slots are offered.
 const CONTAINER_OPEN_THRESHOLD := 0.85
 const CONTAINER_TWEEN_TIME := 0.35
+## The smallest box the interaction ray has to be able to hit. A spoon is 6 mm thick and its
+## honest extent is a target the player misses; this is what makes small items pickable
+## without making the crosshair a magnet.
+const ITEM_MIN_PICK_SIZE := 0.12
+## How far off the crosshair a place-slot group may be and still be the one offered. Wide
+## enough that the player aims at a drawer rather than at a slot inside it.
+const PLACE_AIM_CONE_DEG := 35.0
+## The ghost preview: how solid the unshaded copy of the item is, and how far the white
+## inverted hull is grown past it. The outline is in metres, so it is the same weight on a
+## spoon as on a chair.
+const GHOST_ALPHA := 0.45
+const GHOST_OUTLINE := 0.004
 
 # --- The slot economy (docs/VISION.md, docs/PACING.md) --------------------------------------
 

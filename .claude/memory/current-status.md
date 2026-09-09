@@ -8,52 +8,50 @@ metadata:
   modified: 2026-09-09T00:00:00.000Z
 ---
 
-**As of 2026-09-09.** Phase 0 committed (`175cbc4`). Phase 1 complete and gated: manor
-(`d13d771`), design pass (`081c5d7`), deck and pool (`a47aa58`), render harness (`dd03aec`),
-gate + shadow fix + attic gables (`3f5d00f`). **Phase 2 is in progress** — the first tranche
-(player, bootstrap, walk probe) is below.
+**As of 2026-09-09.** Phase 0 committed (`175cbc4`). Phase 1 complete and gated (`d13d771`,
+`3f5d00f`). **Phase 2 is in progress**: tranche 1 (player, bootstrap, walk probe) is `486e4cf`;
+tranche 2 (the interaction system and the kitchen) is below.
 
 ## The decisions that matter
 
-- **A wall is one mesh with two faces and a rim, cut by one list of openings.** `WallSegment`
-  names `room_a` / `room_b` (side A on your right walking a to b); materials derive from that.
-  `WallDeriver` derives walls from room rectangles; plans pierce by room name / compass point.
-- **`WorldBuilder` is the only path from a plan to a lit house.** Game, gate renders and
-  `PerfProbe` all go through it, so the game cannot be lit differently from the render that
-  approved it. It also owns the settle-and-capture every screenshot uses.
-- **A flight collides as a ramp, not as its treads.** A body cannot climb a 17 cm nose;
-  `WalkProbe` measured all three manor flights failing before the ramp existed.
+- **A wall is one mesh with two faces and a rim, cut by one list of openings.** `WallDeriver`
+  derives walls from room rectangles; plans pierce by room name / compass point.
+- **`WorldBuilder` is the only path from a plan to a lit house**, and now to a furnished one
+  (`furnish`). Game, gate renders and `PerfProbe` all go through it.
+- **A flight collides as a ramp, not as its treads.** Measured: no flight was climbable before.
+- **A `PlaceSlotGroup` is data with no occupancy; the `PlaceSlots` node holds the occupancy**
+  and is attached where the items belong, so slots in a drawer travel with the drawer.
+- **`Inventory` (autoload) owns capacity and the carried defs; `CarryComponent` owns the nodes.**
+  Carried items stay in the tree under the hands — nothing is ever an orphan.
+- **A refused action changes nothing.** Take checks capacity before moving anything; a placement
+  asks the slot before the item leaves the hands.
 
-## Phase 2, tranche 1 (this batch)
+## Phase 2, tranche 2 (this batch)
 
-`player/Player.tscn` + `PlayerController` (capsule, head, eye at `Balance.EYE_HEIGHT`, walk at
-the 2.8 m/s the pacing budget is derived from), input map, `scenes/World.tscn` +
-`GameWorld` booted from `Main`, spawn as plan data (`FloorPlan.spawn_room/offset/facing`,
-manor: inside the front door looking down the hall), stair ramps, `dev/WalkProbe.gd`.
+`PlaceSlotGroup`/`PlaceSlots` with SEQUENTIAL/PAIRED/NEAREST and STACK/ROW/GRID/FREE,
+`ItemDef`/`ItemPlacement`/`ItemNode`/`ItemFactory`, `Inventory`, `CarryComponent`, `Interactor`
+(ray, reach, aim cone, prompts), `PlaceGhost` (unshaded copy + inverted-hull outline),
+`ContainerComponent` FSM, `core/Layers.gd`, `ui/Hud`, `FurnitureBuilder` + `ManorItems` (a
+1.2 m kitchen run, four containers, twelve spoons), `dev/InteractProbe.gd`.
 
-`WalkProbe`: 26 of 26 zones hold a body up, all three flights climbed (40.3, 37.4 and 64.6
-degrees). Both failure modes proven red first. `Balance.FLOOR_MAX_ANGLE_DEG` is 70 because the
-attic ladder is 65.
+Verified: suite 58 checks 0 failed; InteractProbe 0 violations (and red three ways);
+WalkProbe 0; PlanProbe 0; Diag clean; check_export PASS. Renders in `screenshots/phase2/`.
 
 ## Next concrete step
 
-Phase 2 tranche 2: `PlaceSlotGroup`, `CarryComponent`, `Inventory`, the ghost preview with the
-white inverted-hull outline, `ContainerComponent`'s FSM, the crosshair, and the kitchen
-reference (a drawer stacking twelve spoons, a cabinet holding clutter).
+Phase 2 gate: the author walks the property, opens every container and puts twelve spoons away
+by hand, and the 30 s search budget gets its first real measurement. Then Phase 3 (`ItemDef`
+content, `SetTracker`, the in-editor home authoring tool).
 
 ## Open loops
 
-- **The medium tier costs ~4.3 s to enter, against a 4 s budget** — 0.9 s of house and 3.4 s of
-  VoxelGI bake. Found by fixing the measurement (`PerfProbe` now lights through `WorldBuilder`
-  and counts the bake as startup). Subdiv, excluding the lawn and refitting the bake volume were
-  all measured and none of them is the fix; the fix is to bake once in a dev tool and ship the
-  `VoxelGIData` keyed by `plan_hash`. Written up in `docs/PACING.md`.
-- **The low tier's interiors are cool and green.** Ambient is the sky at `LOW_AMBIENT` 2.0 with
-  no bounce and the sky's lower hemisphere is hazy green. `Graphics.gd` says the tier gap is the
-  author's call; levers are `ambient_light_sky_contribution` and `ambient_light_color`.
-- **Door reveals read dark.** In the spawn render the office doorway's reveal is a dark brown
-  band: correct geometry, unlit, and nothing lines it. A reveal lining or casing return would
-  fix it. Author's call.
+- **Draw calls are 1605 of 1800 with one furnished kitchen** (the empty house is 1476). The
+  kitchen cost 129, because every mesh is redrawn per shadow-casting light. 250 items across
+  twenty rooms will not fit in the remaining 195 — the Phase 3 `MultiMesh` pass is load-bearing.
+- **The medium tier costs ~4.7 s to enter, against a 4 s budget** (was 4.31 s; the bake grew
+  with the kitchen). Fix: bake `VoxelGIData` in a dev tool, keyed by `plan_hash`. Not built.
+- **The low tier's interiors are cool and green.** Levers: `ambient_light_sky_contribution`,
+  `ambient_light_color`. Author's call.
+- **Door reveals read dark** — correct geometry, unlit, nothing lining it. Author's call.
 - No texture in the manifest has tile joints, so no floor reads as laid tiles.
-- Confirm separate demo location before Phase 5; measure 30 s search at the Phase 2 gate;
-  localization pass after Phase 4.
+- Confirm separate demo location before Phase 5; localization pass after Phase 4.
