@@ -48,5 +48,19 @@ const MAX_SET_MINUTES := 12.0
 ## Acceptable deviation between PacingProbe's measurement and the budget above.
 const PACING_TOLERANCE := 0.15
 
+# --- Performance budget (docs/PACING.md, "Performance budget"), checked by dev/PerfProbe.gd ---
+
+## 1080p on the reference desktop. The Deck floor is half this and is a separate run.
+const TARGET_FPS := 60.0
+## No single frame may exceed this, however good the average is — a 100 ms hitch while walking
+## into a room is felt where a 5 fps average drop is not.
+const MAX_FRAME_MS := 100.0
+const MAX_DRAW_CALLS := 1800
+## Cold start, measured to the first interactive frame.
+const MAX_STARTUP_SECONDS := 4.0
+const MAX_MEMORY_MB := 700.0
+## The stress scene runs at double the shipping item count, so a pass has real headroom.
+const STRESS_ITEM_COUNT := 500
+
 static func is_valid_slot_cost(cost: int) -> bool:
 	return SLOT_COST_TIERS.has(cost)

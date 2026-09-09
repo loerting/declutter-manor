@@ -8,7 +8,7 @@ future licence question can be answered without re-deriving where a file came fr
 Nothing here imposes an obligation on a shipped build. There is no notice we are required to
 include, and no source we must link back to.
 
-The files themselves are not committed (they are ~56 MB and freely re-downloadable). Fetch them
+The files themselves are not committed (they are ~70 MB and freely re-downloadable). Fetch them
 with `python3 tools/fetch_textures.py`, which reads `assets/textures.json`.
 
 ## Poly Haven — https://polyhaven.com
@@ -42,6 +42,11 @@ CC0, all assets by Lennart Demes. Site-wide licence: https://ambientcg.com/licen
 | `soil` | [Ground048](https://ambientcg.com/view?id=Ground048) |
 | `rubber` | [Rubber004](https://ambientcg.com/view?id=Rubber004) |
 | `paper` | [Paper001](https://ambientcg.com/view?id=Paper001) |
+| `concrete` | [Concrete040](https://ambientcg.com/view?id=Concrete040) |
+| `lawn` | [Grass004](https://ambientcg.com/view?id=Grass004) |
+| `roof_tiles` | [RoofingTiles013A](https://ambientcg.com/view?id=RoofingTiles013A) |
+| `brick` | [Bricks092](https://ambientcg.com/view?id=Bricks092) |
+| `gravel` | [Gravel023](https://ambientcg.com/view?id=Gravel023) |
 
 ## Sources deliberately not used
 
@@ -59,5 +64,5 @@ knowing why:
 
 ## Everything else
 
-All geometry is generated at runtime by `scripts/Props.gd`. There are no imported models,
+All geometry is generated at runtime by `props/Props.gd` and `world/HouseBuilder.gd`. There are no imported models,
 sounds, or fonts, and no other third-party content in this repository.

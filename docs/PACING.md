@@ -89,11 +89,18 @@ absence.
 | Any single frame after the first | <= 100 ms |
 | Resident memory | <= 700 MB |
 
-**Measured in Phase 0, and open:** the first real export produced a **206 MB PCK** from 56 MB of
-source textures, because `fetch_textures.py` imports them losslessly (`compress/mode=0`). That is
-right for judging an art style and wrong for shipping — VRAM compression would cut both the
-download and the texture memory substantially. Not changed yet, because it trades quality for size
-and that is a decision to make with renders in hand, in Phase 1.
+**Raised in Phase 0, decided in Phase 1: textures import VRAM-compressed.** The first export
+produced a 206 MB PCK from 56 MB of source textures, because `fetch_textures.py` imported them
+losslessly. The decision was deferred until there were renders to judge the quality cost against,
+and Phase 1 then made it unavoidable: building the garage took **4.6 s**, of which **4.4 s was
+texture load and 0.12 s was geometry**. The cold-start budget above was already blown by three
+rooms, and not because of the house.
+
+`compress/mode=2` with `high_quality` (BC7) took material load from **4412 ms to 247 ms** — an
+18x improvement, because a lossless texture is decompressed on the CPU at load and then uploaded,
+while a BC7 one is handed to the GPU exactly as it sits on disk. Side-by-side interior renders
+show no visible difference at the scales the game is played at. The lesson is worth keeping: the
+suspicion was "the geometry is slow", and the measurement said the geometry was 3% of the cost.
 
 Two mitigations are designed in from the start rather than bolted on: distinct meshes are
 **generated once and cached by `(generator, params)`**, so twelve forks share one `ArrayMesh`; and

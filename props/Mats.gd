@@ -39,9 +39,13 @@ static func _tex(slot: String, map: String) -> Texture2D:
 ##  `tint`       modulates the albedo, so one wood or fabric serves several colourways;
 ##  `rough_mul`  scales the roughness map (>1 duller, <1 glossier);
 ##  `scale_mul`  scales the tile size, for the odd prop that wants finer or coarser grain.
-static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul := 1.0) -> Material:
+##  `world_space` projects in world coordinates instead of the object's own. Props want local,
+##  so a mug keeps its glaze when it is picked up; architecture wants world, so plaster and
+##  siding run continuously across a corner instead of restarting on every wall segment.
+static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul := 1.0,
+		world_space := false) -> Material:
 	_load_specs()
-	var key := "%s|%s|%.3f|%.3f" % [slot, tint.to_html(), rough_mul, scale_mul]
+	var key := "%s|%s|%.3f|%.3f|%s" % [slot, tint.to_html(), rough_mul, scale_mul, world_space]
 	if _cache.has(key):
 		return _cache[key]
 
@@ -79,7 +83,7 @@ static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul :=
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
 	m.uv1_triplanar = true
-	m.uv1_world_triplanar = false  # local space, so a prop keeps its grain when moved
+	m.uv1_world_triplanar = world_space
 	m.uv1_triplanar_sharpness = 4.0
 	m.uv1_scale = Vector3.ONE / maxf(metres, 0.001)
 

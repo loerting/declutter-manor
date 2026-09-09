@@ -26,6 +26,12 @@
     "worktop_stone":   { "src": "ambientcg", "id": "Marble012",           "res": "2K", "scale": 1.20 },
     "soil":            { "src": "ambientcg", "id": "Ground048",           "res": "1K", "scale": 0.50 },
     "rubber":          { "src": "ambientcg", "id": "Rubber004",           "res": "1K", "scale": 0.25 },
-    "paper":           { "src": "ambientcg", "id": "Paper001",            "res": "1K", "scale": 0.40 }
+    "paper":           { "src": "ambientcg", "id": "Paper001",            "res": "1K", "scale": 0.40 },
+
+    "concrete":        { "src": "ambientcg", "id": "Concrete040",         "res": "2K", "scale": 1.40 },
+    "lawn":            { "src": "ambientcg", "id": "Grass004",            "res": "2K", "scale": 1.40 },
+    "roof_tiles":      { "src": "ambientcg", "id": "RoofingTiles013A",    "res": "2K", "scale": 2.90 },
+    "brick":           { "src": "ambientcg", "id": "Bricks092",           "res": "2K", "scale": 1.10 },
+    "gravel":          { "src": "ambientcg", "id": "Gravel023",           "res": "1K", "scale": 1.50 }
   }
 }

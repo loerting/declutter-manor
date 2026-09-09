@@ -98,10 +98,18 @@ def fetch_ambientcg(slot: str, spec: dict, dest: pathlib.Path) -> None:
 # a material *in the editor* - its detect_3d pass. These materials are built at runtime,
 # so that never fires and every texture imports unmipmapped, which shows up as severe
 # moire shimmer on anything viewed at an angle. We therefore own the import settings.
+#
+# compress/mode=2 is VRAM Compressed (BC7 with high_quality). Measured on the Phase 1 garage:
+# lossless import cost 4.4 s of texture load against a 0.1 s geometry build, and produced a
+# 206 MB PCK. VRAM compression is not an optimisation here, it is the only way the 4 s cold
+# start in docs/PACING.md is reachable - a lossless texture is decoded on the CPU at load and
+# then uploaded, while a BC7 one is handed to the GPU as it sits on disk.
+VRAM = {"compress/mode": "2", "compress/high_quality": "true"}
 IMPORT_PARAMS = {
-    "albedo": {"mipmaps/generate": "true", "detect_3d/compress_to": "0"},
-    "normal": {"mipmaps/generate": "true", "compress/normal_map": "1", "detect_3d/compress_to": "0"},
-    "orm": {"mipmaps/generate": "true", "detect_3d/compress_to": "0"},
+    "albedo": {"mipmaps/generate": "true", "detect_3d/compress_to": "0", **VRAM},
+    "normal": {"mipmaps/generate": "true", "compress/normal_map": "1",
+               "detect_3d/compress_to": "0", **VRAM},
+    "orm": {"mipmaps/generate": "true", "detect_3d/compress_to": "0", **VRAM},
 }
 
 

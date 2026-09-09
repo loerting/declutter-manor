@@ -1,40 +1,39 @@
 ---
 name: current-status
-description: READ FIRST — what just finished on Declutter Manor, the next concrete step, and open loops.
+description: READ FIRST — where Declutter Manor stands, what is next, and what is still open
 metadata:
   type: project
 ---
 
-## Status 2026-09-09 — Phase 0 complete, Phase 1 not started
+**As of 2026-09-09.** Phase 0 is complete and committed (`175cbc4`). Phase 1 (the house as
+data) is **in progress, uncommitted**.
 
-**Done and verified.** The plan set (`docs/VISION.md`, `HOUSE.md`, `PACING.md`, `ARCHITECTURE.md`,
-`ROADMAP.md`, plus `CLAUDE.md`) is written and committed. Phase 0 foundation landed:
+## Built in Phase 1 so far
 
-- Folders restructured to the map: `scripts/` is gone; `props/`, `core/`, `dev/`, `scenes/`.
-- `core/Balance.gd`, `BuildConfig.gd`, `util/NumberFormatter.gd` (static classes, no autoload),
-  `EventBus.gd`, `GameState.gd`, `SaveManager.gd` (the three autoloads).
-- `scenes/Main.tscn` is the shipped entry point; the style test is dev-only and export-excluded.
-- `dev/tests/run_tests.sh` — 29 checks, 0 failed, and **mutation-proved**: removing the
-  future-version guard reds 2 checks, removing backup rotation reds 1.
-- `dev/tests/check_export.sh` — a real Linux release export, PCK scanned, zero dev content.
-- `dev/Diag.gd` clean (only `holed_slab`'s inward hole walls, which are correct).
+- `data/` — `FloorPlan`, `StoreyDef`, `RoomDef`, `WallSegment`, `Opening`, `RoofDef`
+- `world/HouseBuilder.gd`, `world/TerrainBuilder.gd`, `world/plans/GaragePlan.gd`
+- `core/Graphics.gd` — the three tiers, and the shared sun/exposure calibration
+- `dev/PlanProbe.gd` (0 violations, mutation-proved), `dev/HouseView.gd` + `.tscn`
+- Five new CC0 architectural textures: concrete, lawn, roof_tiles, brick, gravel
 
-**Next concrete step: Phase 1, and the garage first.** `FloorPlan` and its Resources, then
-`HouseBuilder` / `RoomBuilder` / `ExteriorBuilder` / `TerrainBuilder`. The garage is built first
-because it is interior and exterior at once and is the cheapest complete test that the
-one-floor-plan rule holds. Then `dev/PlanProbe.gd`, then the 500-item stress scene.
+## The decision that matters
 
-The Phase 1 gate needs author-approved renders **at all three graphics tiers**, low included.
+**A wall is one mesh with two faces and a rim, cut by one list of openings.** There is no
+separate interior and exterior wall to keep in agreement. `WallSegment` names `room_a` /
+`room_b` (side A is on your right walking a to b) and materials are derived from that, so
+plaster on a garden elevation requires naming the wrong room — which `PlanProbe` catches.
 
-**Open loops.**
-- The demo shape is recommended but not confirmed: a separate location that never appears in the
-  full game. Needed before Phase 5, not before Phase 1.
-- The 30 s per-item search budget in `PACING.md` is 72% of the loop and cannot be derived — it
-  gets its first real measurement at the Phase 2 gate. If it is really 15 s the game is 90
-  minutes, not 180.
-- Textures import losslessly, so the first export was a 206 MB PCK. VRAM compression is the fix;
-  it is a quality trade and belongs in Phase 1 with renders in hand.
-- Localization: `tr()` scaffold only. The translation pass runs once, after the Phase 4 content
-  gate — deliberately, so 30 languages are not redone every time a string moves.
+## Next concrete step
 
-See [[game-vision-declutter-manor]], [[declutter-manor-workflow]], [[shell-cp-is-interactive]].
+`dev/PerfProbe.gd` and the 500-item stress scene, then occluder generation, then the full
+26-zone manor plan. Gate is author-approved renders at all three tiers.
+
+## Open loops
+
+- **Build time is 4.6 s for three rooms**, already over the 4 s cold-start budget. Instrumented
+  to split material load from geometry; the measurement has not been read yet. Suspected to be
+  lossless 2K texture import — same root cause as the 206 MB PCK.
+- VRAM texture compression: decide in Phase 1 with renders in hand.
+- Confirm the separate-demo-location recommendation before Phase 5.
+- Measure the 30 s search budget at the Phase 2 gate.
+- Localization translation pass only after the Phase 4 content gate.

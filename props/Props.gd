@@ -38,6 +38,84 @@ static func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector
 		st.set_normal(fn)
 		st.add_vertex(v)
 
+static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3) -> void:
+	if (b - a).cross(c - a).dot(n) > 0.0:
+		var t := b
+		b = c
+		c = t
+	var fn := -(b - a).cross(c - a).normalized()
+	for v: Vector3 in [a, b, c]:
+		st.set_normal(fn)
+		st.add_vertex(v)
+
+## A planar polygon given real thickness, extruded along its own normal into a closed solid.
+## Roof slopes, gable ends, deck boards and dormers are all this: a sloping plane that has to
+## have a visible edge, because nothing in this project is a single-sided sheet (modelling
+## rule 3). Points must be given in order around a convex outline; the normal is derived and
+## flipped toward `up_hint`, so a caller cannot get the winding wrong.
+static func slab_poly(pts: PackedVector3Array, thickness: float, up_hint := Vector3.UP) -> ArrayMesh:
+	if pts.size() < 3:
+		push_error("slab_poly: %d points" % pts.size())
+		return ArrayMesh.new()
+	var n := (pts[1] - pts[0]).cross(pts[2] - pts[0]).normalized()
+	if n.dot(up_hint) < 0.0:
+		n = -n
+	var off := n * thickness
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(1, pts.size() - 1):
+		_tri(st, pts[0], pts[i], pts[i + 1], n)
+		_tri(st, pts[0] - off, pts[i] - off, pts[i + 1] - off, -n)
+	for i in range(pts.size()):
+		var a := pts[i]
+		var b := pts[(i + 1) % pts.size()]
+		_quad(st, a, b, b - off, a - off, (b - a).cross(n).normalized())
+	return with_tangents(st.commit())
+
+static func slab_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, thickness: float,
+		up_hint := Vector3.UP) -> ArrayMesh:
+	return slab_poly(PackedVector3Array([a, b, c, d]), thickness, up_hint)
+
+## Solid raised from a closed plan polygon: a cap at `y_top`, a cap at `y_bottom` and the
+## side band between them. Floors, ceilings, terrain patches and the pool basin are all this
+## shape, so the polygon is the only thing that ever has to be authored.
+## Winding is derived from the requested face normals, so the polygon may be given either way
+## round; `dev/Diag.gd` covers it.
+static func prism(polygon: PackedVector2Array, y_bottom: float, y_top: float) -> ArrayMesh:
+	var tris := Geometry2D.triangulate_polygon(polygon)
+	if tris.is_empty():
+		push_error("prism: polygon could not be triangulated (self-intersecting or degenerate)")
+		return ArrayMesh.new()
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(0, tris.size(), 3):
+		var p0 := polygon[tris[i]]
+		var p1 := polygon[tris[i + 1]]
+		var p2 := polygon[tris[i + 2]]
+		_tri(st, Vector3(p0.x, y_top, p0.y), Vector3(p1.x, y_top, p1.y), Vector3(p2.x, y_top, p2.y), Vector3.UP)
+		_tri(st, Vector3(p0.x, y_bottom, p0.y), Vector3(p1.x, y_bottom, p1.y), Vector3(p2.x, y_bottom, p2.y), Vector3.DOWN)
+	for i in range(polygon.size()):
+		var a := polygon[i]
+		var b := polygon[(i + 1) % polygon.size()]
+		var edge := b - a
+		if edge.length() < 1e-6:
+			continue
+		# outward normal of a plan edge, sign fixed below by the polygon's own winding
+		var n := Vector2(-edge.y, edge.x).normalized()
+		if _signed_area(polygon) > 0.0:
+			n = -n
+		_quad(st, Vector3(a.x, y_bottom, a.y), Vector3(b.x, y_bottom, b.y),
+			Vector3(b.x, y_top, b.y), Vector3(a.x, y_top, a.y), Vector3(n.x, 0.0, n.y))
+	return with_tangents(st.commit())
+
+static func _signed_area(polygon: PackedVector2Array) -> float:
+	var s := 0.0
+	for i in range(polygon.size()):
+		var a := polygon[i]
+		var b := polygon[(i + 1) % polygon.size()]
+		s += a.x * b.y - b.x * a.y
+	return s * 0.5
+
 ## Skins a stack of closed rings (all the same length) into a solid.
 ## Ring point j must be at angle TAU*j/n around the stacking direction, turning from
 ## the ring's first basis vector u toward v = u.cross(stacking_direction).
@@ -303,9 +381,20 @@ static func _cuts(lo: float, hi: float, holes: Array, on_x: bool) -> PackedFloat
 
 ## Flat slab (thickness along Y) with real rectangular through-holes cut out of it.
 ## `holes` are Rect2 in the slab's local XZ plane and must lie fully inside it.
-static func holed_slab(size: Vector3, holes: Array) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+##
+## With `split`, the mesh comes back as three surfaces instead of one — the +Y face, the -Y
+## face, and the rim (outer edges plus every hole reveal). That is what lets a wall be plaster
+## on one side and siding on the other while still being a single mesh cut by a single list of
+## openings: an opening cannot exist on one face and not the other, because there is only one
+## piece of geometry. Surface order is fixed: 0 = +Y, 1 = -Y, 2 = rim.
+static func holed_slab(size: Vector3, holes: Array, split := false) -> ArrayMesh:
+	var top := SurfaceTool.new()
+	top.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var bot := SurfaceTool.new() if split else top
+	var rim := SurfaceTool.new() if split else top
+	if split:
+		bot.begin(Mesh.PRIMITIVE_TRIANGLES)
+		rim.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var hy := size.y * 0.5
 	var x0 := -size.x * 0.5
 	var x1 := size.x * 0.5
@@ -320,22 +409,36 @@ static func holed_slab(size: Vector3, holes: Array) -> ArrayMesh:
 			for h: Rect2 in holes:
 				if h.has_point(centre): solid = false
 			if not solid: continue
-			_quad(st, Vector3(xs[i], hy, zs[j]), Vector3(xs[i + 1], hy, zs[j]),
+			_quad(top, Vector3(xs[i], hy, zs[j]), Vector3(xs[i + 1], hy, zs[j]),
 				Vector3(xs[i + 1], hy, zs[j + 1]), Vector3(xs[i], hy, zs[j + 1]), Vector3.UP)
-			_quad(st, Vector3(xs[i], -hy, zs[j]), Vector3(xs[i + 1], -hy, zs[j]),
+			_quad(bot, Vector3(xs[i], -hy, zs[j]), Vector3(xs[i + 1], -hy, zs[j]),
 				Vector3(xs[i + 1], -hy, zs[j + 1]), Vector3(xs[i], -hy, zs[j + 1]), Vector3.DOWN)
-	_quad(st, Vector3(x0, -hy, z0), Vector3(x1, -hy, z0), Vector3(x1, hy, z0), Vector3(x0, hy, z0), Vector3(0, 0, -1))
-	_quad(st, Vector3(x0, -hy, z1), Vector3(x1, -hy, z1), Vector3(x1, hy, z1), Vector3(x0, hy, z1), Vector3(0, 0, 1))
-	_quad(st, Vector3(x0, -hy, z0), Vector3(x0, -hy, z1), Vector3(x0, hy, z1), Vector3(x0, hy, z0), Vector3(-1, 0, 0))
-	_quad(st, Vector3(x1, -hy, z0), Vector3(x1, -hy, z1), Vector3(x1, hy, z1), Vector3(x1, hy, z0), Vector3(1, 0, 0))
+	_quad(rim, Vector3(x0, -hy, z0), Vector3(x1, -hy, z0), Vector3(x1, hy, z0), Vector3(x0, hy, z0), Vector3(0, 0, -1))
+	_quad(rim, Vector3(x0, -hy, z1), Vector3(x1, -hy, z1), Vector3(x1, hy, z1), Vector3(x0, hy, z1), Vector3(0, 0, 1))
+	_quad(rim, Vector3(x0, -hy, z0), Vector3(x0, -hy, z1), Vector3(x0, hy, z1), Vector3(x0, hy, z0), Vector3(-1, 0, 0))
+	_quad(rim, Vector3(x1, -hy, z0), Vector3(x1, -hy, z1), Vector3(x1, hy, z1), Vector3(x1, hy, z0), Vector3(1, 0, 0))
 	for h: Rect2 in holes:
 		var a := h.position
 		var b := h.end
-		_quad(st, Vector3(a.x, -hy, a.y), Vector3(b.x, -hy, a.y), Vector3(b.x, hy, a.y), Vector3(a.x, hy, a.y), Vector3(0, 0, 1))
-		_quad(st, Vector3(a.x, -hy, b.y), Vector3(b.x, -hy, b.y), Vector3(b.x, hy, b.y), Vector3(a.x, hy, b.y), Vector3(0, 0, -1))
-		_quad(st, Vector3(a.x, -hy, a.y), Vector3(a.x, -hy, b.y), Vector3(a.x, hy, b.y), Vector3(a.x, hy, a.y), Vector3(1, 0, 0))
-		_quad(st, Vector3(b.x, -hy, a.y), Vector3(b.x, -hy, b.y), Vector3(b.x, hy, b.y), Vector3(b.x, hy, a.y), Vector3(-1, 0, 0))
-	return with_tangents(st.commit())
+		_quad(rim, Vector3(a.x, -hy, a.y), Vector3(b.x, -hy, a.y), Vector3(b.x, hy, a.y), Vector3(a.x, hy, a.y), Vector3(0, 0, 1))
+		_quad(rim, Vector3(a.x, -hy, b.y), Vector3(b.x, -hy, b.y), Vector3(b.x, hy, b.y), Vector3(a.x, hy, b.y), Vector3(0, 0, -1))
+		_quad(rim, Vector3(a.x, -hy, a.y), Vector3(a.x, -hy, b.y), Vector3(a.x, hy, b.y), Vector3(a.x, hy, a.y), Vector3(1, 0, 0))
+		_quad(rim, Vector3(b.x, -hy, a.y), Vector3(b.x, -hy, b.y), Vector3(b.x, hy, b.y), Vector3(b.x, hy, a.y), Vector3(-1, 0, 0))
+	if not split:
+		return with_tangents(top.commit())
+	return merge_surfaces([with_tangents(top.commit()), with_tangents(bot.commit()), with_tangents(rim.commit())])
+
+## One mesh carrying each input's surface 0 in order, so a single object can wear several
+## materials without becoming several objects. Empty inputs are kept as empty surfaces so
+## surface indices stay stable and a caller can always assign material i to surface i.
+static func merge_surfaces(meshes: Array) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	for m: ArrayMesh in meshes:
+		if m == null or m.get_surface_count() == 0:
+			push_error("merge_surfaces: empty surface would shift every later material index")
+			continue
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, m.surface_get_arrays(0))
+	return out
 
 ## Open-topped box seen from the inside: the four walls and the floor of a real hollow.
 ## The opening sits at local y = 0 and the cavity extends downward by size.y.

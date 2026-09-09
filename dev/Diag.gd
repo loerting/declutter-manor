@@ -4,7 +4,11 @@ extends SceneTree
 ## right-hand-rule cross product points inward.
 
 func _check(label: String, m: Mesh, centre: Vector3) -> void:
-	var arr := m.surface_get_arrays(0)
+	for i in range(m.get_surface_count()):
+		_check_surface(label if m.get_surface_count() == 1 else "%s[%d]" % [label, i], m, i, centre)
+
+func _check_surface(label: String, m: Mesh, surface: int, centre: Vector3) -> void:
+	var arr := m.surface_get_arrays(surface)
 	var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
 	var nrm: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
 	var idx := PackedInt32Array()
@@ -42,4 +46,13 @@ func _init() -> void:
 	# holed_slab's 8 hole-wall faces / 24 hole-wall vertices correctly face into the hole,
 	# so they read as "backwards" against a centre-of-mass test. Everything else must be 0.
 	_check("holed_slab", Props.holed_slab(Vector3(1, 0.1, 1), [Rect2(-0.2, -0.2, 0.4, 0.4)]), Vector3.ZERO)
+	# A split slab is a wall: surface 0 is one face, 1 the other, 2 the rim. Only the rim may
+	# report anything, and for the same reason as above - its hole reveals face into the hole.
+	_check("wall_slab", Props.holed_slab(Vector3(3, 0.2, 2.7), [Rect2(-0.45, -0.45, 0.9, 2.05)], true), Vector3.ZERO)
+	# prism derives its winding from the polygon, so it is checked wound both ways round: a
+	# plan author must not be able to break the house by listing a room clockwise.
+	var square := PackedVector2Array([Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)])
+	var reversed := PackedVector2Array([Vector2(-1, 1), Vector2(1, 1), Vector2(1, -1), Vector2(-1, -1)])
+	_check("prism(ccw)", Props.prism(square, 0.0, 0.5), Vector3(0, 0.25, 0))
+	_check("prism(cw)", Props.prism(reversed, 0.0, 0.5), Vector3(0, 0.25, 0))
 	quit()

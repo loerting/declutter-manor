@@ -43,21 +43,58 @@ and then use it. Never solve it locally "just for this screen".
 
 `FloorPlan` (a Resource) is the only description of the building:
 
-- `storeys: Array[StoreyDef]` — each with a floor height, a ceiling height, and rooms
-- `RoomDef` — an id, a display key, a polygon in plan coordinates, a floor material, a zone kind
-  (interior / garage / exterior), and its containers
-- `WallSegment` — two plan points, a storey, and its openings
-- `Opening` — door or window, position along the segment, size, sill height, and a frame style
-- `RoofPlane`, `TerrainPatch`, `PoolDef`, `DeckDef`
+- `storeys: Array[StoreyDef]` — each with a floor level, a ceiling height, its rooms and its walls
+- `RoomDef` — an id, a display key, a plan polygon, floor / ceiling / wall finishes, a zone kind
+  (interior / garage / exterior), an optional floor drop, and its own light
+- `WallSegment` — two plan points, a thickness, **what is on each side**, and its openings
+- `Opening` — door, window, arch or garage door: position along the segment, size, sill height
+- `RoofDef` — a footprint, an eave height, a pitch and a ridge direction
+- lot extents, from which `TerrainBuilder` lays the ground
 
-`world/HouseBuilder.gd` walks it once and emits three trees: interior geometry, exterior shell, and
-collision. **No geometry is authored anywhere else.** An opening is defined once and consumed by
-both the interior wall and the exterior wall — that is the invariant that makes the outside of the
-house survive being looked at, and `dev/PlanProbe.gd` asserts it along with: no two rooms overlap,
-every room is reachable, every stair connects two storeys, no place-slot or authored start
-position lies inside solid geometry, and every exterior wall belongs to exactly one room.
+`world/HouseBuilder.gd` walks it once and emits interior surfaces, the exterior shell, collision
+and lighting. **No geometry for the house is authored anywhere else.**
 
-Occluder boxes are generated from the same walk, so occlusion culling works on runtime geometry.
+### One wall, two faces — why the outside cannot drift from the inside
+
+The obvious way to build a house is to generate interior walls and exterior walls and keep them
+in agreement. This project does not do that, because "keep them in agreement" is a promise that
+gets broken silently.
+
+A wall is **one mesh**, cut by **one list of openings**, carrying **three surfaces**: the side-A
+face, the side-B face, and the rim — which includes every opening's reveal. `Props.holed_slab`
+with `split` produces exactly that. A window therefore cannot exist on the garden elevation and
+not in the room: there is only one piece of geometry, and the hole goes through it.
+
+The same single mesh produces the collision shape, so an opening is a hole you can walk through
+for precisely the reason it is a hole you can see through.
+
+`WallSegment` names `room_a` and `room_b` rather than carrying materials. **Side A is the side on
+your right when walking from a to b.** Finishes are then derived — a side naming a room takes
+that room's `wall_slot`, a side naming nothing takes the plan's siding — so plaster on a garden
+elevation is not a mistake you can make by typing the wrong material; it requires naming the
+wrong room, which `PlanProbe` catches by checking the named room's centroid against the wall's
+own normal.
+
+Walls run from a footing below the floor to their head, because a room with a dropped slab
+(the garage) otherwise shows daylight under its own walls. Floor and ceiling planes are grown
+outward so they disappear into the walls rather than stopping at the centre line.
+
+### What `dev/PlanProbe.gd` proves
+
+It exits with the number of violations, so it is scriptable, and every check has been shown to
+fail on a deliberate break:
+
+| Check | Catches |
+|---|---|
+| `wall.side_order` | a wall whose sides are swapped — the finish-inversion bug, geometrically |
+| `room.enclosure` | walls around a room not adding up to its perimeter: a gap, or a wall naming the wrong room |
+| `room.reachable` | a room only reachable through a window — items visible and uncollectable |
+| `room.overlap` | two zones sharing floor area, which would double-count clutter |
+| `opening.bounds` / `.head` / `.overlap` | an opening running off its wall, through its ceiling, or into another |
+| `wall.room` / `wall.sides` | a wall naming a room that does not exist, or belonging to none |
+
+Occluder generation from the same walk is planned for the end of Phase 1, once `PerfProbe` says
+whether the draw-call budget needs it. It is not built yet.
 
 ## Items
 
