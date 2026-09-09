@@ -51,7 +51,10 @@ scenes/StyleTest.tscn   # Node3D + Camera3D (fly cam)
 scripts/Props.gd        # class_name Props — all procedural mesh/prop generation (static)
 scripts/StyleTest.gd    # scene setup: environment, room, prop placement, screenshot hook
 scripts/FlyCamera.gd    # free-fly camera controller
-screenshots/overview.png, closeup.png   # rendered reference images (already reviewed, look good)
+scenes/PropView.tscn    # dev tool: renders one prop alone, auto-framed (see README)
+scripts/PropView.gd
+scripts/Diag.gd         # headless mesh sanity check (winding + normals vs Godot primitives)
+screenshots/*.png       # rendered reference images
 README.md               # run instructions for the test scene
 ```
 
@@ -80,6 +83,8 @@ snap on the first drag. Handles `--screenshot=<path>` for automated capture.
 - `_build_room()`: 6m × 5m × 2.8m room. Floor with alternating floorboard coloring,
   ceiling, back wall with a cut-out window (1.6×1.4, sill 0.9) plus frame/mullions,
   side walls, baseboards.
+- `VIEWS` + `--view=<name>`: named camera presets for inspecting individual props in the
+  full scene (`--closeup` is kept as an alias for the `closeup` preset).
 - `_place_props()`: seeds an RNG (seed 42) and places furniture (rug, sofa, coffee
   table, bookshelf, floor lamp, plant, side table, kitchen counter, picture frame) plus
   a handful of deliberately misplaced clutter items (garden hose on the sofa, toaster/
@@ -89,51 +94,81 @@ snap on the first drag. Handles `--screenshot=<path>` for automated capture.
 ### scripts/Props.gd — the procedural art toolkit
 `class_name Props`, everything static. This is the reusable part for the real project.
 
+**Winding and normals — read this before adding a generator.** Godot renders a triangle as
+front-facing when its right-hand-rule cross product points *into* the solid (clockwise from
+outside), and `SurfaceTool.generate_normals()` follows that same convention. Two bugs here
+were making props read as fake and were fixed:
+ * `rounded_box()` was wound inside-out from the first commit. Its outer faces were culled and
+   what you actually saw was the far interior surface, which is why upholstery looked waxy.
+ * `lathe()` had the same inversion, so the mug, plant pot and lampshade were all inside-out
+   (partly masked by `cull_mode = CULL_DISABLED`, which is no longer used anywhere).
+`scripts/Diag.gd` regression-checks this against Godot's own `BoxMesh`/`SphereMesh`. Run it
+after touching any generator.
+
 **Mesh-building primitives:**
-- `mat(color, rough=0.85, metal=0.0) -> StandardMaterial3D`
-- `mi(mesh, material, pos, rot) -> MeshInstance3D` — convenience instance+material_override+transform
-- `box(size)`, `cyl(r_top, r_bot, h, segs=24)`, `torus(tube, ring)` (converts
-  tube/ring-radius into Godot's inner/outer radius convention; rings=48, ring_segments=24),
-  `sphere(r)` — thin wrappers over Godot's built-in primitive meshes (BoxMesh,
-  CylinderMesh, TorusMesh, SphereMesh).
-- `rounded_box(size, radius, rings=10, radial=24) -> ArrayMesh` — Minkowski sum of a box
-  and a sphere via a support-point trick on a UV-sphere lattice. Half-step phi offset
-  (`(j + 0.5) / radial`) avoids exact-zero sign components that would break the corner
-  projection. **Triangle winding is `a, b, a+1` / `a+1, b, b+1`** — get this backwards
-  and every rounded box renders inside-out (this bit us once already).
-- `lathe(profile: PackedVector2Array, segments=32) -> ArrayMesh` — surface of revolution;
-  profile is a list of (radius, height) points bottom→top. Adds top/bottom caps
-  automatically when the corresponding radius > 0.001. Calls `st.generate_normals()`
-  at the end rather than computing normals by hand.
+- `mat(color, rough=0.85, metal=0.0)`, `mi(mesh, material, pos, rot)` — as before.
+- `box()`, `cyl()`, `torus()`, `sphere()` — thin wrappers over Godot's built-in primitives.
+- `rounded_box(size, radius)` — Minkowski sum of a box and a sphere.
+- `lathe(profile, segments=32, closed=false)` — surface of revolution. `closed` treats the
+  profile as a loop (outer wall up, inner wall back down) and skips the caps: that is how a
+  lampshade gets real thickness instead of being a single zero-thickness sheet.
+- `loft(rings, cap_start, cap_end)` — skins a stack of equal-length closed rings. The
+  workhorse behind everything below. Ring point `j` must sit at angle `TAU*j/n` turning from
+  the ring's basis vector `u` toward `v = u.cross(stacking_direction)`.
+- `ring_rounded_rect(sx, sz, radius, y, corner_steps, side_steps)` — ring for `loft`. It
+  subdivides the *straight* runs too: `loft` shades smoothly, and a wide flat face with no
+  interior vertices inherits the corners' angled normals and shades black.
+- `ring_circle(centre, u, tangent, radius, segs)`.
+- `tube(path, radius, segs, caps, radii)` — sweeps a circle along a polyline with
+  parallel-transport frames. One continuous solid; optional per-point radii.
+- `shell(sections, lateral)` — thin cupped shell along +X. Each section is
+  `[x, spine_y, half_width, thickness, cup_depth]`; the top surface is `spine + cup*v²`
+  across the width and the bottom is the same curve offset by `thickness`. Builds spoon
+  bowls, fork heads and leaf blades as single closed solids.
+- `holed_slab(size, holes)` — flat slab with genuine rectangular through-holes (`Rect2` in
+  the slab's local XZ). Top/bottom faces are gridded around the holes; hole walls face inward.
+- `cavity(size)` — open-topped box seen from the inside: the four walls and floor of a real
+  hollow, opening at local y=0 and extending downward.
+- `smooth_path(pts, subdiv)` — Catmull-Rom resample so `tube` paths bend instead of kinking.
+- `aim_y(dir)` / `aim_x(dir, up)` — bases for orienting lathes/cylinders (+Y) and `shell`
+  meshes (+X) along an arbitrary direction, e.g. a nozzle on the end of a hose.
+
+**How a hollow is done properly.** The toaster is the reference: the shell is a `loft` with
+`cap_end = false`, the deck is a `holed_slab` whose holes are the slots, and each slot is a
+`cavity` hanging under a hole. Nothing painted on. The important constraint is that no
+surface may survive *inside* a hole — that is why the shell has no top cap, and why the
+cavity opening exactly matches the deck hole (inset 0.8 mm so the walls do not go coplanar).
+The carriage lever uses the same trick sideways: a raised housing with a real slot through
+it, whose floor is the shell's own outer surface, so nothing has to be cut out of the shell.
 
 **Color palette constants:** OAK, WALNUT, CREAM, SAGE, MUSTARD, TERRACOTTA, CHARCOAL,
 STEEL, LEAF, BRASS, LINEN, HOSE.
 
 **Existing props (all return a positioned Node3D subtree):**
-`sofa()`, `pillow(color, pos, rot)`, `coffee_table()`, `bookshelf(rng)` (random book
-widths/heights/colors/gaps/lean), `book(color, bw, bh, pos, rot)`, `floor_lamp()`
-(includes a real `OmniLight3D`), `toaster()`, `spoon()`, `fork()`, `mug(color)`,
-`plant()` (weakest-looking prop currently — blobby leaves), `rug()`,
-`garden_hose()` (stacked tori + nozzle), `side_table()`, `picture_frame(color, size)`,
-`kitchen_counter()`.
-
-### GDScript gotchas hit during development
-- `for x in [literal, array]` needs an explicit type — `for x: int in [...]` — or
-  Godot can't infer the loop variable's type when it's used later with inferred typing.
-  Bit us in the `lathe()` cap-generation loop.
-- Rounded-box winding order matters a lot; see above.
-- `torus()` params are tube-radius/ring-radius in this codebase, not Godot's native
-  inner/outer radius — the helper does the conversion. Don't call `TorusMesh` directly
-  and expect the same numbers to work.
+`sofa()` (seat + back cushions), `pillow()`, `coffee_table()` (with apron rails),
+`bookshelf(rng)`, `book()` (U-shaped cover around an inset page block, rounded spine),
+`floor_lamp()` (thick shade, socket, harp, real `OmniLight3D`), `toaster()`, `spoon()`,
+`fork()`, `mug(color)` (handle is an arc tube ending inside the wall), `plant()` (stems
+grown out of the soil with lofted blades on the tips), `rug()` (bordered), `garden_hose()`
+(one helical tube with a nozzle and a coupling), `side_table()`, `picture_frame()`
+(four rails, mount board, recessed print), `kitchen_counter()` (plinth, door reveals,
+bar pulls, backsplash).
 
 ## Style honestly assessed
-Works well: sofa, bookshelf with random books, floor lamp with real light, toaster,
-mugs, rug, room shell with sunlit window. Weak points: the plant (blobby leaves, could
-use a less naive leaf-placement scheme), small cutlery (only reads up close), no
-texture/wear variation anywhere — the ceiling of this technique is "charming and
-consistent," not photoreal. If the user wants a different direction (flatter cel
-shading, more saturated colors, chunkier low-poly), iterate on `Props.gd` and
+The "sloppy tells" pass is done: every prop that is one object in real life is now one
+connected mesh, every hole is a real hollow, and every sheet has thickness. Remaining
+limits of the technique: no texture or wear variation anywhere, so the ceiling is
+"clean and consistent," not photoreal; the plant is still a fairly simple arrangement of
+stems and blades; small cutlery only reads up close. If a different direction is wanted
+(flatter cel shading, more saturated colors, chunkier low-poly), iterate on `Props.gd` and
 `_build_environment()` rather than starting over.
+
+Modelling rules that keep props from looking fake, worth applying to every new prop:
+1. One physical object = one connected mesh. A handle and a bowl must share a surface.
+2. A recess is geometry, not a dark decal. If you can see into it, it must be hollow.
+3. Sheet goods have two sides and an edge. Never rely on `CULL_DISABLED`.
+4. Parts that carry load must touch: shades need a harp, tops need aprons, doors need reveals.
+5. Nothing may intersect the floor, and nothing may float above it.
 
 ## Next steps if the user approves the style
 This test project should evolve into (or be superseded by) the real game. Rough shape
@@ -171,3 +206,78 @@ of what's needed, based on the concept above:
 3. `scripts/Props.gd` (the entire procedural art system — read in full).
 4. `scripts/StyleTest.gd` (how a scene is assembled from `Props.gd`).
 5. `screenshots/overview.png` and `screenshots/closeup.png` (what "done" currently looks like).
+
+
+## Surfacing (added in the texturing pass)
+
+Materials come from `scripts/Mats.gd`: `Mats.of(slot, tint, rough_mul, scale_mul)` returns a
+cached `ORMMaterial3D` for a slot in `assets/textures.json`. Textures are downloaded by
+`tools/fetch_textures.py`, not committed (`assets/textures/` is gitignored).
+
+All 18 materials are **CC0** — free for commercial use, no attribution required — from Poly
+Haven (photogrammetry: floors, plaster, wood veneers, book linen) and ambientCG (household
+hard surfaces: fabrics, metal, porcelain, terracotta, marble, soil, rubber, paper).
+
+`ATTRIBUTION.md` records every asset, its author, and why the other candidate sites were
+rejected — keep it in step with `assets/textures.json` whenever a slot changes. Two of those
+sites (Textures.com, FreePBR) are **not** CC0 and must not be added without a licence review.
+
+**Everything is triplanar-mapped.** The procedural meshes have no usable UV layout, and
+unwrapping a lathe or a swept tube would be a project of its own. Triplanar projects the
+texture down the three local axes and blends by normal, so it needs no UVs and cannot
+stretch or seam the way a bad unwrap does. The cost is that it works in metres, which is why
+every manifest entry carries the real-world tile size taken from the source's published
+dimensions — that is what keeps oak grain, carpet pile and plaster grit at correct relative
+scale, and it is most of what separates a scene that reads as real from one that reads plastic.
+
+### Rules that follow from this
+
+1. **Tint neutral, not coloured.** A slot that gets recoloured per prop needs a near-greyscale
+   albedo; multiplying a tint into a coloured scan just muddies it. Mark such slots
+   `"neutralize"` and the fetcher rescales them to neutral grey, keeping weave and wear.
+2. **Scale comes from the source's published dimensions**, not from taste. Deviate only
+   deliberately, and say so in the manifest.
+3. **A new mesh generator must return through `Props.with_tangents()`**, or its normal maps
+   will not light correctly.
+4. **Never hand-edit `assets/textures/**/*.import`** — `fetch_textures.py` owns those.
+
+### Traps already hit, so they are not hit again
+
+* Godot's `detect_3d` only enables mipmaps for textures assigned in the *editor*. Runtime
+  assignment leaves everything unmipmapped, which reads as violent moire and is very easy to
+  misdiagnose as a bad texture pick. The fetcher writes the import settings.
+* Triplanar does not remove the need for tangents (see `with_tangents`).
+* SDFGI needs well over 30 frames to converge. Screenshots captured too early show a room lit
+  by direct light alone and look far too dark — `_screenshot()` now waits 150 frames.
+* Mipmaps alone smear detail out of grazing-angle surfaces (most of a floor or a sofa);
+  anisotropic filtering is what brings it back.
+
+### Still open
+
+* The plant's leaves are shaded, not textured — a tiling leaf scan repeats a whole leaf across
+  a single blade. They use a waxy specular plus subsurface transmittance instead.
+* The framed print is stone veining tinted through, standing in for real artwork.
+
+## Flat forms (`Props.dished`)
+
+Cutlery used to be a lofted `shell` for the handle and head with four separate tine shells
+pushed into it until they overlapped. It read exactly as what it was — the tine roots poked
+out past the sides of the head and the head's blunt end cap floated between them.
+
+`dished(outline, secs)` replaces that: it takes a **closed outline in the XZ plane**, which may
+be concave, thickens it, and bends it with the same `[x, spine, half-width, thickness, cup]`
+table `shell` uses. The half-width is the envelope the transverse dish is measured against, so
+every part of the outline — tines included — shares one continuous curved surface. That is how
+a real fork is made (a stamped flat blank, then pressed), and it makes the fork one watertight
+mesh with no join anywhere.
+
+Two things to know before using it:
+
+* The outline must be a **simple** polygon; `Geometry2D.triangulate_polygon` returns nothing on
+  a self-intersecting one, and `dished` pushes a warning and hands back an empty mesh rather
+  than failing silently. Watch the slot roots when tines are moved closer together.
+* Cap normals are computed from the dish surface so the caps stay smooth, while the rim walls
+  carry their own face normals and so keep a hard edge. Do not swap this for
+  `generate_normals()` — it would either facet the caps or round the rim.
+
+`Diag.gd` checks `dished` on a convex slab, where its centre-of-mass winding test is meaningful.

@@ -1,0 +1,31 @@
+{
+  "_comment": "Texture manifest. Every entry is CC0 (public domain, free for commercial use, no attribution required), from Poly Haven or ambientCG. Run tools/fetch_textures.py to download them.",
+  "_fields": {
+    "scale": "real-world size in metres that one tile of the texture covers. Taken from the source's published physical dimensions wherever they exist, so grain, weave and pile all come out at true relative size. A few entries deviate deliberately - noted per line.",
+    "normal_scale": "strength of the normal map (1.0 = as authored).",
+    "neutralize": "rescale a strongly-coloured albedo to neutral grey so the per-prop tint can recolour it freely, keeping the weave and wear detail.",
+    "_neutrals": "fabrics are deliberately near-greyscale so the per-prop tint can recolour them; tinting an already-coloured scan just muddies it.",
+    "tint": "handled in code, not here - one texture serves several colourways."
+  },
+  "textures": {
+    "floor_wood":      { "src": "polyhaven", "id": "wood_floor",          "res": "2k", "scale": 1.70 },
+    "wall_plaster":    { "src": "polyhaven", "id": "beige_wall_001",      "res": "2k", "scale": 3.00, "normal_scale": 0.7 },
+    "ceiling_plaster": { "src": "polyhaven", "id": "plastered_wall",      "res": "2k", "scale": 2.00, "normal_scale": 0.6 },
+    "oak":             { "src": "polyhaven", "id": "oak_veneer_01",       "res": "2k", "scale": 1.83 },
+    "walnut":          { "src": "polyhaven", "id": "walnut_veneer_02",    "res": "2k", "scale": 1.00 },
+    "book_cloth":      { "src": "polyhaven", "id": "book_pattern",        "res": "1k", "scale": 0.30, "diffuse_key": "col1", "neutralize": true },
+
+    "painted_wood":    { "src": "ambientcg", "id": "PaintedWood009C",     "res": "2K", "scale": 1.20, "normal_scale": 0.7 },
+    "sofa_fabric":     { "src": "ambientcg", "id": "Fabric036",           "res": "2K", "scale": 0.30, "normal_scale": 0.9 },
+    "pillow_fabric":   { "src": "ambientcg", "id": "Fabric062",           "res": "1K", "scale": 0.25, "normal_scale": 0.8 },
+    "shade_linen":     { "src": "ambientcg", "id": "Fabric019",           "res": "1K", "scale": 0.30, "normal_scale": 0.6 },
+    "rug_wool":        { "src": "ambientcg", "id": "Carpet016",           "res": "2K", "scale": 1.10, "normal_scale": 0.8 },
+    "metal_brushed":   { "src": "ambientcg", "id": "Metal009",            "res": "1K", "scale": 0.50, "normal_scale": 0.4 },
+    "porcelain":       { "src": "ambientcg", "id": "Porcelain001",        "res": "1K", "scale": 0.30 },
+    "terracotta":      { "src": "ambientcg", "id": "GlazedTerracotta001", "res": "1K", "scale": 0.40 },
+    "worktop_stone":   { "src": "ambientcg", "id": "Marble012",           "res": "2K", "scale": 1.20 },
+    "soil":            { "src": "ambientcg", "id": "Ground048",           "res": "1K", "scale": 0.50 },
+    "rubber":          { "src": "ambientcg", "id": "Rubber004",           "res": "1K", "scale": 0.25 },
+    "paper":           { "src": "ambientcg", "id": "Paper001",            "res": "1K", "scale": 0.40 }
+  }
+}
