@@ -102,22 +102,31 @@ while a BC7 one is handed to the GPU exactly as it sits on disk. Side-by-side in
 show no visible difference at the scales the game is played at. The lesson is worth keeping: the
 suspicion was "the geometry is slow", and the measurement said the geometry was 3% of the cost.
 
-**Measured on the full 26-zone manor at 500 items (2026-09-09):**
+**Measured on the full 26-zone manor after the design pass (2026-09-09, editor open on the
+same GPU, so frame times are pessimistic):**
 
-| | High tier | Low tier |
-|---|---|---|
-| startup | 1.05 s | 0.94 s |
-| mean frame | 12.45 ms | 6.95 ms |
-| worst frame | 16.86 ms | 11.08 ms |
-| draw calls | 1591 | 949 |
-| static memory | 108 MB | 103 MB |
+| | High, empty | High, 500 items | Low, empty | Low, 500 items |
+|---|---|---|---|---|
+| startup | 1.33 s | 1.06 s | 0.78 s | 1.11 s |
+| mean frame | 8.9 ms | 10.6 ms | 7.0 ms | 7.0 ms |
+| worst frame | 9.7 ms | 15.6 ms | 8.6 ms | 14.5 ms |
+| draw calls | **1556** | 2447 | **1448** | 2239 |
+| static memory | 72 MB | 102 MB | 67 MB | 98 MB |
 
-All inside budget on both tiers. The first measurement was not: with every room light casting
-shadows, the low tier hit **39,704 draw calls and 61 ms a frame** — an omni shadow is six extra
-scene renders per light, and there are 26 rooms. Room lights now default to shadowless; the sun
-casts the shadows that matter and a bulb is fill. Of the 1591 high-tier draw calls, roughly a
-thousand are the 500 stress items — `MultiMesh` for identical items is the Phase 3 lever, and
-the house itself is well inside the budget.
+The empty house is inside every budget on both tiers. It was not before the design pass: the
+manor's first build was 1894 draw calls on high, 5% over, and the plan was a mesh-merging pass
+by material. That pass was not needed. Baking each wall's casings, frames, sills and skirting
+into one mesh (`Props.union`) took the house from 440 meshes to 306 while *adding* frames,
+mullions, plinth, steps, fixtures and balustrades — and the draw-call count fell with it.
+
+At 500 stress items both tiers are over the draw-call budget by the items alone: each stress
+item is its own draw. That is the Phase 3 `MultiMesh` lever, and it is the items' problem, not
+the house's. Frame times stay inside budget with them.
+
+The first measurement of all was worse still: with every room light casting shadows, the low
+tier hit **39,704 draw calls and 61 ms a frame** — an omni shadow is six extra scene renders per
+light, and there are 26 rooms. Room lights keep shadows, but `LightCuller` leaves them on only
+for the four nearest bulbs, and a bulb's range is fitted to its room.
 
 Two mitigations are designed in from the start rather than bolted on: distinct meshes are
 **generated once and cached by `(generator, params)`**, so twelve forks share one `ArrayMesh`; and

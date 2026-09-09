@@ -64,7 +64,14 @@ stair hall in the middle. The attic is a 12.4 x 2.5 m band astride the ridge, re
 steep ladder-flight from the landing, with knee walls derived from the roof pitch.
 
 Outdoors: driveway north of the garage, deck behind the hall, pool surround behind the kitchen
-wing, side garden along the west wall.
+wing, side garden along the west wall. The front walk is part of the driveway zone — an L from
+the driveway's west edge to the front stoop — because a path is not a place items live, and an
+exterior zone may be any polygon since only walls need rectangles.
+
+The finished ground floor is 0.45 m above grade (`ManorPlan.FLOOR_ABOVE_GRADE`), which puts
+three concrete steps at every outside door, a ramp at the garage door, and a plinth band under
+the siding all the way round. The garage slab sits a hair above the wall footing rather than
+15 cm below the house floor, so the garage door comes down to the floor it opens onto.
 
 The garage sits flush with the house front rather than forward of it. It stood forward in the
 first draft, and the render showed why that was wrong: the roof end that should have abutted

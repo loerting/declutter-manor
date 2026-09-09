@@ -81,6 +81,35 @@ Walls run from a footing below the floor to their head, because a room with a dr
 (the garage) otherwise shows daylight under its own walls. Floor and ceiling planes are grown
 outward so they disappear into the walls rather than stopping at the centre line.
 
+Openings are measured from the **higher** of the two floors the wall stands between
+(`HouseBuilder._datum`): a door from the kitchen into the dropped garage sits at the kitchen
+floor with a step down, and the garage door comes down to the garage slab rather than hanging a
+slab-height above it. That datum also places the skirting on each side.
+
+### What hangs on a wall, and why it is one mesh per wall
+
+Everything on a wall that shares a material is baked into one surface with `Props.union`:
+casings, sills, window frames, mullions and skirting are one "Trim" mesh per wall, the glass
+another, the garage-door leaves a third, the plinth a fourth. A wall with three windows was
+thirty draw calls and is now four. The pieces themselves are:
+
+- **Window frames.** A window is a frame with glass in it, not a hole with glass in it. The
+  frame sits at the wall's mid-plane inside the reveal; widths over `PANE_MAX_WIDTH` get
+  mullions, heights over `MEETING_RAIL_MIN_HEIGHT` a meeting rail. That, and glass that is
+  smooth and non-metallic so it mirrors the sky, is what turned "boxes with holes" into a house.
+- **Skirting** along every interior wall foot, cut around doors and arches.
+- **The plinth**: a concrete band from `PLINTH_DEPTH` below grade to `PLINTH_TOP` above it on
+  every outside wall that meets the ground, run past both ends so two bands meet at a corner.
+  The plan puts the finished ground floor `FLOOR_ABOVE_GRADE` up; the first manor sat with its
+  floor level with the lawn and read like a box on a table.
+- **Steps** at every exterior door whose floor is above the ground outside it, sized from the
+  rise actually there (`STEP_RISER_MAX`, `STEP_GOING`); a garage door gets a ramp. "The ground
+  outside" is the paved zone at that point if any, else grade, so a door onto a raised deck will
+  get no steps once the deck is raised.
+- **Fixtures.** Every room light hangs a flush fixture — disc and frosted dome — so the hotspot
+  on the ceiling has something at it. Rooms with glazing run their bulb at `DAYLIT_BULB` while
+  the sun is up; every window glowing warm at noon is the single strongest model-not-house tell.
+
 ### Walls are derived, not typed
 
 `WallDeriver.derive(rooms)` turns a storey's rectangles into its wall list: two rectangles that
@@ -102,6 +131,14 @@ flight's side profile across its width (`Props.extrude`) and cuts the stairwell 
 floor it arrives through and the ceiling it leaves through. `PlanProbe` checks that the foot
 lies in the lower room and the head in the upper one, and reachability is computed across the
 whole plan through doors *and* stairs — a storey with no stair is a storey that does not exist.
+
+Balustrades are derived, not authored. A side of the flight with floor beyond it
+(`OPEN_PROBE` out from the edge, inside the lower room) is open and gets a raked rail with a
+newel at each end and two balusters per tread; a side with a wall beyond it is guarded by the
+wall. The well in the upper floor gets a level guard on every edge with floor beyond it except
+the head edge, where the flight arrives. Flights narrower than `LADDER_WIDTH` are ladders and
+get nothing. Stringers are not modelled: the flight is one solid, and its side reads as a
+closed string.
 
 ### What `dev/PlanProbe.gd` proves
 

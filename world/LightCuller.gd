@@ -44,7 +44,8 @@ func _apply() -> void:
 static func collect(root: Node) -> Array[OmniLight3D]:
 	var out: Array[OmniLight3D] = []
 	var light := root as OmniLight3D
-	if light != null:
+	# a bulb switched off for daylight is not a candidate for a shadow map
+	if light != null and light.visible:
 		out.append(light)
 	for child: Node in root.get_children():
 		out.append_array(collect(child))

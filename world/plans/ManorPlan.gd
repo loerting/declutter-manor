@@ -29,7 +29,13 @@ const GROUND_HEIGHT := 2.7
 const UPPER_HEIGHT := 2.6
 const BASEMENT_HEIGHT := 2.4
 const SLAB := 0.35
-const GARAGE_DROP := 0.15
+## Finished ground floor above grade. A house whose floor is level with its lawn sits on it
+## like a box on a table; this is what puts three steps at every outside door and a plinth
+## under the siding (`HouseBuilder.PLINTH_TOP`).
+const FLOOR_ABOVE_GRADE := 0.45
+## The garage slab sits a hair above the wall footing (`HouseBuilder.FOUNDATION`), so the garage
+## door comes down to it and the driveway needs only a shallow ramp.
+const GARAGE_DROP := SLAB - 0.02
 const PITCH := 32.0
 
 ## The attic is a band either side of the ridge, inset from the gable walls so its knee walls
@@ -41,9 +47,9 @@ static func build() -> FloorPlan:
 	plan.id = &"manor"
 	plan.lot = Rect2(0, 0, 26, 19)
 
-	var basement := _storey(&"basement", -SLAB - BASEMENT_HEIGHT, BASEMENT_HEIGHT)
-	var ground := _storey(&"ground", 0.0, GROUND_HEIGHT)
-	var upper := _storey(&"upper", GROUND_HEIGHT + SLAB, UPPER_HEIGHT)
+	var ground := _storey(&"ground", FLOOR_ABOVE_GRADE, GROUND_HEIGHT)
+	var basement := _storey(&"basement", ground.base_y - SLAB - BASEMENT_HEIGHT, BASEMENT_HEIGHT)
+	var upper := _storey(&"upper", ground.ceiling_y() + SLAB, UPPER_HEIGHT)
 	var eave := upper.ceiling_y()
 	var attic_base := eave + SLAB
 	var knee := eave + (ATTIC.position.y - HOUSE.position.y) * tan(deg_to_rad(PITCH)) - attic_base
@@ -64,7 +70,7 @@ static func build() -> FloorPlan:
 		StairDef.make(&"landing", &"attic", Vector2(9.4, 10.2), WallDeriver.EAST, 1.4, 0.7),
 	]
 	var main_roof := RoofDef.gable(HOUSE, eave, true, PITCH)
-	var garage_roof := RoofDef.gable(GARAGE, GROUND_HEIGHT, true, 28.0)
+	var garage_roof := RoofDef.gable(GARAGE, ground.ceiling_y(), true, 28.0)
 	garage_roof.abut_start = true   # meets the house's east wall; no gable, no overhang there
 	main_roof.underside_tint = Color(0.74, 0.68, 0.58)
 	plan.roofs = [main_roof, garage_roof]
@@ -85,10 +91,29 @@ static func _room(id: StringName, x0: float, z0: float, x1: float, z1: float, fl
 
 static func _outdoor(id: StringName, x0: float, z0: float, x1: float, z1: float, floor: String) -> RoomDef:
 	var r := _room(id, x0, z0, x1, z1, floor)
+	_outside(r, floor)
+	return r
+
+## Paving lies on the ground, a storey's floor height below the finished floor.
+static func _outside(r: RoomDef, floor: String) -> void:
 	r.zone = RoomDef.Zone.EXTERIOR
+	r.floor_drop = FLOOR_ABOVE_GRADE
 	r.floor_tint = Color(0.62, 0.62, 0.60) if floor == "concrete" else Color(0.85, 0.85, 0.85)
 	r.has_ceiling = false
 	r.light_energy = 0.0
+
+## The driveway with the front walk as part of it: an L from the street side of the garage to
+## the front door, and the stoop under the front steps. One zone, because a path is not a
+## place items live; a polygon, because only walls need rectangles and paving has none.
+static func _driveway() -> RoomDef:
+	var r := RoomDef.new()
+	r.id = &"driveway"
+	r.name_key = "room.driveway"
+	r.polygon = PackedVector2Array([Vector2(15.5, 0.5), Vector2(23.5, 0.5), Vector2(23.5, 6),
+			Vector2(15.5, 6), Vector2(15.5, 5), Vector2(10, 5), Vector2(10, 6), Vector2(9, 6),
+			Vector2(9, 4), Vector2(15.5, 4)])
+	r.floor_slot = "concrete"
+	_outside(r, "concrete")
 	return r
 
 # --- Basement: mirrors the ground floor so every wall stacks ----------------------------------
@@ -122,7 +147,7 @@ static func _ground(s: StoreyDef) -> void:
 		_room(&"mudroom", 11, 13, 14, 15.5, "concrete"),
 		_room(&"powder", 14, 13, 17, 15.5, "porcelain"),
 		garage,
-		_outdoor(&"driveway", 15.5, 0.5, 23.5, 6, "concrete"),
+		_driveway(),
 		_outdoor(&"deck", 6, 15.5, 12, 18.5, "floor_wood"),
 		_outdoor(&"pool_area", 12, 15.5, 23, 18.8, "concrete"),
 		_outdoor(&"side_garden", 0.5, 6, 4, 15.5, "gravel"),

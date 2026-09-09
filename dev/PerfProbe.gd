@@ -45,8 +45,8 @@ func _ready() -> void:
 	cam.fov = 65.0
 	# Standing in the front door looking down the hall: the deepest sightline in the house, with
 	# the stairs, the arch into the living room and the arch into the dining room all in view.
-	cam.position = Vector3(9.5, 1.6, 6.4)
-	cam.look_at(Vector3(9.5, 1.3, 15.0))
+	cam.position = Vector3(9.5, 2.05, 6.4)
+	cam.look_at(Vector3(9.5, 1.75, 15.0))
 	var culler := LightCuller.new()
 	culler.initialize(LightCuller.collect(house), cam)
 	add_child(culler)

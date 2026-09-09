@@ -5,50 +5,44 @@ metadata:
   type: project
 ---
 
-**As of 2026-09-09.** Phase 0 is complete and committed (`175cbc4`). Phase 1 (the house as
-data) is **in progress, uncommitted**.
-
-## Built in Phase 1 so far
-
-- `data/` — `FloorPlan`, `StoreyDef`, `RoomDef`, `WallSegment`, `Opening`, `RoofDef`
-- `world/HouseBuilder.gd`, `world/TerrainBuilder.gd`, `world/plans/GaragePlan.gd`
-- `core/Graphics.gd` — the three tiers, and the shared sun/exposure calibration
-- `dev/PlanProbe.gd` (0 violations, mutation-proved), `dev/HouseView.gd` + `.tscn`
-- Five new CC0 architectural textures: concrete, lawn, roof_tiles, brick, gravel
+**As of 2026-09-09.** Phase 0 committed (`175cbc4`). Phase 1 manor committed (`d13d771`:
+26 zones, four storeys, derived walls, real stairs). A **design pass on the manor is
+uncommitted** — see below.
 
 ## The decision that matters
 
-**A wall is one mesh with two faces and a rim, cut by one list of openings.** There is no
-separate interior and exterior wall to keep in agreement. `WallSegment` names `room_a` /
-`room_b` (side A is on your right walking a to b) and materials are derived from that, so
-plaster on a garden elevation requires naming the wrong room — which `PlanProbe` catches.
+**A wall is one mesh with two faces and a rim, cut by one list of openings.** `WallSegment`
+names `room_a` / `room_b` (side A on your right walking a to b); materials derive from that.
+`WallDeriver` derives walls from room rectangles; plans pierce by room name / compass point.
 
-## Since the Phase 1 commit (uncommitted as of the last update)
+## Design pass after the Fable render review (uncommitted)
 
-- `world/WallDeriver.gd` — walls derived from room rectangles; plans pierce by room name or
-  compass point, never coordinates. Reproduced the hand-written garage exactly.
-- `data/StairDef.gd`, `Props.extrude`, stairwell cuts in floors and ceilings, plan-wide
-  reachability through doors AND stairs in PlanProbe.
-- `world/plans/ManorPlan.gd` — all 26 zones, four storeys (basement / ground / upper / attic),
-  three flights, two roofs. PlanProbe: 0 violations on the first build.
-- Roof slabs are split (tiles / boards / rim) so the attic sees boards. `RoofDef.abut_*` for
-  the garage roof meeting the house.
-- Manor renders in `screenshots/manor/`; `PerfProbe` now runs against the manor.
+Review found the house read as an architectural model. Done, all render-verified in
+`screenshots/manor2/`:
+- Ground floor raised 0.45 m (`ManorPlan.FLOOR_ABOVE_GRADE`), concrete plinth band, steps at
+  every exterior door, ramp at the garage door, front walk folded into the driveway polygon.
+- Windows: frame + mullions + meeting rail at the wall mid-plane; smooth non-metallic glass.
+- Bulbs in rooms with glazing run at `DAYLIT_BULB` 0.4 by day (0 made the kitchen a cave).
+- Flush ceiling fixture per lit room; skirting on every interior wall; balustrades derived
+  (rake rail on open flight sides, guards round the well).
+- `Props.union` bakes per-wall trim/glass/plinth into one mesh each: 440 → 306 meshes.
+- Openings measured from the higher floor of the wall's two rooms (`_datum`).
+- Bug found by render: interior upper walls footed down to the ceiling plane below and
+  z-fought with it (pale bands on kitchen and hall ceilings). Interior footing is now
+  `FOUNDATION - CEILING_PLANE`; exterior keeps the full slab so siding stays unbroken.
 
 ## Next concrete step
 
-Review the manor renders (all storeys, all three tiers) and fix what they show. Then occluders /
-merging if PerfProbe's headroom demands it. Gate is author-approved renders at all three tiers.
+PerfProbe / suite / PlanProbe re-run after the footing fix, then (user's order): mesh merging
+by material if draw calls still over 1800 on high; pool cut into terrain; deck as structure.
+Then the remaining review items: gable in siding material, ridge cap + gutters, horizon fog +
+lawn macro variation, attic knee-wall texture scale + roof-board specular, kitchen floor tiles.
 
 ## Open loops
 
-- **Decided: textures import VRAM-compressed (BC7).** Measured 4.4 s material load vs 0.12 s
-  geometry; BC7 took materials to 247 ms with no visible loss. In `tools/fetch_textures.py`.
-- **PerfProbe passes both tiers on the full manor at 500 items** (high 12.45 ms / 1591 calls,
-  low 6.95 ms / 949 calls) after turning room-light shadows off — they had cost the low tier
-  39,704 draw calls. Occluders/merging not needed yet; MultiMesh for items is Phase 3.
-- The attic's east/west knee walls leave a triangular gap to the sloped roof (flagged, not
-  fixed); a proper rake wall is a WallSegment with a peak height, not built.
-- Confirm the separate-demo-location recommendation before Phase 5.
-- Measure the 30 s search budget at the Phase 2 gate.
-- Localization translation pass only after the Phase 4 content gate.
+- `scenes/StyleTest.tscn` appeared untracked (12:27 today), references a non-existent
+  `res://scripts/` folder — not created by me; ask before deleting.
+- BC7 texture import decided and documented in `docs/PACING.md`.
+- Attic east/west knee walls leave a triangular gap to the roof (flagged, not fixed).
+- Confirm separate demo location before Phase 5; measure 30 s search at the Phase 2 gate;
+  localization pass after Phase 4.

@@ -463,6 +463,25 @@ static func merge_surfaces(meshes: Array) -> ArrayMesh:
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, m.surface_get_arrays(0))
 	return out
 
+## Several meshes, each under its own transform, baked into ONE surface: for the parts of a
+## thing that share a material and never move apart — a window's frame and mullions, a wall's
+## skirting, a flight's balusters. Each assembly becomes one draw call instead of one per box.
+## The parts are `[Mesh, Transform3D]` pairs. Inputs keep their own normals and tangents, so
+## this copies geometry; it never decides a winding, which is why Diag has nothing to check.
+static func union(parts: Array) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for part: Array in parts:
+		var mesh: Mesh = part[0]
+		var xf: Transform3D = part[1]
+		for s in range(mesh.get_surface_count()):
+			st.append_from(mesh, s, xf)
+	return st.commit()
+
+## `[box, transform]` part for `union`: a box of `size` centred at `pos`, optionally rotated.
+static func part(size: Vector3, pos: Vector3, basis := Basis.IDENTITY) -> Array:
+	return [box(size), Transform3D(basis, pos)]
+
 ## Open-topped box seen from the inside: the four walls and the floor of a real hollow.
 ## The opening sits at local y = 0 and the cavity extends downward by size.y.
 static func cavity(size: Vector3) -> ArrayMesh:

@@ -28,8 +28,8 @@ enum Zone { INTERIOR, GARAGE, EXTERIOR }
 ## hum, which is why it belongs to the room and not to the lighting pass.
 @export var light_energy := 2.4
 @export var light_color := Color(1.0, 0.94, 0.86)
-## Below the ceiling.
-@export var light_offset := 0.35
+## Below the ceiling: just under the dome of the flush fixture `HouseBuilder` hangs there.
+@export var light_offset := 0.18
 ## 0 fits the range to the room: the far corner plus a margin. A light's shadow pass renders
 ## everything inside its range, so a flat 9 m on 26 rooms was most of the house, 26 times over.
 @export var light_range := 0.0
