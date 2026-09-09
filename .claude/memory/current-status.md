@@ -10,7 +10,10 @@ metadata:
 
 **As of 2026-09-09.** Phase 0 (`175cbc4`), Phase 1 (`d13d771`), Phase 2 tranche 1 (`486e4cf`)
 and tranche 2 (`b6c4f6e`) are committed. **The Phase 2 gate has been run by the author, and it
-found six things.** The fixes for them are in the working tree, verified, NOT yet committed.
+found six things.** The fixes for five of them are committed (`ff9ca2d`); the sixth is an art
+call left to the author. **The gate is human verification, so it is not passed until the author
+walks the house again** — that walk is the next thing that happens, and nothing in Phase 3 starts
+before it.
 
 ## The decisions that matter
 
@@ -43,7 +46,8 @@ Verified: suite 58/0, PlanProbe 0, WalkProbe 0, InteractProbe 0, Diag unchanged,
 
 ## Next concrete step
 
-The author re-runs the gate walk. Then Phase 3 (`SetDef`, `SetTracker`, the slot reward, the
+The author re-runs the gate walk (the Phase 2 gate is human verification and cannot be closed
+from here). Then Phase 3 (`SetDef`, `SetTracker`, the slot reward, the
 in-editor home authoring tool) — and the 30 s search budget still has no real measurement.
 
 ## Open loops
