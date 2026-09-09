@@ -36,7 +36,7 @@ func _ready() -> void:
 	assert(_player != null, "GameWorld: Player.tscn is not a PlayerController")
 	add_child(_player)
 	_player.teleport(WorldBuilder.spawn_point(plan), plan.spawn_facing)
-	WorldBuilder.attach_culler(self, house, _player.camera())
+	WorldBuilder.attach_culler(self, house, plan, _player.camera())
 
 	var hud := HUD.instantiate() as Hud
 	assert(hud != null, "GameWorld: Hud.tscn is not a Hud")

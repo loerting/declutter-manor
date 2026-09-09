@@ -165,6 +165,23 @@ That leaves 195 calls of headroom for 250 items in twenty-odd more rooms, and it
 enough. This is the number that makes the Phase 3 `MultiMesh` pass load-bearing rather than
 optional, and it is worth knowing now rather than after the content is authored.
 
+**Measured again after the 2026-09-09 play test (`LightCuller` culling by room, the stair core
+widened to 3.8 m).** The furnished house, no stress items: **637 draw calls on every tier**,
+down from 1605, because twenty-two of the twenty-six bulbs no longer burn at all and the flight
+now standing in the middle of the hall occludes the sightline the probe measures from. Startup
+0.96 s high, 0.96 s low. The 195 calls of headroom named below are now 1,163 — but the Phase 3
+`MultiMesh` pass stays load-bearing, because 500 stress items still measure 801 calls against a
+house of 637, and each of them is still its own draw.
+
+Frame time did **not** improve with the draw calls: high measures **17.9 ms** against a 16.7 ms
+budget. The old lighting was measured on the same machine in the same session for comparison
+and gives **19.1 ms** with the same 637 calls, so the miss is not the new culler — but it is
+also nothing like the 9.1 ms this table records for the same tier on 2026-09-09, and both
+numbers were taken with the editor open. Low measures 7.9 ms and is inside budget. **The high
+tier's frame time needs re-measuring on a quiet machine before anything is concluded from it**,
+and until that happens the 9.1 ms above and the 17.9 ms here are two measurements that
+disagree, not a regression with a known cause.
+
 At 500 stress items both tiers are over the draw-call budget by the items alone: each stress
 item is its own draw. That is the Phase 3 `MultiMesh` lever, and it is the items' problem, not
 the house's. Frame times stay inside budget with them.

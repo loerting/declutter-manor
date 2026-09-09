@@ -146,6 +146,22 @@ thirty draw calls and is now four. The pieces themselves are:
   on the ceiling has something at it. Rooms with glazing run their bulb at `DAYLIT_BULB` while
   the sun is up; every window glowing warm at noon is the single strongest model-not-house tell.
 
+### A floor plane grows into the walls it is under, and only into those
+
+A room boundary is the centre line of the wall standing on it, so a floor or ceiling plane that
+stopped at its own boundary would leave the outer half of every exterior wall standing on
+nothing. `HouseBuilder.SLAB_TUCK` pushes it past — but only on the sides where nothing else is
+already doing so. Two neighbours both growing over the wall between them put two floors, of two
+different materials, in the same 16 cm band, coplanar, for the whole length of the wall. The
+wall hides that everywhere it is solid; where it is pierced, the depth test picks a winner per
+pixel and the seam crawls as the camera moves. That is every doorway in the house, and it is
+what the author reported on 2026-09-09 as the ground glitching under a door.
+
+The side is grown when no room on the same storey abuts it with a plane in the same surface — a
+neighbour a step down (the garage) cannot fight, and a deck has boards on posts and no slab at
+all. Rooms are rectangles, so the answer is per side and the result is still a rectangle, which
+is what the stairwell subtraction needs.
+
 ### Texture scale is in metres, and a room may deviate from it
 
 Every slot in `assets/textures.json` carries the real-world size of one tile, and `Mats` sets
@@ -223,6 +239,7 @@ fail on a deliberate break:
 | `opening.bounds` / `.head` / `.overlap` | an opening running off its wall, through its ceiling, or into another |
 | `wall.room` / `wall.sides` | a wall naming a room that does not exist, or belonging to none |
 | `stair.foot` / `.head` / `.storeys` | a flight starting or arriving outside its rooms, or between rooms on one storey |
+| `opening.clearance` | a doorway with a flight of stairs standing in the floor a body needs to use it |
 
 ### What `dev/WalkProbe.gd` proves
 
@@ -238,9 +255,14 @@ ends up. It is headless, takes seconds, and exits with its violation count.
 | `spawn.floor` / `spawn.room` | a spawn inside a wall, over a stairwell, or outside its own room |
 | `stair.pitch` | a flight steeper than a body can stand on, before anyone tries to walk it |
 | `stair.climb` | a flight that cannot be walked up: no ramp, a lip at either end, a gap |
+| `stair.guard` | a stairwell guard that is only geometry, so a body walks through it into the well |
 
-Both failure modes have been shown: with floor collision removed every zone reported falling
-through, and with the stair ramps removed all three flights reported failing to climb.
+Every failure mode has been shown: with floor collision removed every zone reported falling
+through, with the stair ramps removed all three flights reported failing to climb, and with the
+guard bodies removed three edges reported a body walking through the balusters — one of them
+landing two storeys down. That last check exists because nothing here tested being *stopped*:
+every other check is about getting somewhere, and the author walked through a rail on
+2026-09-09 in a build where all of them were green.
 
 ### What `dev/InteractProbe.gd` proves
 
@@ -412,6 +434,29 @@ not a fallback nobody looks at**:
 | High | SDFGI + SSIL | SSAO, soft shadows, FXAA/TAA |
 | Medium | `VoxelGI` baked once at load from the generated house | SSAO, lower shadow quality |
 | Low | Ambient + reflection probes only | No SSIL, no SSAO |
+
+### A bulb burns in its own room, and nowhere else
+
+`LightCuller` decides which of the 26 room bulbs are on. The first version left every bulb
+burning and gave shadow maps to the four nearest, which cost 39,704 draw calls before it and
+1,605 after — and was wrong in a way no draw-call count shows: **an omni light with no shadow
+map shines through walls.** Twenty-two bulbs were lighting rooms they are not in; the set of
+which four were shadowed changed as the player moved; and so the lighting in a room changed
+noticeably as the player entered it. That is what the author reported on 2026-09-09, twice, as
+two separate problems.
+
+So the rule is the floor plan's rather than the camera's. A bulb burns when the eye is in its
+room or in a room that shares a wall or a flight of stairs with it — adjacency derived from the
+wall list and the stair list, so a plan change cannot leave a stale one behind — and the
+nearest `SHADOWED` of the burning bulbs carry shadow maps, the eye's own room first. Nothing
+two rooms away burns at all, so nothing lights through a wall it should not, and a bulb that
+changes state is behind two walls. The bulb carries its own room id (`RoomLight`) instead of
+being matched to one by position: a bulb near a wall is nearer to the room on the far side of
+it than to half of its own.
+
+Outdoors the eye is in no room, and the house then lights itself the old way — every bulb on,
+none shadowed — because that is the arrangement the approved exterior gate renders were made
+with, and an unshadowed light costs one pass.
 
 Forward+ is the target renderer; the Compatibility renderer is the floor for old and integrated
 GPUs, selected at launch and requiring a restart. **The Phase 1 gate includes renders at all three

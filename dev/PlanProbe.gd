@@ -32,6 +32,7 @@ func _check_plan(label: String, plan: FloorPlan) -> void:
 		_check_walls(plan, storey)
 		_check_enclosure(storey)
 	_check_stairs(plan)
+	_check_clearance(plan)
 	_check_reachability(plan)
 	print("  rooms=%d walls=%d openings=%d" % [
 			plan.all_rooms().size(), _wall_count(plan), _opening_count(plan)])
@@ -159,6 +160,46 @@ func _check_enclosure(storey: StoreyDef) -> void:
 ## A flight must start inside the room it leaves and end inside the room it reaches, and those
 ## rooms must be on different storeys. A stair that arrives in the wrong room is a stair that
 ## comes up through a bathroom floor.
+# --- Clearance --------------------------------------------------------------------------------
+
+## Every doorway must have floor to stand on, on both sides of it.
+##
+## Reachability proves two rooms are connected; it does not prove a body can get through the
+## hole, and nothing else did either. The manor shipped Phase 1 with five doorways opening
+## straight onto the side of a flight of stairs — two of them the only doors of two bedrooms —
+## and it took the author walking into one to find it (2026-09-09). A flight is the obstruction
+## that matters, because it is the only thing the plan builds that stands in a room without
+## being a wall, and its footprint is also the hole in the floor.
+func _check_clearance(plan: FloorPlan) -> void:
+	for storey: StoreyDef in plan.storeys:
+		for wall: WallSegment in storey.walls:
+			for o: Opening in wall.openings:
+				if o.kind == Opening.Kind.WINDOW:
+					continue
+				var box := _passage(wall, o)
+				for stair: StairDef in plan.stairs:
+					if plan.storey_of(stair.lower_room) != storey \
+							and plan.storey_of(stair.upper_room) != storey:
+						continue
+					if not stair.footprint().intersects(box):
+						continue
+					var hit := stair.footprint().intersection(box)
+					_fail("opening.clearance",
+							"the %s|%s doorway on '%s' at %.2f m has the %s->%s flight %.2f x %.2f m into its landing"
+							% [wall.room_a, wall.room_b, storey.id, o.at, stair.lower_room,
+									stair.upper_room, hit.size.x, hit.size.y])
+
+## The floor a body needs to use an opening: its width, and Balance.DOOR_CLEARANCE of standing
+## room on each side of the wall.
+func _passage(wall: WallSegment, o: Opening) -> Rect2:
+	var mid := wall.at_u(o.at)
+	var depth := wall.thickness * 0.5 + Balance.DOOR_CLEARANCE
+	var box := Rect2(mid, Vector2.ZERO)
+	for u: float in [-o.width * 0.5, o.width * 0.5] as Array[float]:
+		for n: float in [-depth, depth] as Array[float]:
+			box = box.expand(mid + wall.dir() * u + wall.normal() * n)
+	return box
+
 func _check_stairs(plan: FloorPlan) -> void:
 	for stair: StairDef in plan.stairs:
 		var where := "stair %s->%s" % [stair.lower_room, stair.upper_room]

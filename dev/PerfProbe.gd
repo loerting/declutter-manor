@@ -43,9 +43,9 @@ func _ready() -> void:
 	cam.fov = 65.0
 	# Standing in the front door looking down the hall: the deepest sightline in the house, with
 	# the stairs, the arch into the living room and the arch into the dining room all in view.
-	cam.position = Vector3(9.5, 2.05, 6.4)
-	cam.look_at(Vector3(9.5, 1.75, 15.0))
-	WorldBuilder.attach_culler(self, house, cam)
+	cam.position = Vector3(9.9, 2.05, 6.4)
+	cam.look_at(Vector3(9.9, 1.90, 15.0))
+	WorldBuilder.attach_culler(self, house, plan, cam)
 
 	_measure(startup, items.get_child_count())
 
@@ -106,7 +106,7 @@ func _fill(plan: FloorPlan, count: int) -> Node3D:
 	for i in range(count):
 		var room := rooms[i % rooms.size()]
 		var storey := plan.storey_of(room.id)
-		var bounds := _plan_bounds(room.polygon).grow(-0.4)
+		var bounds := HouseBuilder.bounds(room.polygon).grow(-0.4)
 		var node := prototypes[i % prototypes.size()].duplicate() as Node3D
 		node.position = Vector3(
 				rng.randf_range(bounds.position.x, bounds.end.x),
@@ -117,9 +117,3 @@ func _fill(plan: FloorPlan, count: int) -> Node3D:
 	for p: Node3D in prototypes:
 		p.queue_free()
 	return root
-
-func _plan_bounds(polygon: PackedVector2Array) -> Rect2:
-	var r := Rect2(polygon[0], Vector2.ZERO)
-	for p: Vector2 in polygon:
-		r = r.expand(p)
-	return r

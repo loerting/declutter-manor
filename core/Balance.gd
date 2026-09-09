@@ -20,6 +20,10 @@ const PITCH_LIMIT := 1.45
 ## — there is no visible body (`docs/VISION.md`), so nothing else about it is ever seen.
 const PLAYER_HEIGHT := 1.75
 const PLAYER_RADIUS := 0.3
+## Floor a doorway needs on each side of the wall before it counts as usable: room for the body
+## to stand clear of the opening and turn, rather than only to fit through it. Two radii is the
+## body; the rest is the difference between a doorway and a gap. `dev/PlanProbe.gd` enforces it.
+const DOOR_CLEARANCE := PLAYER_RADIUS * 2.0 + 0.15
 const EYE_HEIGHT := 1.65
 const GRAVITY := 9.8
 ## Kept in contact with the floor over the crest of a stair ramp, so walking down a flight is

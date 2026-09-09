@@ -48,7 +48,7 @@ carries both stairs; the landing stacks over it and the basement stair hall unde
 stairwells line up through the building the way structure does. The basement mirrors the ground
 floor so every wall stacks. Plan metres, north (the street) at the top:
 
-               x: 4        8        11       14       17          23
+               x: 4        8       11.8      14       17          23
         z 6      +--------+--------+-----------------+-----------+
                  | office | entry  | dining          |  garage   |
         z 9      +--------+  hall  +-----------------+           |
@@ -56,6 +56,15 @@ floor so every wall stacks. Plan metres, north (the street) at the top:
         z 11.5   |        |        |                 +-----------+
         z 13     |        |        +--------+--------+
         z 15.5   +--------+--------+ mud    | powder |
+
+**The stair core is 3.8 m wide, and that width is derived rather than chosen.** Two 0.9 m
+flights stand side by side down the middle of it — the main flight climbing south, away from
+the front door, and the basement flight climbing north beside it — which leaves 0.85 m of clear
+walkway against each side wall. Every door on those walls needs `Balance.DOOR_CLEARANCE` of
+floor in front of it, and at the 3.0 m the hall was first authored at there was 0.5 m: five
+doorways in the house opened onto the side of a flight, two of them the only doors of two
+bedrooms. `dev/PlanProbe.gd` now measures it, so the hall cannot be narrowed again without the
+probe saying which doors it broke.
 
 Upper floor: children's rooms over the office and living room, family bath over the front of
 the hall, landing over the back of it, closet and master bath over the dining room, master

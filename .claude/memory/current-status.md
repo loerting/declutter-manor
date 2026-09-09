@@ -8,50 +8,56 @@ metadata:
   modified: 2026-09-09T00:00:00.000Z
 ---
 
-**As of 2026-09-09.** Phase 0 committed (`175cbc4`). Phase 1 complete and gated (`d13d771`,
-`3f5d00f`). **Phase 2 is in progress**: tranche 1 (player, bootstrap, walk probe) is `486e4cf`;
-tranche 2 (the interaction system and the kitchen) is below.
+**As of 2026-09-09.** Phase 0 (`175cbc4`), Phase 1 (`d13d771`), Phase 2 tranche 1 (`486e4cf`)
+and tranche 2 (`b6c4f6e`) are committed. **The Phase 2 gate has been run by the author, and it
+found six things.** The fixes for them are in the working tree, verified, NOT yet committed.
 
 ## The decisions that matter
 
-- **A wall is one mesh with two faces and a rim, cut by one list of openings.** `WallDeriver`
-  derives walls from room rectangles; plans pierce by room name / compass point.
-- **`WorldBuilder` is the only path from a plan to a lit house**, and now to a furnished one
-  (`furnish`). Game, gate renders and `PerfProbe` all go through it.
-- **A flight collides as a ramp, not as its treads.** Measured: no flight was climbable before.
-- **A `PlaceSlotGroup` is data with no occupancy; the `PlaceSlots` node holds the occupancy**
-  and is attached where the items belong, so slots in a drawer travel with the drawer.
-- **`Inventory` (autoload) owns capacity and the carried defs; `CarryComponent` owns the nodes.**
-  Carried items stay in the tree under the hands — nothing is ever an orphan.
-- **A refused action changes nothing.** Take checks capacity before moving anything; a placement
-  asks the slot before the item leaves the hands.
+- **A wall is one mesh with two faces and a rim, cut by one list of openings.**
+- **`WorldBuilder` is the only path from a plan to a lit, furnished house.**
+- **A `PlaceSlotGroup` is data with no occupancy; the `PlaceSlots` node holds it**, attached
+  inside the moving part so slots travel with the drawer.
+- **`Inventory` owns capacity and the carried defs; `CarryComponent` owns the nodes.**
+- **A refused action changes nothing.**
+- **A bulb burns in its own room and the rooms it opens onto, and nowhere else** (`LightCuller`,
+  `RoomLight`). An unshadowed omni shines through walls — that was two of the author's six.
+- **A floor plane grows into a wall only where nothing else already does.** Both neighbours
+  growing over a shared wall is 16 cm of coplanar overlap, which crawls in every doorway.
+- **The stair core is 3.8 m because the doors need it**, not because it was chosen: two 0.9 m
+  flights side by side leave 0.85 m of walkway, and `Balance.DOOR_CLEARANCE` is enforced by
+  `PlanProbe`. The main flight climbs SOUTH, away from the front door.
 
-## Phase 2, tranche 2 (this batch)
+## What the gate found, and what was done
 
-`PlaceSlotGroup`/`PlaceSlots` with SEQUENTIAL/PAIRED/NEAREST and STACK/ROW/GRID/FREE,
-`ItemDef`/`ItemPlacement`/`ItemNode`/`ItemFactory`, `Inventory`, `CarryComponent`, `Interactor`
-(ray, reach, aim cone, prompts), `PlaceGhost` (unshaded copy + inverted-hull outline),
-`ContainerComponent` FSM, `core/Layers.gd`, `ui/Hud`, `FurnitureBuilder` + `ManorItems` (a
-1.2 m kitchen run, four containers, twelve spoons), `dev/InteractProbe.gd`.
+1. Doorways blocked by flights (five, measured) -> stair core widened to 3.8 m, main flight
+   flipped, attic ladder and family-bath door moved. New check `opening.clearance`.
+2. Floor crawling under every door -> per-side `SLAB_TUCK` in `HouseBuilder._tucked`.
+3. You could walk through stair railings -> `_emit_barrier`, plus WalkProbe `stair.guard`.
+4. & 5. Lighting changed on entering a room / looked wrong -> `LightCuller` rewritten.
+6. The spoons could not be found -> they are built and placed correctly; they are dark grey,
+   15 cm, on grey marble. **Unfixed: an art call for the author.**
 
-Verified: suite 58 checks 0 failed; InteractProbe 0 violations (and red three ways);
-WalkProbe 0; PlanProbe 0; Diag clean; check_export PASS. Renders in `screenshots/phase2/`.
+Verified: suite 58/0, PlanProbe 0, WalkProbe 0, InteractProbe 0, Diag unchanged, export PASS.
+`opening.clearance` and `stair.guard` were both proved red. Renders in `screenshots/phase2gate/`.
 
 ## Next concrete step
 
-Phase 2 gate: the author walks the property, opens every container and puts twelve spoons away
-by hand, and the 30 s search budget gets its first real measurement. Then Phase 3 (`ItemDef`
-content, `SetTracker`, the in-editor home authoring tool).
+The author re-runs the gate walk. Then Phase 3 (`SetDef`, `SetTracker`, the slot reward, the
+in-editor home authoring tool) — and the 30 s search budget still has no real measurement.
 
 ## Open loops
 
-- **Draw calls are 1605 of 1800 with one furnished kitchen** (the empty house is 1476). The
-  kitchen cost 129, because every mesh is redrawn per shadow-casting light. 250 items across
-  twenty rooms will not fit in the remaining 195 — the Phase 3 `MultiMesh` pass is load-bearing.
-- **The medium tier costs ~4.7 s to enter, against a 4 s budget** (was 4.31 s; the bake grew
-  with the kitchen). Fix: bake `VoxelGIData` in a dev tool, keyed by `plan_hash`. Not built.
-- **The low tier's interiors are cool and green.** Levers: `ambient_light_sky_contribution`,
-  `ambient_light_color`. Author's call.
-- **Door reveals read dark** — correct geometry, unlit, nothing lining it. Author's call.
-- No texture in the manifest has tile joints, so no floor reads as laid tiles.
-- Confirm separate demo location before Phase 5; localization pass after Phase 4.
+- **High tier measures 17.9 ms a frame where the same tier measured 9.1 ms on 2026-09-09.**
+  Not the new culler (the old one measures 19.1 ms on the same machine in the same session).
+  Needs re-measuring on a quiet machine before anything is concluded.
+- Draw calls are now **637** for the furnished house (was 1605); 500 stress items still cost
+  one draw each, so the Phase 3 `MultiMesh` pass stays load-bearing.
+- **The medium tier costs ~4.7 s to enter** against a 4 s budget. Fix: bake `VoxelGIData` in a
+  dev tool keyed by `plan_hash`. Not built.
+- **The low tier's interiors are cool and green.** Author's call.
+- **A doorway threshold is plaster**, because it is the wall's own reveal. A threshold board is
+  an art call nobody has made.
+- **The kitchen is one 1.2 m run in a 5.2 x 4 m room** and reads as a vanity, not a kitchen.
+- No texture in the manifest has tile joints; confirm the demo location before Phase 5;
+  localization after Phase 4.

@@ -27,6 +27,8 @@ const FOUNDATION := 0.35
 ## proud of the garage slab.
 const SLAB_TUCK := 0.08
 const SEAM_OVERLAP := 0.01
+## Tolerance for deciding two plan edges are the same line, in metres.
+const PLANE_EPS := 0.001
 ## Added to a room's far-corner distance when its light range is fitted automatically.
 const LIGHT_MARGIN := 0.6
 ## Bulbs in a room with a window are scaled by this while the sun is up. The first manor renders
@@ -113,6 +115,9 @@ const BALUSTER_SPACING := 0.13
 const NEWEL := 0.08
 const NEWEL_OVER := 0.08
 const HANDRAIL := Vector2(0.06, 0.045)
+## Thickness of the invisible barrier that makes a guard solid. Thin enough to stay inside the
+## balusters, thick enough that a body moving at WALK_SPEED cannot tunnel through it in a tick.
+const BARRIER := 0.06
 const LADDER_WIDTH := 0.8
 ## How far outside a flight's edge, or a well's edge, to look for floor. Floor there means the
 ## side is open and needs a rail; no floor means a wall, which is its own guard.
@@ -153,7 +158,7 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 	holder.name = String(room.id)
 	parent.add_child(holder)
 
-	var tucked := _grown(room.polygon)
+	var slab_plane := _tucked(plan, storey, room, true)
 	var top := room.floor_y(storey.base_y)
 	var floor_mat := Mats.of(room.floor_slot, room.floor_tint, 0.65, room.floor_scale, true)
 	var deck := plan.deck_for(room.id)
@@ -163,7 +168,7 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 	else:
 		# A flight that ARRIVES in this room needs a hole in this floor to arrive through, and a
 		# pool needs one for the same reason: you have to be able to get into it.
-		var pieces := _minus_stairwells(tucked, plan, room.id, true)
+		var pieces := _minus_stairwells(slab_plane, plan, room.id, true)
 		for pool: PoolDef in plan.pools_in(room.id):
 			var left: Array[PackedVector2Array] = []
 			for piece: PackedVector2Array in pieces:
@@ -181,8 +186,9 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 	# roof boards — still owns a bulb. The first attic render was lit only by the landing below.
 	if room.light_energy > 0.0:
 		var lit := not _daylit(storey, room)
-		var lamp := OmniLight3D.new()
+		var lamp := RoomLight.new()
 		lamp.name = "Light"
+		lamp.room = room.id
 		lamp.light_color = room.light_color
 		lamp.light_energy = room.light_energy * (1.0 if lit else DAYLIT_BULB)
 		lamp.visible = lamp.light_energy > 0.0
@@ -200,7 +206,8 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 	var ceil_mat := Mats.of(room.ceiling_slot, Color(1.24, 1.25, 1.26), 0.95, 1.0, true)
 	# ...and a flight that LEAVES this room needs the hole in its ceiling.
 	var c_i := 0
-	for piece: PackedVector2Array in _minus_stairwells(tucked, plan, room.id, false):
+	for piece: PackedVector2Array in _minus_stairwells(
+			_tucked(plan, storey, room, false), plan, room.id, false):
 		c_i += 1
 		surface(holder, Props.prism(piece, cy, cy + CEILING_PLANE), [ceil_mat], "Ceiling%d" % c_i, true)
 
@@ -285,6 +292,59 @@ static func bounds(polygon: PackedVector2Array) -> Rect2:
 	for p: Vector2 in polygon:
 		r = r.expand(p)
 	return r
+
+## The floor or the ceiling plane of one room, grown into the walls around it — but only into
+## the walls no other plane already reaches into.
+##
+## A room boundary is the CENTRE LINE of the wall standing on it. A plane that stopped there
+## would leave the outer half of every exterior wall standing on nothing, which is the seam
+## `SLAB_TUCK` exists to close. But a plane grown over a SHARED boundary meets the neighbour's
+## plane coming the other way, and two coplanar surfaces 16 cm deep and metres long then fight
+## for every pixel of the band between them. The wall hides that fight everywhere it is solid,
+## so the only place it shows is where the wall is pierced — which is every doorway in the
+## house, and is what the author reported on 2026-09-09 as the ground glitching under a door.
+##
+## Rooms are rectangles here, so the answer is per side and the result is still a rectangle,
+## which is what `_minus_stairwells` needs. Anything else falls back to growing all round.
+static func _tucked(plan: FloorPlan, storey: StoreyDef, room: RoomDef,
+		is_floor: bool) -> PackedVector2Array:
+	if room.polygon.size() != 4:
+		return _grown(room.polygon)
+	var rect := bounds(room.polygon)
+	var lo := rect.position
+	var hi := rect.end
+	var x0 := lo.x - (0.0 if _abutted(plan, storey, room, rect, true, false, is_floor) else SLAB_TUCK)
+	var x1 := hi.x + (0.0 if _abutted(plan, storey, room, rect, true, true, is_floor) else SLAB_TUCK)
+	var z0 := lo.y - (0.0 if _abutted(plan, storey, room, rect, false, false, is_floor) else SLAB_TUCK)
+	var z1 := hi.y + (0.0 if _abutted(plan, storey, room, rect, false, true, is_floor) else SLAB_TUCK)
+	return PackedVector2Array([Vector2(x0, z0), Vector2(x1, z0), Vector2(x1, z1), Vector2(x0, z1)])
+
+## Does another room's plane already cover the far half of the wall on this side? Only a plane
+## in the SAME surface counts: a neighbour a step down (the garage) is not coplanar and cannot
+## fight, and a deck has no slab at all to fight with.
+static func _abutted(plan: FloorPlan, storey: StoreyDef, room: RoomDef, rect: Rect2,
+		vertical: bool, high: bool, is_floor: bool) -> bool:
+	var line := (rect.end.x if high else rect.position.x) if vertical 			else (rect.end.y if high else rect.position.y)
+	var span := Vector2(rect.position.y, rect.end.y) if vertical 			else Vector2(rect.position.x, rect.end.x)
+	for other: RoomDef in storey.rooms:
+		if other.id == room.id or other.polygon.size() != 4:
+			continue
+		var o := bounds(other.polygon)
+		# the neighbour meets us with its opposite edge, so a high side of ours is a low of theirs
+		var edge := (o.position.x if high else o.end.x) if vertical 				else (o.position.y if high else o.end.y)
+		if absf(edge - line) > PLANE_EPS:
+			continue
+		var ospan := Vector2(o.position.y, o.end.y) if vertical 				else Vector2(o.position.x, o.end.x)
+		if minf(span.y, ospan.y) - maxf(span.x, ospan.x) <= PLANE_EPS:
+			continue
+		if is_floor:
+			if plan.deck_for(other.id) != null:
+				continue   # boards on posts, no slab
+			if absf(other.floor_y(storey.base_y) - room.floor_y(storey.base_y)) < PLANE_EPS:
+				return true
+		elif other.has_ceiling:
+			return true
+	return false
 
 ## The room polygon pushed outward so a floor or ceiling plane disappears into the walls.
 ##
@@ -775,7 +835,7 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 
 	if stair.width < LADDER_WIDTH:
 		return
-	var rails := {"post": [], "rail": []}
+	var rails := {"post": [], "rail": [], "barrier": []}
 	var across := Vector2(-stair.direction.y, stair.direction.x)
 	# Rake rail on every open side of the flight: a side with floor beyond it is open, a side
 	# with a wall beyond it is guarded by the wall.
@@ -804,6 +864,24 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 		_build_guard(rails, Vector3(a.x, y_top, a.y), Vector3(b.x, y_top, b.y))
 	_emit(holder, rails["post"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Balusters")
 	_emit(holder, rails["rail"], Mats.of(stair.tread_slot, Color.WHITE, 0.6, 1.0, true), "Handrail")
+	_emit_barrier(holder, rails["barrier"])
+
+## One static body carrying every guard on this flight. A guard is a barrier in the physics
+## world even though it is balusters in the visual one, so `size` and `transform` are given
+## rather than taken from the meshes.
+static func _emit_barrier(holder: Node3D, bars: Array) -> void:
+	if bars.is_empty():
+		return
+	var body := StaticBody3D.new()
+	body.name = "GuardBody"
+	for bar: Array in bars:
+		var shape := BoxShape3D.new()
+		shape.size = bar[0]
+		var node := CollisionShape3D.new()
+		node.shape = shape
+		node.transform = bar[1]
+		body.add_child(node)
+	holder.add_child(body)
 
 ## Newel at the foot, newel at the head, a raked handrail through the nosings between them and
 ## two balusters on every tread. Everything stands on the tread it belongs to.
@@ -856,6 +934,12 @@ static func _build_rake_rail(rails: Dictionary, stair: StairDef, s: float, y0: f
 	var basis := Basis(dir, w.cross(dir), w)
 	rails["rail"].append([Props.box(Vector3(a.distance_to(b) + NEWEL, HANDRAIL.y, HANDRAIL.x)),
 			Transform3D(basis, (a + b) * 0.5)])
+	# The same line as a solid, for collision only. Balusters 13 cm apart are a fence to the eye
+	# and a row of gaps to a 30 cm capsule: `dev/WalkProbe.gd` never tested a rail, so the author
+	# walked through one (2026-09-09). The barrier hangs below the rail rather than standing on
+	# the treads, because the treads under a rake are a sawtooth and the collider is a ramp.
+	rails["barrier"].append([Vector3(a.distance_to(b) + NEWEL, RAIL_HEIGHT, BARRIER),
+			Transform3D(basis, (a + b) * 0.5 - Vector3.UP * RAIL_HEIGHT * 0.5)])
 	# balusters, two per tread, the last tread's belong to the head newel
 	for i in range(steps - 1):
 		var tread := y0 + riser * float(i + 1)
@@ -875,6 +959,8 @@ static func _build_guard(rails: Dictionary, a: Vector3, b: Vector3) -> void:
 	var basis := Basis(dir, Vector3.UP, dir.cross(Vector3.UP))
 	rails["rail"].append([Props.box(Vector3(length + NEWEL, HANDRAIL.y, HANDRAIL.x)),
 			Transform3D(basis, (a + b) * 0.5 + Vector3.UP * (RAIL_HEIGHT + HANDRAIL.y * 0.5))])
+	rails["barrier"].append([Vector3(length + NEWEL, RAIL_HEIGHT, BARRIER),
+			Transform3D(basis, (a + b) * 0.5 + Vector3.UP * RAIL_HEIGHT * 0.5)])
 	var count := int(floor((length - NEWEL) / BALUSTER_SPACING))
 	var top := RAIL_HEIGHT
 	for i in range(1, count + 1):

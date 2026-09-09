@@ -45,11 +45,11 @@ static func light(parent: Node3D, bounds: AABB, tier: Graphics.Tier) -> void:
 	gi.bake(parent, false)
 	print("VoxelGI baked in %d ms" % [Time.get_ticks_msec() - t0])
 
-## Keeps shadow maps on the room lights nearest the eye. The camera is passed in rather than
-## found, because nothing here knows what owns the eye (rule 5).
-static func attach_culler(parent: Node3D, house: Node3D, camera: Camera3D) -> void:
+## Burns the bulbs of the room the eye is in and the rooms it opens onto. The camera is passed
+## in rather than found, because nothing here knows what owns the eye (rule 5).
+static func attach_culler(parent: Node3D, house: Node3D, plan: FloorPlan, camera: Camera3D) -> void:
 	var culler := LightCuller.new()
-	culler.initialize(LightCuller.collect(house), camera)
+	culler.initialize(plan, LightCuller.collect(house), camera)
 	parent.add_child(culler)
 
 ## Touches every material the plan will ask for. Callers that time the build call this first,

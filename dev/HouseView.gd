@@ -16,18 +16,21 @@ const MANOR_VIEWS := {
 	"rear_pool": [Vector3(26.5, 3.0, 24.0), Vector3(14.0, 2.6, 13.0)],
 	"aerial": [Vector3(-6.0, 22.0, 30.0), Vector3(12.5, 1.0, 10.0)],
 	"west": [Vector3(-9.0, 2.2, 10.7), Vector3(4.0, 3.0, 10.7)],
-	"entry": [Vector3(9.5, 2.05, 6.4), Vector3(9.5, 1.75, 15.0)],
-	"hall_stairs": [Vector3(9.5, 2.05, 9.0), Vector3(8.8, 2.85, 14.5)],
+	"entry": [Vector3(9.9, 2.05, 6.4), Vector3(9.9, 1.90, 15.0)],
+	"hall_stairs": [Vector3(8.6, 1.90, 8.2), Vector3(9.6, 2.60, 13.5)],
 	"living": [Vector3(7.6, 2.0, 11.0), Vector3(4.5, 1.45, 15.0)],
-	"kitchen": [Vector3(13.6, 2.0, 11.6), Vector3(16.5, 1.45, 12.8)],
+	"kitchen": [Vector3(13.6, 2.0, 11.6), Vector3(16.5, 1.45, 12.6)],
 	# the base run against the kitchen's north wall, with the spoons that start on its worktop
-	"kitchen_run": [Vector3(13.3, 1.62, 11.3), Vector3(11.7, 1.10, 9.5)],
-	"landing": [Vector3(9.5, 5.05, 15.2), Vector3(9.0, 4.05, 10.0)],
-	"master_bed": [Vector3(11.4, 5.05, 15.2), Vector3(16.5, 4.45, 10.5)],
+	"kitchen_run": [Vector3(14.1, 1.62, 11.3), Vector3(12.5, 1.10, 9.5)],
+	# straight down at the hall/kitchen threshold: where two floors of different stone meet, and
+	# where a slab grown into its neighbour's half of the wall shows as a crawling band
+	"threshold": [Vector3(11.2, 1.30, 10.2), Vector3(12.4, 0.45, 10.3)],
+	"landing": [Vector3(11.3, 5.05, 15.0), Vector3(8.6, 4.15, 10.6)],
+	"master_bed": [Vector3(12.2, 5.05, 15.2), Vector3(16.5, 4.45, 10.5)],
 	"attic": [Vector3(15.8, 7.45, 10.75), Vector3(5.0, 7.75, 10.75)],
-	"basement": [Vector3(9.5, -0.75, 6.5), Vector3(9.5, -1.15, 15.0)],
-	"workshop": [Vector3(11.4, -0.75, 10.3), Vector3(16.5, -1.35, 13.2)],
-	"front_door": [Vector3(9.5, 1.7, 2.0), Vector3(9.5, 1.9, 7.0)],
+	"basement": [Vector3(8.6, -0.75, 6.5), Vector3(9.8, -1.15, 14.0)],
+	"workshop": [Vector3(12.2, -0.75, 10.3), Vector3(16.5, -1.35, 13.2)],
+	"front_door": [Vector3(9.9, 1.7, 2.0), Vector3(9.9, 1.9, 7.0)],
 	"window": [Vector3(2.0, 1.4, 12.0), Vector3(4.2, 1.9, 13.0)],
 	"deck": [Vector3(4.0, 2.2, 21.0), Vector3(10.5, 0.9, 16.5)],
 	"pool": [Vector3(23.0, 2.6, 21.5), Vector3(16.0, -0.5, 17.2)],
@@ -96,7 +99,7 @@ func _ready() -> void:
 	cam.yaw = cam.rotation.y
 	cam.pitch = cam.rotation.x
 	cam.fov = 65.0
-	WorldBuilder.attach_culler(self, house, cam)
+	WorldBuilder.attach_culler(self, house, plan, cam)
 
 	if shot != "":
 		_screenshot(shot)
