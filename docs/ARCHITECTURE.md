@@ -8,7 +8,7 @@ value appears there, it must never be re-typed anywhere else.
     core/       autoloads, Balance, save, event bus, FSM
     data/       Resource definitions (ItemDef, SetDef, FloorPlan, RoomDef, ContainerDef)
     resources/  .tres instances of the above — the content itself
-    world/      floor plan -> geometry: HouseBuilder, RoomBuilder, ExteriorBuilder, TerrainBuilder
+    world/      floor plan -> geometry: HouseBuilder, WallDeriver, ExteriorBuilder, TerrainBuilder
     props/      Props.gd (mesh toolkit) and the item family generators
     player/     first-person controller and its components
     ui/         HUD, set tracker, room panel, menus
@@ -104,8 +104,22 @@ thirty draw calls and is now four. The pieces themselves are:
   floor level with the lawn and read like a box on a table.
 - **Steps** at every exterior door whose floor is above the ground outside it, sized from the
   rise actually there (`STEP_RISER_MAX`, `STEP_GOING`); a garage door gets a ramp. "The ground
-  outside" is the paved zone at that point if any, else grade, so a door onto a raised deck will
-  get no steps once the deck is raised.
+  outside" is the paved zone at that point if any, else grade, which is why the hall's back door
+  onto the deck has none: the deck is already at floor level.
+- **The deck and the pool are the two exterior zones that are structures rather than paving**
+  (`ExteriorBuilder`, `DeckDef`, `PoolDef`). Every other outdoor zone is a slab lying on the
+  ground and needs nothing else. A deck is held up: boards on a rim beam on posts, and a flight
+  down each edge the plan names. Its zone carries `floor_drop` 0, so it is level with the floor
+  inside — which is what makes the back door need no steps, by the rule above rather than by an
+  exception to it. Joists are not modelled: under a platform 0.45 m up, nothing but the beam and
+  the posts is ever visible, the same reasoning that leaves stringers off the stairs.
+- **A pool is a hole, not a shape on the ground.** `PoolDef.hole()` is subtracted from the
+  zone's paving in `HouseBuilder` and from the lawn in `TerrainBuilder`, both with the same
+  rectangle decomposition the stairwells use, and the basin is a shell of solid boxes that sits
+  in what is left — walls with real thickness, because an open box of single-sided quads would
+  need `CULL_DISABLED` and nothing here relies on that. The coping covers the joint. The water
+  is the volume rather than a plane on it: only its top face is ever front-facing, so the liner
+  shows through the tint at the depth it actually has.
 - **Fixtures.** Every room light hangs a flush fixture — disc and frosted dome — so the hotspot
   on the ceiling has something at it. Rooms with glazing run their bulb at `DAYLIT_BULB` while
   the sun is up; every window glowing warm at noon is the single strongest model-not-house tell.

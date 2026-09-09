@@ -107,13 +107,14 @@ same GPU, so frame times are pessimistic):**
 
 | | High, empty | High, 500 items | Low, empty | Low, 500 items |
 |---|---|---|---|---|
-| startup | 1.33 s | 1.06 s | 0.78 s | 1.11 s |
-| mean frame | 8.9 ms | 10.6 ms | 7.0 ms | 7.0 ms |
-| worst frame | 9.7 ms | 15.6 ms | 8.6 ms | 14.5 ms |
-| draw calls | **1556** | 2447 | **1448** | 2239 |
-| static memory | 72 MB | 102 MB | 67 MB | 98 MB |
+| startup | 0.82 s | 1.00 s | 0.78 s | 1.05 s |
+| mean frame | 9.1 ms | 10.8 ms | 7.0 ms | 7.0 ms |
+| worst frame | 9.7 ms | 14.0 ms | 7.9 ms | 14.5 ms |
+| draw calls | **1573** | 2464 | **1465** | 2256 |
+| static memory | 73 MB | 102 MB | 67 MB | 98 MB |
 
-The empty house is inside every budget on both tiers. It was not before the design pass: the
+Measured again with the deck and the pool built: they cost 17 draw calls between them, because
+each is one union per material. The empty house is inside every budget on both tiers. It was not before the design pass: the
 manor's first build was 1894 draw calls on high, 5% over, and the plan was a mesh-merging pass
 by material. That pass was not needed. Baking each wall's casings, frames, sills and skirting
 into one mesh (`Props.union`) took the house from 440 meshes to 306 while *adding* frames,

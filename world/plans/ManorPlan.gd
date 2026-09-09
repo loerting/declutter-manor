@@ -42,6 +42,16 @@ const PITCH := 32.0
 ## sit inside them rather than through them. Its wall height is derived from the roof.
 const ATTIC := Rect2(4.3, 9.5, 12.4, 2.5)
 
+## The deck behind the hall, level with the floor inside so the back door opens straight onto
+## it, and the lap pool cut into the paving east of it. Both are structures, not paving, and
+## `ExteriorBuilder` builds them; the zones themselves are ordinary rooms.
+const DECK := Rect2(6, 15.5, 6, 3)
+const POOL_AREA := Rect2(12, 15.5, 11, 3.3)
+## Set 1.05 m off the house wall and 0.6 m off the paving's south edge: the first cut left
+## half a metre of walkway between the coping and the siding, which read as a moat.
+const POOL := Rect2(14.2, 16.55, 6.6, 1.65)
+const POOL_DEPTH := 1.5
+
 static func build() -> FloorPlan:
 	var plan := FloorPlan.new()
 	plan.id = &"manor"
@@ -69,6 +79,8 @@ static func build() -> FloorPlan:
 		# the attic ladder: steep, short, and in the corner of the landing the stair does not use
 		StairDef.make(&"landing", &"attic", Vector2(9.4, 10.2), WallDeriver.EAST, 1.4, 0.7),
 	]
+	plan.decks = [DeckDef.make(&"deck", [WallDeriver.SOUTH, WallDeriver.EAST])]
+	plan.pools = [PoolDef.make(&"pool_area", POOL, POOL_DEPTH)]
 	var main_roof := RoofDef.gable(HOUSE, eave, true, PITCH)
 	var garage_roof := RoofDef.gable(GARAGE, ground.ceiling_y(), true, 28.0)
 	garage_roof.abut_start = true   # meets the house's east wall; no gable, no overhang there
@@ -101,6 +113,15 @@ static func _outside(r: RoomDef, floor: String) -> void:
 	r.floor_tint = Color(0.62, 0.62, 0.60) if floor == "concrete" else Color(0.85, 0.85, 0.85)
 	r.has_ceiling = false
 	r.light_energy = 0.0
+
+## The deck is the one exterior zone at the finished floor level rather than on the ground:
+## `floor_drop` 0 puts its boards level with the hall inside, which is what a back door onto a
+## deck looks like and what stops `HouseBuilder` putting steps in the doorway. The steps are on
+## the far side, off the deck.
+static func _deck() -> RoomDef:
+	var r := _outdoor(&"deck", DECK.position.x, DECK.position.y, DECK.end.x, DECK.end.y, "floor_wood")
+	r.floor_drop = 0.0
+	return r
 
 ## The driveway with the front walk as part of it: an L from the street side of the garage to
 ## the front door, and the stoop under the front steps. One zone, because a path is not a
@@ -148,8 +169,9 @@ static func _ground(s: StoreyDef) -> void:
 		_room(&"powder", 14, 13, 17, 15.5, "porcelain"),
 		garage,
 		_driveway(),
-		_outdoor(&"deck", 6, 15.5, 12, 18.5, "floor_wood"),
-		_outdoor(&"pool_area", 12, 15.5, 23, 18.8, "concrete"),
+		_deck(),
+		_outdoor(&"pool_area", POOL_AREA.position.x, POOL_AREA.position.y,
+				POOL_AREA.end.x, POOL_AREA.end.y, "concrete"),
 		_outdoor(&"side_garden", 0.5, 6, 4, 15.5, "gravel"),
 	]
 	var w := WallDeriver.derive(s.rooms)

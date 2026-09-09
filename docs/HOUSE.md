@@ -64,7 +64,10 @@ stair hall in the middle. The attic is a 12.4 x 2.5 m band astride the ridge, re
 steep ladder-flight from the landing, with knee walls derived from the roof pitch.
 
 Outdoors: driveway north of the garage, deck behind the hall, pool surround behind the kitchen
-wing, side garden along the west wall. The front walk is part of the driveway zone — an L from
+wing, side garden along the west wall. The deck is 6 x 3 m of boards level with the floor
+inside, on a rim beam and posts, with a flight down its south edge to the lawn and another east
+onto the pool paving. The pool is a 6.6 x 1.7 m lap pool 1.5 m deep, cut through the paving and
+the lawn under it, with a coped rim and steps at the shallow end. The front walk is part of the driveway zone — an L from
 the driveway's west edge to the front stoop — because a path is not a place items live, and an
 exterior zone may be any polygon since only walls need rectangles.
 

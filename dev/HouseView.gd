@@ -27,6 +27,10 @@ const MANOR_VIEWS := {
 	"workshop": [Vector3(11.4, -0.75, 10.3), Vector3(16.5, -1.35, 13.2)],
 	"front_door": [Vector3(9.5, 1.7, 2.0), Vector3(9.5, 1.9, 7.0)],
 	"window": [Vector3(2.0, 1.4, 12.0), Vector3(4.2, 1.9, 13.0)],
+	"deck": [Vector3(4.0, 2.2, 21.0), Vector3(10.5, 0.9, 16.5)],
+	"pool": [Vector3(23.0, 2.6, 21.5), Vector3(16.0, -0.5, 17.2)],
+	"deck_steps": [Vector3(9.0, 1.5, 22.5), Vector3(9.2, 0.1, 18.4)],
+	"pool_edge": [Vector3(13.2, 1.5, 19.6), Vector3(18.0, -0.6, 17.2)],
 }
 
 const VIEWS := {

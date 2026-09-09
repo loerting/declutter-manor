@@ -143,11 +143,25 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 	var tucked := _grown(room.polygon)
 	var top := room.floor_y(storey.base_y)
 	var floor_mat := Mats.of(room.floor_slot, room.floor_tint, 0.65, 1.0, true)
-	# A flight that ARRIVES in this room needs a hole in this floor to arrive through.
-	var i := 0
-	for piece: PackedVector2Array in _minus_stairwells(tucked, plan, room.id, true):
-		i += 1
-		_surface(holder, Props.prism(piece, top - FLOOR_SLAB, top), [floor_mat], "Floor%d" % i, true)
+	var deck := plan.deck_for(room.id)
+	if deck != null:
+		# A deck has no slab: boards on a beam on posts, all of it built from this same polygon.
+		ExteriorBuilder.build_deck(holder, plan, storey, room, deck)
+	else:
+		# A flight that ARRIVES in this room needs a hole in this floor to arrive through, and a
+		# pool needs one for the same reason: you have to be able to get into it.
+		var pieces := _minus_stairwells(tucked, plan, room.id, true)
+		for pool: PoolDef in plan.pools_in(room.id):
+			var left: Array[PackedVector2Array] = []
+			for piece: PackedVector2Array in pieces:
+				left.append_array(cut_rect(piece, pool.hole()))
+			pieces = left
+		var i := 0
+		for piece: PackedVector2Array in pieces:
+			i += 1
+			surface(holder, Props.prism(piece, top - FLOOR_SLAB, top), [floor_mat], "Floor%d" % i, true)
+	for pool: PoolDef in plan.pools_in(room.id):
+		ExteriorBuilder.build_pool(holder, storey, room, pool)
 
 	var cy := storey.ceiling_y()
 	# The light comes before the ceiling, because a room without a ceiling — the attic, under its
@@ -172,10 +186,10 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 		return
 	var ceil_mat := Mats.of(room.ceiling_slot, Color(1.24, 1.25, 1.26), 0.95, 1.0, true)
 	# ...and a flight that LEAVES this room needs the hole in its ceiling.
-	i = 0
+	var c_i := 0
 	for piece: PackedVector2Array in _minus_stairwells(tucked, plan, room.id, false):
-		i += 1
-		_surface(holder, Props.prism(piece, cy, cy + CEILING_PLANE), [ceil_mat], "Ceiling%d" % i, true)
+		c_i += 1
+		surface(holder, Props.prism(piece, cy, cy + CEILING_PLANE), [ceil_mat], "Ceiling%d" % c_i, true)
 
 ## A room is daylit when any wall around it carries glazing.
 static func _daylit(storey: StoreyDef, room: RoomDef) -> bool:
@@ -218,11 +232,11 @@ static func _minus_stairwells(polygon: PackedVector2Array, plan: FloorPlan, room
 			continue
 		var next: Array[PackedVector2Array] = []
 		for piece: PackedVector2Array in pieces:
-			next.append_array(_cut_rect(piece, stair.footprint()))
+			next.append_array(cut_rect(piece, stair.footprint()))
 		pieces = next
 	return pieces
 
-static func _cut_rect(polygon: PackedVector2Array, rect: Rect2) -> Array[PackedVector2Array]:
+static func cut_rect(polygon: PackedVector2Array, rect: Rect2) -> Array[PackedVector2Array]:
 	var hole := PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y),
 			rect.end, Vector2(rect.position.x, rect.end.y)])
 	var clipped := Geometry2D.clip_polygons(polygon, hole)
@@ -234,7 +248,7 @@ static func _cut_rect(polygon: PackedVector2Array, rect: Rect2) -> Array[PackedV
 		return out
 	# outer ring plus an inner ring: a true hole. Only a rectangular room is decomposed; anything
 	# else is a plan error worth stopping on rather than quietly floor-less.
-	var b := _bounds(polygon)
+	var b := bounds(polygon)
 	if polygon.size() != 4 or absf(_area(polygon) - b.get_area()) > 0.01:
 		push_error("HouseBuilder: stairwell lies inside a non-rectangular room; author it as rectangles")
 		out.append(polygon)
@@ -253,7 +267,7 @@ static func _cut_rect(polygon: PackedVector2Array, rect: Rect2) -> Array[PackedV
 					strip.end, Vector2(strip.position.x, strip.end.y)]))
 	return out
 
-static func _bounds(polygon: PackedVector2Array) -> Rect2:
+static func bounds(polygon: PackedVector2Array) -> Rect2:
 	var r := Rect2(polygon[0], Vector2.ZERO)
 	for p: Vector2 in polygon:
 		r = r.expand(p)
@@ -331,7 +345,7 @@ static func _build_wall(parent: Node3D, plan: FloorPlan, storey: StoreyDef, wall
 	# The rim is what you see standing in a doorway or looking into a window reveal, so it takes
 	# the inside finish wherever there is an inside; a garden wall takes the siding.
 	var rim_room := wall.room_a if wall.room_a != &"" else wall.room_b
-	_surface(holder, mesh, [face_a, face_b, _face_material(plan, storey, rim_room)], "Slab", true)
+	surface(holder, mesh, [face_a, face_b, _face_material(plan, storey, rim_room)], "Slab", true)
 
 	# Everything on this wall that shares a material is one mesh: the casings, frames, sills and
 	# skirting of a wall with three windows were 30 draw calls, and are now one.
@@ -375,7 +389,6 @@ static func _glass() -> Material:
 	# was metallic 0.3 and rough, which made every window a dark grey plate.
 	var glass := Props.mat(Color(0.86, 0.92, 0.95, 0.20), 0.02)
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glass.specular = 0.6
 	return glass
 
 static func _emit(holder: Node3D, parts: Array, material: Material, node_name: String) -> void:
@@ -529,7 +542,7 @@ static func _build_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, wal
 	var side := 1.0 if wall.room_a == &"" else -1.0
 	var outward := wall.normal() * side
 	var outside := wall.at_u(o.at) + outward * (half_t + 0.5)
-	var ground := _ground_level(plan, storey, outside)
+	var ground := ground_level(plan, storey, outside)
 	var floor_world := storey.base_y + (z_ref - z_floor)
 	var rise := floor_world - ground
 	if rise < 0.05:
@@ -554,11 +567,11 @@ static func _build_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, wal
 	var mesh := Props.extrude(profile, Vector3(cx, side * half_t, z_floor),
 			Vector3(0.0, side, 0.0), Vector3(0.0, 0.0, -1.0), Vector3.RIGHT,
 			-o.width * 0.5 - extra, o.width * 0.5 + extra)
-	_surface(holder, mesh, [Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true)],
+	surface(holder, mesh, [Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true)],
 			"Ramp" if o.kind == Opening.Kind.GARAGE_DOOR else "Steps", true)
 
 ## World Y of the ground at a plan point: the paved zone there if any, else grade.
-static func _ground_level(plan: FloorPlan, storey: StoreyDef, at: Vector2) -> float:
+static func ground_level(plan: FloorPlan, storey: StoreyDef, at: Vector2) -> float:
 	for room: RoomDef in storey.rooms:
 		if room.zone == RoomDef.Zone.EXTERIOR and room.contains(at):
 			return room.floor_y(storey.base_y)
@@ -566,7 +579,7 @@ static func _ground_level(plan: FloorPlan, storey: StoreyDef, at: Vector2) -> fl
 
 # --- Plumbing ---------------------------------------------------------------------------------
 
-static func _surface(parent: Node3D, mesh: ArrayMesh, materials: Array, node_name: String,
+static func surface(parent: Node3D, mesh: ArrayMesh, materials: Array, node_name: String,
 		collide: bool) -> void:
 	if mesh.get_surface_count() == 0:
 		return
@@ -625,8 +638,8 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 	var south := PackedVector3Array([_uv(along_x, u0, ridge, vm), _uv(along_x, u1, ridge, vm),
 			_uv(along_x, u1, low, v1), _uv(along_x, u0, low, v1)])
 	var roof_mats: Array = [tiles, boards, fascia]
-	_surface(holder, Props.slab_poly(north, roof.thickness, Vector3.UP, true), roof_mats, "SlopeA", true)
-	_surface(holder, Props.slab_poly(south, roof.thickness, Vector3.UP, true), roof_mats, "SlopeB", true)
+	surface(holder, Props.slab_poly(north, roof.thickness, Vector3.UP, true), roof_mats, "SlopeA", true)
+	surface(holder, Props.slab_poly(south, roof.thickness, Vector3.UP, true), roof_mats, "SlopeB", true)
 
 	# The gable ends close the roof volume. Without them you see straight into the attic from
 	# the side, which is the single most common way a generated house reads as a set.
@@ -644,7 +657,7 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 		var tri := PackedVector3Array([_uv(along_x, out_u, roof.eave_y, gv0),
 				_uv(along_x, out_u, roof.eave_y, gv1), _uv(along_x, out_u, ridge, vm)])
 		# the gable fills from the wall head to the ridge, so the lift never opens a slot
-		_surface(holder, Props.slab_poly(tri, roof.wall_thickness, _uv(along_x, 1.0, 0.0, 0.0)),
+		surface(holder, Props.slab_poly(tri, roof.wall_thickness, _uv(along_x, 1.0, 0.0, 0.0)),
 				[gable], "Gable", true)
 
 	# Fascia along both eaves: the board that closes the tile edge. A roof without one reads as
@@ -698,7 +711,7 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 	var holder := Node3D.new()
 	holder.name = "Stair_%s_%s" % [stair.lower_room, stair.upper_room]
 	parent.add_child(holder)
-	_surface(holder, mesh, [Mats.of(stair.tread_slot, Color.WHITE, 0.7, 1.0, true)], "Flight", true)
+	surface(holder, mesh, [Mats.of(stair.tread_slot, Color.WHITE, 0.7, 1.0, true)], "Flight", true)
 
 	if stair.width < LADDER_WIDTH:
 		return

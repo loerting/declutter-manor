@@ -5,6 +5,10 @@ class_name TerrainBuilder
 ##
 ## Paved exterior zones (driveway, deck, pool surround) are their own rooms in the plan and are
 ## built by HouseBuilder as ordinary floor slabs sitting just above the grass.
+##
+## A pool is the one thing that takes ground away rather than covering it: its footprint is cut
+## out of the grass here with the same rectangle decomposition the stairwells use, because a
+## basin under an unbroken lawn is a basin nobody can see into.
 
 ## The lot is where the game happens; the ground has to keep going past it or every exterior
 ## view ends in a hard rectangle floating against the sky. Nothing outside the lot is reachable
@@ -36,18 +40,29 @@ static func build(parent: Node3D, plan: FloorPlan) -> void:
 		i += 1
 		if strip.size.x < 0.01 or strip.size.y < 0.01:
 			continue
-		var poly := PackedVector2Array([strip.position, Vector2(strip.end.x, strip.position.y),
-				strip.end, Vector2(strip.position.x, strip.end.y)])
-		var mi := MeshInstance3D.new()
-		mi.name = "Grass%d" % i
-		mi.mesh = Props.prism(poly, GRASS_TOP - GRASS_DEPTH, GRASS_TOP)
-		mi.set_surface_override_material(0, grass)
-		holder.add_child(mi)
-		var body := StaticBody3D.new()
-		var shape := CollisionShape3D.new()
-		shape.shape = mi.mesh.create_trimesh_shape()
-		body.add_child(shape)
-		holder.add_child(body)
+		var pieces: Array[PackedVector2Array] = [PackedVector2Array([strip.position,
+				Vector2(strip.end.x, strip.position.y), strip.end,
+				Vector2(strip.position.x, strip.end.y)])]
+		for pool: PoolDef in plan.pools:
+			if not strip.encloses(pool.hole()) and not strip.intersects(pool.hole()):
+				continue
+			var next: Array[PackedVector2Array] = []
+			for piece: PackedVector2Array in pieces:
+				next.append_array(HouseBuilder.cut_rect(piece, pool.hole()))
+			pieces = next
+		var j := 0
+		for poly: PackedVector2Array in pieces:
+			j += 1
+			var mi := MeshInstance3D.new()
+			mi.name = "Grass%d_%d" % [i, j]
+			mi.mesh = Props.prism(poly, GRASS_TOP - GRASS_DEPTH, GRASS_TOP)
+			mi.set_surface_override_material(0, grass)
+			holder.add_child(mi)
+			var body := StaticBody3D.new()
+			var shape := CollisionShape3D.new()
+			shape.shape = mi.mesh.create_trimesh_shape()
+			body.add_child(shape)
+			holder.add_child(body)
 
 ## Plan-space rectangle the building occupies. Exterior zones are ground, not building, so
 ## they do not push the grass back.

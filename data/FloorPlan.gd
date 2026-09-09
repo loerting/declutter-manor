@@ -8,6 +8,9 @@ extends Resource
 @export var storeys: Array[StoreyDef] = []
 @export var roofs: Array[RoofDef] = []
 @export var stairs: Array[StairDef] = []
+## Outdoor zones that are structures rather than paving: see `ExteriorBuilder`.
+@export var decks: Array[DeckDef] = []
+@export var pools: Array[PoolDef] = []
 
 ## Outside finishes, used by every wall face whose side is outdoors. The tint is what gives the
 ## house a colour: the CC0 scan is near-neutral so one texture serves any colourway.
@@ -29,6 +32,20 @@ func find_room(room_id: StringName) -> RoomDef:
 		if r != null:
 			return r
 	return null
+
+## The deck laid over a zone, if that zone is one; null for ordinary paving.
+func deck_for(room_id: StringName) -> DeckDef:
+	for d: DeckDef in decks:
+		if d.room == room_id:
+			return d
+	return null
+
+func pools_in(room_id: StringName) -> Array[PoolDef]:
+	var out: Array[PoolDef] = []
+	for p: PoolDef in pools:
+		if p.room == room_id:
+			out.append(p)
+	return out
 
 func storey_of(room_id: StringName) -> StoreyDef:
 	for s: StoreyDef in storeys:
@@ -56,6 +73,10 @@ func plan_hash() -> String:
 				parts.append("O|%d|%.3f|%.3f|%.3f|%.3f" % [o.kind, o.at, o.width, o.height, o.sill])
 	for st: StairDef in stairs:
 		parts.append("T|%s|%s|%.3f,%.3f|%.3f" % [st.lower_room, st.upper_room, st.foot.x, st.foot.y, st.run])
+	for d: DeckDef in decks:
+		parts.append("D|%s|%d" % [d.room, d.step_edges.size()])
+	for p: PoolDef in pools:
+		parts.append("P|%s|%s|%.3f|%.3f" % [p.room, p.rect, p.depth, p.shell])
 	for r: RoofDef in roofs:
 		parts.append("F|%d|%s|%.3f|%.3f|%s" % [r.kind, r.footprint, r.eave_y, r.pitch_deg, r.ridge_along_x])
 	return "\n".join(parts).sha256_text().substr(0, 16)
