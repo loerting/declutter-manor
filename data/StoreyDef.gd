@@ -8,7 +8,8 @@ extends Resource
 @export var base_y := 0.0
 ## Finished floor to finished ceiling.
 @export var height := 2.7
-## Structural depth between this ceiling and the next storey's floor.
+## Structural depth between this ceiling and the next storey's floor. `HouseBuilder.FOUNDATION`
+## assumes this value; change both or neither.
 @export var slab_thickness := 0.35
 
 @export var rooms: Array[RoomDef] = []

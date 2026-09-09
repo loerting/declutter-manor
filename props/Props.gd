@@ -53,7 +53,11 @@ static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3
 ## have a visible edge, because nothing in this project is a single-sided sheet (modelling
 ## rule 3). Points must be given in order around a convex outline; the normal is derived and
 ## flipped toward `up_hint`, so a caller cannot get the winding wrong.
-static func slab_poly(pts: PackedVector3Array, thickness: float, up_hint := Vector3.UP) -> ArrayMesh:
+## With `split` the result carries three surfaces — outer face, inner face, rim — so a roof can
+## be tiles on top and boards underneath while staying one solid. An attic looks up at the
+## underside of its own roof, and there is no second mesh to put the boards on.
+static func slab_poly(pts: PackedVector3Array, thickness: float, up_hint := Vector3.UP,
+		split := false) -> ArrayMesh:
 	if pts.size() < 3:
 		push_error("slab_poly: %d points" % pts.size())
 		return ArrayMesh.new()
@@ -61,16 +65,24 @@ static func slab_poly(pts: PackedVector3Array, thickness: float, up_hint := Vect
 	if n.dot(up_hint) < 0.0:
 		n = -n
 	var off := n * thickness
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var top := SurfaceTool.new()
+	top.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var bot := SurfaceTool.new() if split else top
+	var rim := SurfaceTool.new() if split else top
+	if split:
+		bot.begin(Mesh.PRIMITIVE_TRIANGLES)
+		rim.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for i in range(1, pts.size() - 1):
-		_tri(st, pts[0], pts[i], pts[i + 1], n)
-		_tri(st, pts[0] - off, pts[i] - off, pts[i + 1] - off, -n)
+		_tri(top, pts[0], pts[i], pts[i + 1], n)
+		_tri(bot, pts[0] - off, pts[i] - off, pts[i + 1] - off, -n)
 	for i in range(pts.size()):
 		var a := pts[i]
 		var b := pts[(i + 1) % pts.size()]
-		_quad(st, a, b, b - off, a - off, (b - a).cross(n).normalized())
-	return with_tangents(st.commit())
+		_quad(rim, a, b, b - off, a - off, (b - a).cross(n).normalized())
+	if not split:
+		return with_tangents(top.commit())
+	return merge_surfaces([with_tangents(top.commit()), with_tangents(bot.commit()),
+			with_tangents(rim.commit())])
 
 static func slab_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, thickness: float,
 		up_hint := Vector3.UP) -> ArrayMesh:
@@ -82,30 +94,41 @@ static func slab_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, thickness:
 ## Winding is derived from the requested face normals, so the polygon may be given either way
 ## round; `dev/Diag.gd` covers it.
 static func prism(polygon: PackedVector2Array, y_bottom: float, y_top: float) -> ArrayMesh:
+	return extrude(polygon, Vector3.ZERO, Vector3.RIGHT, Vector3.BACK, Vector3.UP, y_bottom, y_top)
+
+## The general form of `prism`: a 2D polygon in the (u, v) plane, extruded along w from w0 to
+## w1. A staircase is its side profile extruded across its width, which is this with u along
+## the flight, v up and w across — the same code path as a floor slab, checked by the same
+## diagnostic.
+static func extrude(polygon: PackedVector2Array, origin: Vector3, u: Vector3, v: Vector3,
+		w: Vector3, w0: float, w1: float) -> ArrayMesh:
 	var tris := Geometry2D.triangulate_polygon(polygon)
 	if tris.is_empty():
-		push_error("prism: polygon could not be triangulated (self-intersecting or degenerate)")
+		push_error("extrude: polygon could not be triangulated (self-intersecting or degenerate)")
 		return ArrayMesh.new()
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var top_n := w.normalized()
+	var at := func(p: Vector2, wd: float) -> Vector3: return origin + u * p.x + v * p.y + w * wd
 	for i in range(0, tris.size(), 3):
 		var p0 := polygon[tris[i]]
 		var p1 := polygon[tris[i + 1]]
 		var p2 := polygon[tris[i + 2]]
-		_tri(st, Vector3(p0.x, y_top, p0.y), Vector3(p1.x, y_top, p1.y), Vector3(p2.x, y_top, p2.y), Vector3.UP)
-		_tri(st, Vector3(p0.x, y_bottom, p0.y), Vector3(p1.x, y_bottom, p1.y), Vector3(p2.x, y_bottom, p2.y), Vector3.DOWN)
+		_tri(st, at.call(p0, w1), at.call(p1, w1), at.call(p2, w1), top_n)
+		_tri(st, at.call(p0, w0), at.call(p1, w0), at.call(p2, w0), -top_n)
+	var ccw := _signed_area(polygon) > 0.0
 	for i in range(polygon.size()):
 		var a := polygon[i]
 		var b := polygon[(i + 1) % polygon.size()]
 		var edge := b - a
 		if edge.length() < 1e-6:
 			continue
-		# outward normal of a plan edge, sign fixed below by the polygon's own winding
-		var n := Vector2(-edge.y, edge.x).normalized()
-		if _signed_area(polygon) > 0.0:
-			n = -n
-		_quad(st, Vector3(a.x, y_bottom, a.y), Vector3(b.x, y_bottom, b.y),
-			Vector3(b.x, y_top, b.y), Vector3(a.x, y_top, a.y), Vector3(n.x, 0.0, n.y))
+		# outward normal of a 2D edge, sign fixed by the polygon's own winding
+		var n2 := Vector2(-edge.y, edge.x).normalized()
+		if ccw:
+			n2 = -n2
+		var n3: Vector3 = (u * n2.x + v * n2.y).normalized()
+		_quad(st, at.call(a, w0), at.call(b, w0), at.call(b, w1), at.call(a, w1), n3)
 	return with_tangents(st.commit())
 
 static func _signed_area(polygon: PackedVector2Array) -> float:

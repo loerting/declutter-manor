@@ -7,6 +7,7 @@ extends Resource
 @export var id: StringName
 @export var storeys: Array[StoreyDef] = []
 @export var roofs: Array[RoofDef] = []
+@export var stairs: Array[StairDef] = []
 
 ## Outside finishes, used by every wall face whose side is outdoors. The tint is what gives the
 ## house a colour: the CC0 scan is near-neutral so one texture serves any colourway.
@@ -53,6 +54,8 @@ func plan_hash() -> String:
 				w.a.x, w.a.y, w.b.x, w.b.y, w.room_a, w.room_b, w.openings.size()])
 			for o: Opening in w.openings:
 				parts.append("O|%d|%.3f|%.3f|%.3f|%.3f" % [o.kind, o.at, o.width, o.height, o.sill])
+	for st: StairDef in stairs:
+		parts.append("T|%s|%s|%.3f,%.3f|%.3f" % [st.lower_room, st.upper_room, st.foot.x, st.foot.y, st.run])
 	for r: RoofDef in roofs:
 		parts.append("F|%d|%s|%.3f|%.3f|%s" % [r.kind, r.footprint, r.eave_y, r.pitch_deg, r.ridge_along_x])
 	return "\n".join(parts).sha256_text().substr(0, 16)

@@ -41,6 +41,35 @@ awkward to reach, and holds the most absurd misplacements — it is the payoff f
 
 **Exterior — 4 zones.** Front yard and driveway, rear deck, pool area, side garden with a shed.
 
+## The layout as built (`world/plans/ManorPlan.gd`)
+
+A centre-hall plan. The entry hall runs front to back through the middle of the house and
+carries both stairs; the landing stacks over it and the basement stair hall under it, so the
+stairwells line up through the building the way structure does. The basement mirrors the ground
+floor so every wall stacks. Plan metres, north (the street) at the top:
+
+               x: 4        8        11       14       17          23
+        z 6      +--------+--------+-----------------+-----------+
+                 | office | entry  | dining          |  garage   |
+        z 9      +--------+  hall  +-----------------+           |
+                 | living |        | kitchen         |           |
+        z 11.5   |        |        |                 +-----------+
+        z 13     |        |        +--------+--------+
+        z 15.5   +--------+--------+ mud    | powder |
+
+Upper floor: children's rooms over the office and living room, family bath over the front of
+the hall, landing over the back of it, closet and master bath over the dining room, master
+bedroom over the kitchen. Basement: laundry / rec room west, storage / workshop / utility east,
+stair hall in the middle. The attic is a 12.4 x 2.5 m band astride the ridge, reached by a
+steep ladder-flight from the landing, with knee walls derived from the roof pitch.
+
+Outdoors: driveway north of the garage, deck behind the hall, pool surround behind the kitchen
+wing, side garden along the west wall.
+
+The garage sits flush with the house front rather than forward of it. It stood forward in the
+first draft, and the render showed why that was wrong: the roof end that should have abutted
+the house had nothing to abut for two metres and was open to the sky.
+
 ## Consequences that are not obvious
 
 - **The attic and the pool are the two zones that most test the one-floor-plan rule.** The attic

@@ -8,21 +8,27 @@ class_name HouseBuilder
 ##
 ## Plan coordinates are metres; plan (x, y) is world (x, ·, y) and north is -Z.
 
-## Structural depth of a floor slab. Only its top face is ever seen, from inside the room.
-const FLOOR_SLAB := 0.30
+## Structural depth of a floor slab: the storey slab minus the ceiling plane hung under it, so
+## the two meet and a stairwell shows one clean edge instead of a dark slot between them.
+const FLOOR_SLAB := 0.33
 ## Ceilings are a thin plane hung under the slab above, not the underside of that slab, so a
 ## room's ceiling finish never has to agree with the floor finish of the room over it.
 const CEILING_PLANE := 0.02
-## Walls run this far below the storey's finished floor. Without it, any room with a
-## `floor_drop` (a garage slab, a sunken lounge) shows daylight under its own walls — which is
-## what the first garage render did.
-const FOUNDATION := 0.6
+## Walls run this far below the storey's finished floor: exactly one slab, so an upper storey's
+## walls land on the head of the walls beneath and the siding runs unbroken. Less than a slab
+## left a bright 3 cm seam around the house at first-floor level; more would hang through the
+## ceilings below. It also covers a `floor_drop` (the garage slab), which is what the very first
+## garage render showed daylight under.
+const FOUNDATION := 0.35
 ## Floor and ceiling planes are grown by this much so they run into the walls instead of
 ## stopping at the centre line and leaving a seam at every junction. It must stay **below half
 ## the thinnest wall**, or a room's floor pokes out through the far face of its own wall and
 ## into the neighbour — which is how a 2 cm strip of the mudroom's oak floor ended up standing
 ## proud of the garage slab.
 const SLAB_TUCK := 0.08
+const SEAM_OVERLAP := 0.01
+## Added to a room's far-corner distance when its light range is fitted automatically.
+const LIGHT_MARGIN := 0.6
 const TRIM_SLOT := "painted_wood"
 const TRIM_TINT := Color(1.0, 0.99, 0.96)
 ## The door reads as a door because it contrasts with the wall around it, not because of its
@@ -45,9 +51,14 @@ static func build(plan: FloorPlan) -> Node3D:
 		node.name = String(storey.id)
 		root.add_child(node)
 		for room: RoomDef in storey.rooms:
-			_build_room(node, storey, room)
+			_build_room(node, plan, storey, room)
 		for wall: WallSegment in storey.walls:
 			_build_wall(node, plan, storey, wall)
+	var stairs := Node3D.new()
+	stairs.name = "Stairs"
+	root.add_child(stairs)
+	for stair: StairDef in plan.stairs:
+		_build_stair(stairs, plan, stair)
 	var shell := Node3D.new()
 	shell.name = "Shell"
 	root.add_child(shell)
@@ -58,34 +69,96 @@ static func build(plan: FloorPlan) -> Node3D:
 
 # --- Rooms -----------------------------------------------------------------------------------
 
-static func _build_room(parent: Node3D, storey: StoreyDef, room: RoomDef) -> void:
+static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room: RoomDef) -> void:
 	var holder := Node3D.new()
 	holder.name = String(room.id)
 	parent.add_child(holder)
 
 	var tucked := _grown(room.polygon)
 	var top := room.floor_y(storey.base_y)
-	var slab := Props.prism(tucked, top - FLOOR_SLAB, top)
-	_surface(holder, slab, [Mats.of(room.floor_slot, Color.WHITE, 0.65, 1.0, true)], "Floor", true)
+	var floor_mat := Mats.of(room.floor_slot, room.floor_tint, 0.65, 1.0, true)
+	# A flight that ARRIVES in this room needs a hole in this floor to arrive through.
+	var i := 0
+	for piece: PackedVector2Array in _minus_stairwells(tucked, plan, room.id, true):
+		i += 1
+		_surface(holder, Props.prism(piece, top - FLOOR_SLAB, top), [floor_mat], "Floor%d" % i, true)
+
+	var cy := storey.ceiling_y()
+	# The light comes before the ceiling, because a room without a ceiling — the attic, under its
+	# roof boards — still owns a bulb. The first attic render was lit only by the landing below.
+	if room.light_energy > 0.0:
+		var lamp := OmniLight3D.new()
+		lamp.name = "Light"
+		lamp.light_color = room.light_color
+		lamp.light_energy = room.light_energy
+		lamp.omni_range = room.light_range if room.light_range > 0.0 else room.reach() + LIGHT_MARGIN
+		lamp.shadow_enabled = room.light_shadows
+		lamp.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
+		var c := room.centroid()
+		lamp.position = Vector3(c.x, cy - room.light_offset, c.y)
+		holder.add_child(lamp)
 
 	if not room.has_ceiling:
 		return
-	var cy := storey.ceiling_y()
-	var ceil_mesh := Props.prism(tucked, cy, cy + CEILING_PLANE)
-	_surface(holder, ceil_mesh, [Mats.of(room.ceiling_slot, Color(1.24, 1.25, 1.26), 0.95, 1.0, true)],
-			"Ceiling", true)
+	var ceil_mat := Mats.of(room.ceiling_slot, Color(1.24, 1.25, 1.26), 0.95, 1.0, true)
+	# ...and a flight that LEAVES this room needs the hole in its ceiling.
+	i = 0
+	for piece: PackedVector2Array in _minus_stairwells(tucked, plan, room.id, false):
+		i += 1
+		_surface(holder, Props.prism(piece, cy, cy + CEILING_PLANE), [ceil_mat], "Ceiling%d" % i, true)
 
-	if room.light_energy <= 0.0:
-		return
-	var lamp := OmniLight3D.new()
-	lamp.name = "Light"
-	lamp.light_color = room.light_color
-	lamp.light_energy = room.light_energy
-	lamp.omni_range = room.light_range
-	lamp.shadow_enabled = true
-	var c := room.centroid()
-	lamp.position = Vector3(c.x, cy - room.light_offset, c.y)
-	holder.add_child(lamp)
+## The plane of a room with every relevant stairwell removed. A well that touches the room's
+## edge is a notch and clips cleanly; a well fully inside is a hole, which a single polygon
+## cannot express and a triangulator cannot take, so it becomes the four strips around it.
+static func _minus_stairwells(polygon: PackedVector2Array, plan: FloorPlan, room: StringName,
+		arriving: bool) -> Array[PackedVector2Array]:
+	var pieces: Array[PackedVector2Array] = [polygon]
+	for stair: StairDef in plan.stairs:
+		var hits := stair.upper_room == room if arriving else stair.lower_room == room
+		if not hits:
+			continue
+		var next: Array[PackedVector2Array] = []
+		for piece: PackedVector2Array in pieces:
+			next.append_array(_cut_rect(piece, stair.footprint()))
+		pieces = next
+	return pieces
+
+static func _cut_rect(polygon: PackedVector2Array, rect: Rect2) -> Array[PackedVector2Array]:
+	var hole := PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y),
+			rect.end, Vector2(rect.position.x, rect.end.y)])
+	var clipped := Geometry2D.clip_polygons(polygon, hole)
+	var out: Array[PackedVector2Array] = []
+	if clipped.size() == 1:
+		out.append(clipped[0])
+		return out
+	if clipped.is_empty():
+		return out
+	# outer ring plus an inner ring: a true hole. Only a rectangular room is decomposed; anything
+	# else is a plan error worth stopping on rather than quietly floor-less.
+	var b := _bounds(polygon)
+	if polygon.size() != 4 or absf(_area(polygon) - b.get_area()) > 0.01:
+		push_error("HouseBuilder: stairwell lies inside a non-rectangular room; author it as rectangles")
+		out.append(polygon)
+		return out
+	var r := rect.intersection(b)
+	# The end strips reach a hair past the well so the side strips' end faces sit inside them.
+	# Butted exactly, the side strip's 2 cm end face is coplanar with the end strip's and gets
+	# drawn — a bright line straight across the ceiling of every room with a stairwell.
+	for strip: Rect2 in [
+			Rect2(b.position.x, b.position.y, b.size.x, r.position.y - b.position.y + SEAM_OVERLAP),
+			Rect2(b.position.x, r.end.y - SEAM_OVERLAP, b.size.x, b.end.y - r.end.y + SEAM_OVERLAP),
+			Rect2(b.position.x, r.position.y, r.position.x - b.position.x, r.size.y),
+			Rect2(r.end.x, r.position.y, b.end.x - r.end.x, r.size.y)] as Array[Rect2]:
+		if strip.size.x > 0.005 and strip.size.y > 0.005:
+			out.append(PackedVector2Array([strip.position, Vector2(strip.end.x, strip.position.y),
+					strip.end, Vector2(strip.position.x, strip.end.y)]))
+	return out
+
+static func _bounds(polygon: PackedVector2Array) -> Rect2:
+	var r := Rect2(polygon[0], Vector2.ZERO)
+	for p: Vector2 in polygon:
+		r = r.expand(p)
+	return r
 
 ## The room polygon pushed outward so a floor or ceiling plane disappears into the walls.
 ##
@@ -97,7 +170,9 @@ static func _build_room(parent: Node3D, storey: StoreyDef, room: RoomDef) -> voi
 static func _grown(polygon: PackedVector2Array) -> PackedVector2Array:
 	var before := _area(polygon)
 	for delta: float in [SLAB_TUCK, -SLAB_TUCK] as Array[float]:
-		var rings := Geometry2D.offset_polygon(polygon, delta)
+		# Mitred, so a rectangle stays a four-point rectangle; the default rounds every corner
+		# into a chamfer, which then fails the rectangle test in _cut_rect and loses the stairwell.
+		var rings := Geometry2D.offset_polygon(polygon, delta, Geometry2D.JOIN_MITER)
 		if rings.is_empty():
 			continue
 		if _area(rings[0]) > before:
@@ -250,6 +325,7 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 	holder.name = "Roof"
 	parent.add_child(holder)
 	var tiles := Mats.of(roof.slot, Color(0.92, 0.90, 0.90), 0.95, 1.0, true)
+	var boards := Mats.of(roof.underside_slot, roof.underside_tint, 0.9, 1.0, true)
 	var fascia := Mats.of(roof.fascia_slot, TRIM_TINT, 0.75)
 	var gable := Mats.of(roof.gable_slot, roof.gable_tint, 0.85, 1.0, true)
 
@@ -267,8 +343,8 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 	# Written for a ridge along X and mirrored for a ridge along Z, so the two cases cannot
 	# drift apart: `u` is the along-ridge axis and `v` the axis the slopes fall down.
 	var along_x := roof.kind == RoofDef.Kind.SHED or roof.ridge_along_x
-	var u0 := (fp.position.x if along_x else fp.position.y) - oh
-	var u1 := (fp.end.x if along_x else fp.end.y) + oh
+	var u0 := (fp.position.x if along_x else fp.position.y) - (0.0 if roof.abut_start else oh)
+	var u1 := (fp.end.x if along_x else fp.end.y) + (0.0 if roof.abut_end else oh)
 	var v0 := (fp.position.y if along_x else fp.position.x) - oh
 	var v1 := (fp.end.y if along_x else fp.end.x) + oh
 	var vm := (v0 + v1) * 0.5
@@ -277,8 +353,9 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 			_uv(along_x, u1, ridge, vm), _uv(along_x, u0, ridge, vm)])
 	var south := PackedVector3Array([_uv(along_x, u0, ridge, vm), _uv(along_x, u1, ridge, vm),
 			_uv(along_x, u1, low, v1), _uv(along_x, u0, low, v1)])
-	_surface(holder, Props.slab_poly(north, roof.thickness), [tiles], "SlopeA", true)
-	_surface(holder, Props.slab_poly(south, roof.thickness), [tiles], "SlopeB", true)
+	var roof_mats: Array = [tiles, boards, fascia]
+	_surface(holder, Props.slab_poly(north, roof.thickness, Vector3.UP, true), roof_mats, "SlopeA", true)
+	_surface(holder, Props.slab_poly(south, roof.thickness, Vector3.UP, true), roof_mats, "SlopeB", true)
 
 	# The gable ends close the roof volume. Without them you see straight into the attic from
 	# the side, which is the single most common way a generated house reads as a set.
@@ -287,6 +364,8 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 	var gv0 := (fp.position.y if along_x else fp.position.x)
 	var gv1 := (fp.end.y if along_x else fp.end.x)
 	for u: float in [g0, g1] as Array[float]:
+		if (roof.abut_start and is_equal_approx(u, g0)) or (roof.abut_end and is_equal_approx(u, g1)):
+			continue
 		# The gable continues the wall below it, so it has to sit on the wall's OUTER face, not
 		# on the footprint centre line — otherwise the elevation shows a 10 cm step at the wall
 		# head where the siding suddenly recedes.
@@ -310,3 +389,40 @@ static func _build_roof(parent: Node3D, roof: RoofDef) -> void:
 ## direction, so the roof is written once instead of twice.
 static func _uv(along_x: bool, u: float, y: float, v: float) -> Vector3:
 	return Vector3(u, y, v) if along_x else Vector3(v, y, u)
+
+# --- Stairs -------------------------------------------------------------------------------------
+
+## One flight as one solid: its side profile — a sawtooth of risers and goings closed along the
+## underside — extruded across its width. The rise is read from the storeys, so a flight cannot
+## land short of, or above, the floor it serves.
+static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> void:
+	var lower_storey := plan.storey_of(stair.lower_room)
+	var upper_storey := plan.storey_of(stair.upper_room)
+	if lower_storey == null or upper_storey == null:
+		push_error("HouseBuilder: stair names unknown room ('%s' / '%s')" % [stair.lower_room, stair.upper_room])
+		return
+	var y0 := plan.find_room(stair.lower_room).floor_y(lower_storey.base_y)
+	var y1 := plan.find_room(stair.upper_room).floor_y(upper_storey.base_y)
+	var rise := y1 - y0
+	var steps := StairDef.step_count(rise)
+	var riser := rise / float(steps)
+	var going := stair.run / float(steps)
+
+	# profile in (u along the flight, v up), starting at the foot and closing under the flight
+	var profile := PackedVector2Array()
+	profile.append(Vector2(0.0, 0.0))
+	for i in range(steps):
+		profile.append(Vector2(going * float(i), riser * float(i + 1)))
+		profile.append(Vector2(going * float(i + 1), riser * float(i + 1)))
+	# drop down to the upper floor's slab underside so the flight reads as built, not floating
+	profile.append(Vector2(stair.run, rise - FLOOR_SLAB))
+	profile.append(Vector2(going * 2.0, 0.0))
+
+	var u := Vector3(stair.direction.x, 0.0, stair.direction.y)
+	var w := Vector3(-stair.direction.y, 0.0, stair.direction.x)
+	var origin := Vector3(stair.foot.x, y0, stair.foot.y)
+	var mesh := Props.extrude(profile, origin, u, Vector3.UP, w, -stair.width * 0.5, stair.width * 0.5)
+	var holder := Node3D.new()
+	holder.name = "Stair_%s_%s" % [stair.lower_room, stair.upper_room]
+	parent.add_child(holder)
+	_surface(holder, mesh, [Mats.of(stair.tread_slot, Color.WHITE, 0.7, 1.0, true)], "Flight", true)

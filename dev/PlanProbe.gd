@@ -18,6 +18,7 @@ func _fail(check: String, detail: String) -> void:
 
 func _init() -> void:
 	_check_plan("garage", GaragePlan.build())
+	_check_plan("manor", ManorPlan.build())
 	print("")
 	print("PlanProbe: %d violation(s)" % _violations)
 	quit(_violations)
@@ -30,7 +31,8 @@ func _check_plan(label: String, plan: FloorPlan) -> void:
 		_check_rooms(storey)
 		_check_walls(plan, storey)
 		_check_enclosure(storey)
-		_check_reachability(storey)
+	_check_stairs(plan)
+	_check_reachability(plan)
 	print("  rooms=%d walls=%d openings=%d" % [
 			plan.all_rooms().size(), _wall_count(plan), _opening_count(plan)])
 
@@ -152,27 +154,57 @@ func _check_enclosure(storey: StoreyDef) -> void:
 			_fail("room.enclosure", "'%s' has %.2f m of wall around a %.2f m perimeter" % [
 					room.id, walled, perimeter])
 
+# --- Stairs -----------------------------------------------------------------------------------
+
+## A flight must start inside the room it leaves and end inside the room it reaches, and those
+## rooms must be on different storeys. A stair that arrives in the wrong room is a stair that
+## comes up through a bathroom floor.
+func _check_stairs(plan: FloorPlan) -> void:
+	for stair: StairDef in plan.stairs:
+		var where := "stair %s->%s" % [stair.lower_room, stair.upper_room]
+		var lower := plan.find_room(stair.lower_room)
+		var upper := plan.find_room(stair.upper_room)
+		if lower == null or upper == null:
+			_fail("stair.rooms", "%s names a room that does not exist" % where)
+			continue
+		var ls := plan.storey_of(stair.lower_room)
+		var us := plan.storey_of(stair.upper_room)
+		if ls == us:
+			_fail("stair.storeys", "%s connects two rooms on the same storey" % where)
+		elif upper.floor_y(us.base_y) <= lower.floor_y(ls.base_y):
+			_fail("stair.direction", "%s goes down to its 'upper' room" % where)
+		if not lower.contains(stair.foot):
+			_fail("stair.foot", "%s starts at %s, outside '%s'" % [where, stair.foot, lower.id])
+		if not upper.contains(stair.head()):
+			_fail("stair.head", "%s arrives at %s, outside '%s'" % [where, stair.head(), upper.id])
+		if absf(stair.direction.x) > EPS and absf(stair.direction.y) > EPS:
+			_fail("stair.axis", "%s is not axis-aligned" % where)
+
 # --- Reachability -----------------------------------------------------------------------------
 
-## Every interior room must be walkable from outdoors through real openings. Windows do not
-## count. A room that is only reachable through a window is a room the player can see items in
-## and never collect them from.
-func _check_reachability(storey: StoreyDef) -> void:
+## Every interior room must be walkable from outdoors through real openings and real stairs.
+## Windows do not count. A room that is only reachable through a window is a room the player can
+## see items in and never collect them from; a storey with no stair is a storey that does not
+## exist.
+func _check_reachability(plan: FloorPlan) -> void:
 	var adj: Dictionary = {}
-	for room: RoomDef in storey.rooms:
+	for room: RoomDef in plan.all_rooms():
 		adj[room.id] = [] as Array[StringName]
 	adj[&""] = [] as Array[StringName]
-	for wall: WallSegment in storey.walls:
-		var passable := false
-		for o: Opening in wall.openings:
-			if o.kind != Opening.Kind.WINDOW:
-				passable = true
-		if not passable:
-			continue
-		if not adj.has(wall.room_a) or not adj.has(wall.room_b):
-			continue
-		adj[wall.room_a].append(wall.room_b)
-		adj[wall.room_b].append(wall.room_a)
+	for storey: StoreyDef in plan.storeys:
+		for wall: WallSegment in storey.walls:
+			var passable := false
+			for o: Opening in wall.openings:
+				if o.kind != Opening.Kind.WINDOW:
+					passable = true
+			if not passable or not adj.has(wall.room_a) or not adj.has(wall.room_b):
+				continue
+			adj[wall.room_a].append(wall.room_b)
+			adj[wall.room_b].append(wall.room_a)
+	for stair: StairDef in plan.stairs:
+		if adj.has(stair.lower_room) and adj.has(stair.upper_room):
+			adj[stair.lower_room].append(stair.upper_room)
+			adj[stair.upper_room].append(stair.lower_room)
 
 	var seen: Dictionary = {&"": true}
 	var queue: Array[StringName] = [&""]
@@ -183,7 +215,7 @@ func _check_reachability(storey: StoreyDef) -> void:
 				continue
 			seen[next] = true
 			queue.append(next)
-	for room: RoomDef in storey.rooms:
+	for room: RoomDef in plan.all_rooms():
 		if room.zone == RoomDef.Zone.EXTERIOR:
 			continue
 		if not seen.has(room.id):

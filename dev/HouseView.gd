@@ -3,12 +3,30 @@ extends Node3D
 ## project (`CLAUDE.md`, "Verification"), so it takes the graphics tier as an argument: the
 ## Phase 1 gate is the same views at all three.
 ##
-##     godot --path . dev/HouseView.tscn -- --view=driveway --tier=low --screenshot=/abs/path.png
+##     godot --path . dev/HouseView.tscn -- --plan=manor --view=front --tier=low --screenshot=/abs/path.png
 ##
 ## With no --screenshot it stays open and flies (right mouse to look, WASD, Q/E, Shift).
 
 ## Each entry is [camera position, look-at target] in world metres. The names are the Phase 1
 ## gate renders for the garage; the full house adds its own.
+const MANOR_VIEWS := {
+	"front": [Vector3(-2.0, 2.6, -4.5), Vector3(11.5, 3.2, 9.0)],
+	"front_garage": [Vector3(26.0, 2.4, -3.0), Vector3(15.0, 3.0, 8.0)],
+	"rear": [Vector3(3.0, 3.4, 26.0), Vector3(12.0, 3.2, 12.0)],
+	"rear_pool": [Vector3(26.5, 3.0, 24.0), Vector3(14.0, 2.6, 13.0)],
+	"aerial": [Vector3(-6.0, 22.0, 30.0), Vector3(12.5, 1.0, 10.0)],
+	"west": [Vector3(-9.0, 2.2, 10.7), Vector3(4.0, 3.0, 10.7)],
+	"entry": [Vector3(9.5, 1.6, 6.4), Vector3(9.5, 1.3, 15.0)],
+	"hall_stairs": [Vector3(9.5, 1.6, 9.0), Vector3(8.8, 2.4, 14.5)],
+	"living": [Vector3(7.6, 1.55, 11.0), Vector3(4.5, 1.0, 15.0)],
+	"kitchen": [Vector3(11.4, 1.55, 9.4), Vector3(16.5, 1.0, 12.8)],
+	"landing": [Vector3(9.5, 4.6, 15.2), Vector3(9.0, 3.6, 10.0)],
+	"master_bed": [Vector3(11.4, 4.6, 15.2), Vector3(16.5, 4.0, 10.5)],
+	"attic": [Vector3(15.8, 7.0, 10.75), Vector3(5.0, 7.3, 10.75)],
+	"basement": [Vector3(9.5, -1.2, 6.5), Vector3(9.5, -1.6, 15.0)],
+	"workshop": [Vector3(11.4, -1.2, 10.3), Vector3(16.5, -1.8, 13.2)],
+}
+
 const VIEWS := {
 	"driveway": [Vector3(16.0, 1.75, 0.8), Vector3(20.8, 2.00, 6.4)],
 	"street": [Vector3(12.6, 3.10, 0.6), Vector3(19.5, 2.20, 7.4)],
@@ -28,17 +46,23 @@ const SETTLE_FRAMES := 180
 var _tier := Graphics.Tier.HIGH
 
 func _ready() -> void:
-	var view := "driveway"
+	var view := ""
 	var shot := ""
+	var plan_name := "garage"
 	for arg: String in OS.get_cmdline_user_args():
-		if arg.begins_with("--view="):
+		if arg.begins_with("--plan="):
+			plan_name = arg.trim_prefix("--plan=")
+		elif arg.begins_with("--view="):
 			view = arg.trim_prefix("--view=")
 		elif arg.begins_with("--tier="):
 			_tier = Graphics.from_string(arg.trim_prefix("--tier="))
 		elif arg.begins_with("--screenshot="):
 			shot = arg.trim_prefix("--screenshot=")
 
-	var plan := GaragePlan.build()
+	var plan: FloorPlan = ManorPlan.build() if plan_name == "manor" else GaragePlan.build()
+	var views: Dictionary = MANOR_VIEWS if plan_name == "manor" else VIEWS
+	if view == "":
+		view = "front" if plan_name == "manor" else "driveway"
 	# Materials are timed separately from geometry because the first garage build took 4.7 s,
 	# which is already over the 4 s cold-start budget in docs/PACING.md for three rooms. Guessing
 	# which half is slow would have been wrong: it is almost entirely texture load.
@@ -55,15 +79,17 @@ func _ready() -> void:
 
 	_build_lighting(bounds)
 
-	if not VIEWS.has(view):
-		push_error("HouseView: no such view '%s' — have %s" % [view, ", ".join(VIEWS.keys())])
-	var preset: Array = VIEWS.get(view, VIEWS["driveway"])
+	if not views.has(view):
+		push_error("HouseView: no such view '%s' — have %s" % [view, ", ".join(views.keys())])
+		view = views.keys()[0]
+	var preset: Array = views[view]
 	var cam: Camera3D = $Camera3D
 	cam.position = preset[0]
 	cam.look_at(preset[1])
 	cam.yaw = cam.rotation.y
 	cam.pitch = cam.rotation.x
 	cam.fov = 65.0
+	_attach_culler(house, cam)
 
 	if shot != "":
 		_screenshot(shot)
@@ -82,6 +108,11 @@ func _warm_materials(plan: FloorPlan) -> void:
 				slots.append(slot)
 	for slot: String in slots:
 		Mats.of(slot, Color.WHITE, 1.0, 1.0, true)
+
+func _attach_culler(house: Node3D, cam: Camera3D) -> void:
+	var culler := LightCuller.new()
+	culler.initialize(LightCuller.collect(house), cam)
+	add_child(culler)
 
 func _build_lighting(bounds: AABB) -> void:
 	var env := Graphics.base_environment()

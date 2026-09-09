@@ -1,7 +1,7 @@
 class_name GaragePlan
 ## The garage and its mudroom — the first thing Phase 1 builds, because it is interior and
 ## exterior at once and is the cheapest complete test that the plan model is right
-## (`docs/HOUSE.md`). It exercises every case the full plan will hit: a wall that is outside on
+## (`docs/HOUSE.md`). It lives under dev/ because it is a fixture, not the game. It exercises every case the full plan will hit: a wall that is outside on
 ## one side and a room on the other, a wall that is two different rooms, a garage door, a
 ## window with a projecting sill, a door between rooms, and a slab that sits below the house.
 ##
@@ -46,7 +46,7 @@ static func build() -> FloorPlan:
 	driveway.floor_drop = 0.0
 
 	ground.rooms = [garage, mudroom, driveway]
-	ground.walls = _walls()
+	ground.walls = _walls(ground.rooms)
 	plan.storeys = [ground]
 	# One gable over both blocks, ridge running east-west, so the driveway looks at an eave and
 	# the gable ends close the volume at each end. The full manor breaks this into a main block
@@ -59,29 +59,15 @@ static func build() -> FloorPlan:
 static func _rect_room(id: StringName, key: String, r: Vector4) -> RoomDef:
 	return RoomDef.rect(id, key, r.x, r.y, r.z, r.w)
 
-## Every wall is written as "walking from a to b, side A is on your right". The room named on
-## each side is what decides its finish, so a swapped pair is a visible error and PlanProbe
-## catches it before a render does.
-static func _walls() -> Array[WallSegment]:
-	var w: Array[WallSegment] = []
-
-	# Garage, north face: the elevation you see from the driveway.
-	w.append(WallSegment.make(Vector2(23, 6), Vector2(17, 6), &"", &"garage",
-			[Opening.garage_door(3.0, 4.2, 2.2)] as Array[Opening]))
-	# Garage, east face: a high window, above where a workbench will stand.
-	w.append(WallSegment.make(Vector2(23, 12.5), Vector2(23, 6), &"", &"garage",
-			[Opening.window(3.25, 1.0, 0.9, 1.5)] as Array[Opening]))
-	# Garage, south face.
-	w.append(WallSegment.make(Vector2(17, 12.5), Vector2(23, 12.5), &"", &"garage",
-			[] as Array[Opening]))
-	# The shared wall — garage on one side, house on the other, one door through both.
-	w.append(WallSegment.make(Vector2(17, 12.5), Vector2(17, 6), &"garage", &"mudroom",
-			[Opening.door(3.25)] as Array[Opening]))
-
-	w.append(WallSegment.make(Vector2(17, 6), Vector2(13, 6), &"", &"mudroom",
-			[Opening.window(2.0, 1.2, 1.1, 1.0)] as Array[Opening]))
-	w.append(WallSegment.make(Vector2(13, 6), Vector2(13, 12.5), &"", &"mudroom",
-			[Opening.door(3.25)] as Array[Opening]))
-	w.append(WallSegment.make(Vector2(13, 12.5), Vector2(17, 12.5), &"", &"mudroom",
-			[Opening.window(2.0, 1.2, 1.1, 1.0)] as Array[Opening]))
+## The walls are derived from the rooms, not written beside them (`world/WallDeriver.gd`), and
+## then pierced by naming the rooms or the compass point rather than the coordinates. Nothing
+## here can put a room on the wrong side of a wall, because nothing here names a side.
+static func _walls(rooms: Array[RoomDef]) -> Array[WallSegment]:
+	var w := WallDeriver.derive(rooms)
+	WallDeriver.pierce_exterior(w, &"garage", WallDeriver.NORTH, Opening.garage_door(0.0, 4.2, 2.2))
+	WallDeriver.pierce_exterior(w, &"garage", WallDeriver.EAST, Opening.window(0.0, 1.0, 0.9, 1.5))
+	WallDeriver.pierce_between(w, &"garage", &"mudroom", Opening.door(0.0))
+	WallDeriver.pierce_exterior(w, &"mudroom", WallDeriver.NORTH, Opening.window(0.0, 1.2, 1.1, 1.0))
+	WallDeriver.pierce_exterior(w, &"mudroom", WallDeriver.WEST, Opening.door(0.0))
+	WallDeriver.pierce_exterior(w, &"mudroom", WallDeriver.SOUTH, Opening.window(0.0, 1.2, 1.1, 1.0))
 	return w

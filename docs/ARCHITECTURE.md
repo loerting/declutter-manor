@@ -48,7 +48,9 @@ and then use it. Never solve it locally "just for this screen".
   (interior / garage / exterior), an optional floor drop, and its own light
 - `WallSegment` — two plan points, a thickness, **what is on each side**, and its openings
 - `Opening` — door, window, arch or garage door: position along the segment, size, sill height
-- `RoofDef` — a footprint, an eave height, a pitch and a ridge direction
+- `RoofDef` — a footprint, an eave height, a pitch, a ridge direction, and which ends abut a
+  taller wall (no gable, no overhang there)
+- `StairDef` — lower room, upper room, foot, direction, run; the rise is derived
 - lot extents, from which `TerrainBuilder` lays the ground
 
 `world/HouseBuilder.gd` walks it once and emits interior surfaces, the exterior shell, collision
@@ -79,6 +81,28 @@ Walls run from a footing below the floor to their head, because a room with a dr
 (the garage) otherwise shows daylight under its own walls. Floor and ceiling planes are grown
 outward so they disappear into the walls rather than stopping at the centre line.
 
+### Walls are derived, not typed
+
+`WallDeriver.derive(rooms)` turns a storey's rectangles into its wall list: two rectangles that
+share an edge imply one wall that names both, a rectangle edge nobody shares implies a wall
+that names one room and outdoors. A plan then pierces walls by naming rooms or compass points —
+`pierce_between(&"kitchen", &"dining", Opening.arch())`, `pierce_exterior(&"living", WEST,
+Opening.window())` — and never a coordinate. Nothing in a plan file can put a room on the wrong
+side of a wall, because nothing in a plan file names a side. The garage plan was written both
+ways; the derived version reproduced the hand-written one wall for wall.
+
+A non-rectangular zone is authored as touching rectangles, whose shared edge simply produces no
+wall.
+
+### Stairs are data too
+
+`StairDef` names a lower room, an upper room, a foot, a direction and a run. The rise comes from
+the storeys, so a flight cannot land short of the floor it serves. The builder extrudes the
+flight's side profile across its width (`Props.extrude`) and cuts the stairwell out of the
+floor it arrives through and the ceiling it leaves through. `PlanProbe` checks that the foot
+lies in the lower room and the head in the upper one, and reachability is computed across the
+whole plan through doors *and* stairs — a storey with no stair is a storey that does not exist.
+
 ### What `dev/PlanProbe.gd` proves
 
 It exits with the number of violations, so it is scriptable, and every check has been shown to
@@ -92,6 +116,7 @@ fail on a deliberate break:
 | `room.overlap` | two zones sharing floor area, which would double-count clutter |
 | `opening.bounds` / `.head` / `.overlap` | an opening running off its wall, through its ceiling, or into another |
 | `wall.room` / `wall.sides` | a wall naming a room that does not exist, or belonging to none |
+| `stair.foot` / `.head` / `.storeys` | a flight starting or arriving outside its rooms, or between rooms on one storey |
 
 Occluder generation from the same walk is planned for the end of Phase 1, once `PerfProbe` says
 whether the draw-call budget needs it. It is not built yet.

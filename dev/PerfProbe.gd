@@ -13,18 +13,24 @@ const WARMUP_FRAMES := 120
 const MEASURE_FRAMES := 240
 
 var _tier := Graphics.Tier.HIGH
+## `--items=N` overrides the stress count; 0 measures the house alone, which is what Phase 1
+## owns. The items are Phase 3's MultiMesh work.
+var _items := Balance.STRESS_ITEM_COUNT
 var _failures := 0
 
 func _ready() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--tier="):
 			_tier = Graphics.from_string(arg.trim_prefix("--tier="))
+		elif arg.begins_with("--items="):
+			_items = int(arg.trim_prefix("--items="))
 
-	var plan := GaragePlan.build()
+	# The manor, not the garage: the budget has to hold for the house that ships.
+	var plan := ManorPlan.build()
 	var t_start := Time.get_ticks_msec()
 	var house := HouseBuilder.build(plan)
 	add_child(house)
-	var items := _fill(plan, Balance.STRESS_ITEM_COUNT)
+	var items := _fill(plan, _items)
 	add_child(items)
 	var startup := float(Time.get_ticks_msec() - t_start) / 1000.0
 
@@ -37,8 +43,13 @@ func _ready() -> void:
 
 	var cam: Camera3D = $Camera3D
 	cam.fov = 65.0
-	cam.position = Vector3(18.1, 1.45, 11.6)
-	cam.look_at(Vector3(21.6, 0.95, 6.9))
+	# Standing in the front door looking down the hall: the deepest sightline in the house, with
+	# the stairs, the arch into the living room and the arch into the dining room all in view.
+	cam.position = Vector3(9.5, 1.6, 6.4)
+	cam.look_at(Vector3(9.5, 1.3, 15.0))
+	var culler := LightCuller.new()
+	culler.initialize(LightCuller.collect(house), cam)
+	add_child(culler)
 
 	_measure(startup, items.get_child_count())
 

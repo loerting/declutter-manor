@@ -76,11 +76,16 @@ static func make_sun(tier: Tier) -> DirectionalLight3D:
 	var sun := DirectionalLight3D.new()
 	sun.light_color = Color(1.0, 0.93, 0.82)
 	sun.light_energy = SUN_ENERGY
-	sun.rotation_degrees = Vector3(-42, 145, 0)
+	# From the south-west: the deck, the pool and the side garden — three of the four outdoor
+	# zones — are on the south and west, and they should be the sunny side of the house.
+	sun.rotation_degrees = Vector3(-46, -45, 0)
 	sun.shadow_enabled = true
 	sun.light_angular_distance = 1.5 if tier != Tier.LOW else 0.0
+	# Two cascades, not four: every cascade re-renders the whole house, and PerfProbe measured
+	# the four-split default at 2069 draw calls for the empty manor on the high tier — the house
+	# drawn once and then four more times for its own shadow. The lot is 26 m across.
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL if tier == Tier.LOW \
-			else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+			else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.directional_shadow_max_distance = 40.0 if tier != Tier.LOW else 25.0
 	return sun
 

@@ -25,7 +25,15 @@ enum Kind { GABLE, HIP, SHED }
 ## SHED only: which end is high.
 @export var shed_high_at_min := false
 
+## An end that butts against a taller wall — the garage roof meeting the house — gets neither
+## a gable nor an overhang there; it stops at the footprint line and the wall closes it.
+@export var abut_start := false
+@export var abut_end := false
+
 @export var slot := "roof_tiles"
+## What the attic sees looking up.
+@export var underside_slot := "oak"
+@export var underside_tint := Color(0.55, 0.50, 0.42)
 ## The triangle of wall between the eave and the slope at a gable end.
 @export var gable_slot := "painted_wood"
 @export var gable_tint := Color(0.80, 0.82, 0.73)
