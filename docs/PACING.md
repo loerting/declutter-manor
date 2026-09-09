@@ -89,6 +89,12 @@ absence.
 | Any single frame after the first | <= 100 ms |
 | Resident memory | <= 700 MB |
 
+**Measured in Phase 0, and open:** the first real export produced a **206 MB PCK** from 56 MB of
+source textures, because `fetch_textures.py` imports them losslessly (`compress/mode=0`). That is
+right for judging an art style and wrong for shipping — VRAM compression would cut both the
+download and the texture memory substantially. Not changed yet, because it trades quality for size
+and that is a decision to make with renders in hand, in Phase 1.
+
 Two mitigations are designed in from the start rather than bolted on: distinct meshes are
 **generated once and cached by `(generator, params)`**, so twelve forks share one `ArrayMesh`; and
 box occluders are **generated from the floor plan** at build time, so Godot's occlusion culling

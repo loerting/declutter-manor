@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scripts/StyleTest.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/FlyCamera.gd" id="2"]
+[ext_resource type="Script" path="res://dev/StyleTest.gd" id="1"]
+[ext_resource type="Script" path="res://dev/FlyCamera.gd" id="2"]
 
 [node name="StyleTest" type="Node3D"]
 script = ExtResource("1")

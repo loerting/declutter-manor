@@ -23,7 +23,7 @@ The ordering exists to close the seven pre-mortem risks *before* they can cost c
 
 Docs (this set), `CLAUDE.md`, `Balance.gd`, `EventBus`, `GameState`, `BuildConfig`, `SaveManager`
 with the version chain and one migration already exercised, export presets, `.claude/memory` mirror,
-`dev/Diag.gd` moved from `scripts/` and extended.
+`dev/Diag.gd` moved out of `scripts/` and extended.
 
 **Gate:** headless boot clean (no `SCRIPT ERROR`), `Diag.gd` all zeros except `holed_slab`'s
 inward hole walls, a fixture save round-trips through a deliberate v1->v2 migration.

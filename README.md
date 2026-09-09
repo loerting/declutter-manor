@@ -13,9 +13,9 @@ The project is committed as of 2026-09-09. Start here:
 ## The style test
 
 A throwaway Godot 4.7 scene to evaluate a fully procedural, stylized art direction.
-Every prop is generated at runtime from primitives in `scripts/Props.gd`; no model files exist.
+Every prop is generated at runtime from primitives in `props/Props.gd`; no model files exist.
 Surfacing comes from scanned CC0 PBR textures, applied triplanar so the procedural meshes
-need no UV unwrap (`scripts/Mats.gd`).
+need no UV unwrap (`props/Mats.gd`).
 
 ## Textures
 
@@ -57,17 +57,17 @@ Views: `overview`, `closeup`, `cutlery`, `toaster`, `hose`, `lamp`, `plant`, `fr
 `counter`, `shelf`, `mug`, `book`, `sofa`.
 
 ## Dev tools
-`scenes/PropView.tscn` renders a single prop on its own, auto-framed, against a plain sky:
+`dev/PropView.tscn` renders a single prop on its own, auto-framed, against a plain sky:
 
-    godot --path . scenes/PropView.tscn -- --prop=spoon --angle=30 --elev=22 --screenshot=/tmp/spoon.png
+    godot --path . dev/PropView.tscn -- --prop=spoon --angle=30 --elev=22 --screenshot=/tmp/spoon.png
 
 `--hide=<child indices>` drops individual sub-meshes, which is how you find a prop that is
 being occluded by, or hiding inside, one of its own parts.
 
-`scripts/Diag.gd` is a headless mesh sanity check — it verifies that every generator winds
+`dev/Diag.gd` is a headless mesh sanity check — it verifies that every generator winds
 its faces and orients its normals the same way Godot's own primitives do:
 
-    godot --headless --path . --script res://scripts/Diag.gd
+    godot --headless --path . --script res://dev/Diag.gd
 
 Everything except `holed_slab`'s hole walls (which correctly face inward) must report zero.
 

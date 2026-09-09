@@ -46,14 +46,14 @@ may already be in chat history that isn't reflected in this file yet.
 
 ## What exists right now (style-test project)
 ```
-project.godot          # "Declutter Style Test", main scene res://scenes/StyleTest.tscn
-scenes/StyleTest.tscn   # Node3D + Camera3D (fly cam)
-scripts/Props.gd        # class_name Props — all procedural mesh/prop generation (static)
-scripts/StyleTest.gd    # scene setup: environment, room, prop placement, screenshot hook
-scripts/FlyCamera.gd    # free-fly camera controller
-scenes/PropView.tscn    # dev tool: renders one prop alone, auto-framed (see README)
-scripts/PropView.gd
-scripts/Diag.gd         # headless mesh sanity check (winding + normals vs Godot primitives)
+project.godot          # "Declutter Style Test", main scene res://dev/StyleTest.tscn
+dev/StyleTest.tscn   # Node3D + Camera3D (fly cam)
+props/Props.gd        # class_name Props — all procedural mesh/prop generation (static)
+dev/StyleTest.gd    # scene setup: environment, room, prop placement, screenshot hook
+dev/FlyCamera.gd    # free-fly camera controller
+dev/PropView.tscn    # dev tool: renders one prop alone, auto-framed (see README)
+dev/PropView.gd
+dev/Diag.gd         # headless mesh sanity check (winding + normals vs Godot primitives)
 screenshots/*.png       # rendered reference images
 README.md               # run instructions for the test scene
 ```
@@ -62,12 +62,12 @@ README.md               # run instructions for the test scene
 `fly_forward/back/left/right/up/down` bound to W/S/A/D/E/Q via **physical keycode**.
 Rendering settings: msaa_3d=2, screen_space_aa=1 (FXAA), soft_shadow_filter_quality=4.
 
-### scripts/FlyCamera.gd
+### dev/FlyCamera.gd
 `extends Camera3D`. `speed=2.5`, `yaw`, `pitch` vars. Right mouse button captures mouse,
 rotates camera at 0.003 sensitivity, pitch clamped to ±1.4 rad. `_process` moves along
 the fly_* actions; Shift multiplies speed ×3.
 
-### scripts/StyleTest.gd
+### dev/StyleTest.gd
 `extends Node3D`. `_ready()` calls `_build_environment()`, `_build_room()`,
 `_place_props()`, then sets the camera's default pose via `look_at`. If `--closeup` is
 in the user args, uses a tighter camera pose over the coffee table instead of the room
@@ -91,7 +91,7 @@ snap on the first drag. Handles `--screenshot=<path>` for automated capture.
   mug/spoon on the coffee table, forks scattered on the side table and floor, a book on
   the floor, a pillow on the floor) to demonstrate the "declutter" premise visually.
 
-### scripts/Props.gd — the procedural art toolkit
+### props/Props.gd — the procedural art toolkit
 `class_name Props`, everything static. This is the reusable part for the real project.
 
 **Winding and normals — read this before adding a generator.** Godot renders a triangle as
@@ -102,7 +102,7 @@ were making props read as fake and were fixed:
    what you actually saw was the far interior surface, which is why upholstery looked waxy.
  * `lathe()` had the same inversion, so the mug, plant pot and lampshade were all inside-out
    (partly masked by `cull_mode = CULL_DISABLED`, which is no longer used anywhere).
-`scripts/Diag.gd` regression-checks this against Godot's own `BoxMesh`/`SphereMesh`. Run it
+`dev/Diag.gd` regression-checks this against Godot's own `BoxMesh`/`SphereMesh`. Run it
 after touching any generator.
 
 **Mesh-building primitives:**
@@ -203,14 +203,14 @@ of what's needed, based on the concept above:
 ## Files to read first if picking this up cold
 1. This file.
 2. `README.md` (how to run the current test scene).
-3. `scripts/Props.gd` (the entire procedural art system — read in full).
-4. `scripts/StyleTest.gd` (how a scene is assembled from `Props.gd`).
+3. `props/Props.gd` (the entire procedural art system — read in full).
+4. `dev/StyleTest.gd` (how a scene is assembled from `Props.gd`).
 5. `screenshots/overview.png` and `screenshots/closeup.png` (what "done" currently looks like).
 
 
 ## Surfacing (added in the texturing pass)
 
-Materials come from `scripts/Mats.gd`: `Mats.of(slot, tint, rough_mul, scale_mul)` returns a
+Materials come from `props/Mats.gd`: `Mats.of(slot, tint, rough_mul, scale_mul)` returns a
 cached `ORMMaterial3D` for a slot in `assets/textures.json`. Textures are downloaded by
 `tools/fetch_textures.py`, not committed (`assets/textures/` is gitignored).
 

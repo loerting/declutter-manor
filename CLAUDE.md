@@ -120,6 +120,8 @@ boundary that appears in the floor plan, or a colour/material that appears in `M
 
 ## Verification — never say "it works" without one of these
 
+    dev/tests/run_tests.sh                                   # the only real pass/fail exit code
+    dev/tests/check_export.sh                                # proves the export ships no dev content
     godot --headless --path . --script res://dev/Diag.gd     # mesh winding + normals
     godot --headless --path . --import                       # after adding any class_name
     godot --headless --path . --script res://dev/PlanProbe.gd # house consistency, interior vs exterior
@@ -127,4 +129,9 @@ boundary that appears in the floor plan, or a colour/material that appears in `M
 
 A headless boot exits 0 even when a script failed to compile — always grep the log for
 `SCRIPT ERROR` and `Parse Error`. After adding a new `class_name`, run `--import` first or it fails
-with "Could not find type X" even though the script is fine.
+with "Could not find type X" even though the script is fine. A script that fails to parse never
+reaches its own `quit()`, so anything scripted around Godot needs a `timeout`.
+
+**A green suite is not evidence until it can go red.** Before trusting a test on anything
+load-bearing, break the source deliberately and prove the test fails. This is how the save
+guarantees were verified in Phase 0, and it is not optional for save, economy or set-tracking code.

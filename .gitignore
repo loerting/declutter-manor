@@ -1,6 +1,9 @@
 .godot/
 .import/
 export.cfg
-export_presets.cfg
+# export_presets.cfg IS tracked: the exclude_filter that keeps dev content out of a shipped
+# build is load-bearing project state. Godot 4 keeps credentials in a separate file, which is not.
+export_credentials.cfg
+build/
 *.translation
 assets/textures/
