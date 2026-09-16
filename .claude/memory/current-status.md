@@ -428,6 +428,20 @@ decides more), D4 NOT taken (Godot's built-in font, licence needs sign-off), D5 
   probe shots `probe_living*.png`, `probe_deck.png`. Legibility at Deck size needs the author's eye.
 - **Next:** author looks at renders, answers D1-D5; then U2 (portraits into the card, bar cells, tracker rows).
 
+**S (scale audit) done 2026-09-16, NOT committed.** `dev/SizeProbe.tscn` (new) prints measured cm of all
+180 item types, 81 pieces, doors, windows, storeys, stairs. Nearly everything is in real range (doors 205,
+ceilings 240-270, worktop 86, desk 75, table 76, fridge 176, sofa 212). Changed: `Balance.FOV` 70 -> 59
+vertical (= 90 horizontal at 16:9); A/B renders in `screenshots/scale/` (powder, kitchen, entry at 70 and 59)
+show 70 stretched rooms and shrank the toilet. Toilet: OVAL 1.4, cistern 0.40 tall, bowl further out ->
+62 cm deep, cistern top 79 (render `toilet_close.png`; cistern-to-pan contact needs the author's eye).
+Checked and left: bicycle is authored "Kids' bicycle" 20-inch (133 long is right); hall bath stays 150
+(160/170 break the vanity's front clearance; room is 3 m); stair treads ~23.5 cm, approved earlier.
+`dev/HouseView.gd` got `--fov=`. Tests 84/0, FurnitureProbe/Diag/Interact/Pacing/Walk 0, export clean.
+FOV slider and HUD size setting: author asked for both 2026-09-16, in ROADMAP Phase 5 settings.
+Author's replies 2026-09-16: toilet looks good, height feels fine, HUD fine on their screen; old saves
+-> will run `--fresh`; commit requested (S committed). Reported: a full wall above the basement stair's
+railing in the hall (railing makes it unnecessary) -> remove. Next: C plan artifact.
+
 **Two new features from the author (2026-09-16), order re-planned; everything committed.**
 (1) Scale audit: player feels too tall, toilet looks small. Measured: body is average (eye 1.65), toilet
 seat 0.42 / cistern 0.75 are real, depth 0.55 short (real 0.65-0.70). Hypothesis, unproven: `Balance.FOV`
@@ -441,8 +455,11 @@ standard (proposed: wheel + 1-9 select, Q drop, hold RMB release throw; pad LB/R
 items on screen only if placement cannot solve it; commit first = yes.
 **Order:** S (scale audit + FOV renders) -> C plan (decisions + stack mockup renders) -> C1 physics
 drop/throw, rest, save, recovery -> C2 on-screen stack + selection -> C3 placement with auto-select, carry
-bar merged -> HUD U2-U5 re-scoped after C. D1-D5 re-explained to the author in plain words; still open,
-plus the high-tier hardware target.
+bar merged -> HUD U2-U5 re-scoped after C.
+**Author decided 2026-09-16: D1a (name + door marker + home outline, names-only setting), D2a (ledger
+map + sets by room), D3a (boot-rendered item pictures), D4a (Atkinson Hyperlegible Next, OFL, licence
+ships; CLAUDE.md licence rule gets the one exception), D5a (tape), tier a (High = RTX 3070 class keeps
+full lighting; GTX 1080 = Medium; Medium to be redesigned). Implementation choices left to me.**
 
 **(Superseded) Phase 4 tranche plan proposed to the author (2026-09-14):**
 T1 foundation + first sets: furniture as data (a FurnitureDef resource per piece: generator,

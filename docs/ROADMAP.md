@@ -103,9 +103,9 @@ the longest set is the hangers at 10.0 minutes. The third is the author's play-t
 ## Phase 5 — Feel and ship
 
 Reactive ambience (zone beds from the floor plan plus positional point sources on the props that
-make them), completion stings, menus, settings including the graphics tier, controller support, the
-localization pass, Steam integration, achievements, and the **separate demo location** with its own
-four sets. `docs/RELEASE_CHECKLIST.md`, including the PCK-contents check that proves the export
+make them), completion stings, menus, settings including the graphics tier, a field-of-view
+slider (default `Balance.FOV`) and a HUD size, controller support, the localization pass, Steam integration,
+achievements, and the **separate demo location** with its own four sets. `docs/RELEASE_CHECKLIST.md`, including the PCK-contents check that proves the export
 holds the game and nothing else.
 
 **Gate:** the release checklist, on Windows, Linux and macOS builds.

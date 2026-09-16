@@ -63,9 +63,10 @@ const STEP_EPSILON := 0.001
 ## what the author walked into (2026-09-11). The lip is climbed over several frames instead, at a
 ## rate that clears the tallest step allowed in a quarter of a second.
 const STEP_CLIMB_SPEED := 1.5
-## Vertical field of view. Wider than the 65 the gate renders use, because a render is looked
-## at from outside and a corridor is walked through: at 65 the hall reads narrower than it is.
-const FOV := 70.0
+## Vertical field of view: 59 is 90 horizontal at 16:9, the width most first-person games open at,
+## and wider on a wider screen. It was 70 (102 horizontal), and the author read the house at that
+## width as seen by someone too tall, with a toilet too small (renders side by side, 2026-09-16).
+const FOV := 59.0
 
 # --- Reach and placement (docs/ARCHITECTURE.md, "Placement") -------------------------------
 

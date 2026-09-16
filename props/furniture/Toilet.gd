@@ -13,11 +13,11 @@ extends FurnitureGenerator
 const BOWL: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(0.1, 0.0), Vector2(0.108, 0.015), Vector2(0.118, 0.12),
 	Vector2(0.148, 0.25), Vector2(0.176, 0.35), Vector2(0.182, 0.385), Vector2(0.172, 0.395), Vector2(0.158, 0.372),
 	Vector2(0.105, 0.27), Vector2(0.045, 0.19), Vector2(0.0, 0.18)]
-const OVAL := 1.3
+const OVAL := 1.4
 const WATER := Vector2(0.09, 0.262)
 const SEAT := Vector3(0.186, 0.12, 0.02)
 const LID_THICK := 0.018
-const CISTERN := Vector3(0.42, 0.36, 0.17)
+const CISTERN := Vector3(0.42, 0.40, 0.17)
 const CISTERN_LID := Vector3(0.44, 0.03, 0.19)
 const CISTERN_FROM := 0.36
 const BUTTON := Vector2(0.022, 0.008)
@@ -29,7 +29,9 @@ const CHROME := Color(0.9, 0.91, 0.93)
 
 func build(def: FurnitureDef) -> FurnitureNode:
 	var piece := FurnitureNode.new()
-	var bowl_z := CISTERN.z + BOWL[6].x * OVAL * 0.62
+	# Far enough out that it stands 62 cm from the wall, the depth of a close-coupled pan, with the
+	# back of the bowl still under the cistern it carries.
+	var bowl_z := CISTERN.z + BOWL[6].x * OVAL * 0.75
 	piece.initialize(def, Vector2(CISTERN_LID.x, bowl_z + BOWL[6].x * OVAL))
 	var porcelain := Mats.of("porcelain", PORCELAIN, 0.2)
 	var oval := Basis.from_scale(Vector3(1, 1, OVAL))

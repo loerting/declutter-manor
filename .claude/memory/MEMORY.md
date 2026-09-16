@@ -1,6 +1,6 @@
 # Memory Index
 
-- [Current status](current-status.md) — READ FIRST: content complete, HUD U1 built, all committed; next = scale audit (FOV hypothesis), then physics carry plan C1-C3, then HUD U2-U5; D1-D5 + perf tier still open
+- [Current status](current-status.md) — READ FIRST: content complete, HUD U1 built, all committed; scale audit done uncommitted (FOV 59, toilet); next = physics carry plan C1-C3, then HUD U2-U5; D1-D5 all (a), tier a (High=RTX3070 class)
 
 - [Game vision](game-vision-declutter-manor.md) — the committed concept and the decisions of 2026-09-09
 - [Workflow](declutter-manor-workflow.md) — in-window implementation, delegate on volume only; CLAUDE.md Phase 0

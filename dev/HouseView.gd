@@ -72,6 +72,7 @@ func _ready() -> void:
 	var open_all := false
 	var free: Array[Vector3] = []
 	var eye := Vector3.INF
+	var fov := 65.0
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--plan="):
 			plan_name = arg.trim_prefix("--plan=")
@@ -79,6 +80,8 @@ func _ready() -> void:
 			free.append(_vec(arg.trim_prefix("--cam=")))
 		elif arg.begins_with("--at="):
 			free.append(_vec(arg.trim_prefix("--at=")))
+		elif arg.begins_with("--fov="):
+			fov = arg.trim_prefix("--fov=").to_float()
 		elif arg.begins_with("--eye="):
 			eye = _vec(arg.trim_prefix("--eye="))
 		elif arg.begins_with("--view="):
@@ -128,7 +131,8 @@ func _ready() -> void:
 	cam.look_at(preset[1])
 	cam.yaw = cam.rotation.y
 	cam.pitch = cam.rotation.x
-	cam.fov = 65.0
+	# `--fov=` is vertical degrees, as `Balance.FOV` is: the player's view is compared at its own width.
+	cam.fov = fov
 	# `--eye=x,y,z` decides which rooms' bulbs burn from somewhere other than the camera, so the
 	# same frame can be rendered as seen from either side of a doorway and compared pixel for pixel.
 	var culling_eye := cam
