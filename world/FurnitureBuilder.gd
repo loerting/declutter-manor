@@ -39,7 +39,10 @@ static func build(plan: FloorPlan) -> Node3D:
 	root.name = "Furniture"
 	var kitchen := plan.find_room(&"kitchen")
 	if kitchen != null:
-		root.add_child(_kitchen_run(plan))
+		var run := _kitchen_run(plan)
+		# On the kitchen's render layer, so the kitchen's bulb lights it and no other does.
+		RoomLayers.stamp(run, RoomLayers.mask(RoomLayers.derive(plan), kitchen.id))
+		root.add_child(run)
 	return root
 
 ## Where the run stands, in world space. Public because the authored item placements are

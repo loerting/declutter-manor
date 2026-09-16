@@ -42,10 +42,6 @@ enum Zone { INTERIOR, GARAGE, EXTERIOR }
 ## 0 fits the range to the room: the far corner plus a margin. A light's shadow pass renders
 ## everything inside its range, so a flat 9 m on 26 rooms was most of the house, 26 times over.
 @export var light_range := 0.0
-## Shadows stay on. Without them a bulb shines straight through the floor and lights the lawn —
-## the first rear render had three bright pools on the grass. The cost is paid down by fitting
-## the range (above) and by dual-paraboloid maps (two renders per light, not six).
-@export var light_shadows := true
 
 ## Distance from the centroid to the farthest corner.
 func reach() -> float:

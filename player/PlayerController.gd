@@ -41,6 +41,10 @@ func _ready() -> void:
 	collision_mask = Layers.bit(Layers.WORLD)
 	floor_max_angle = deg_to_rad(Balance.FLOOR_MAX_ANGLE_DEG)
 	floor_snap_length = Balance.FLOOR_SNAP
+	# Walking pace along a slope, not across it. Off, a ramp keeps only cos² of the stride in plan:
+	# 64% up the main stair and 44% out of the pool, which reads as wading rather than climbing
+	# (`dev/WalkProbe.gd`, 2026-09-14).
+	floor_constant_speed = true
 	# The hands and the crosshair hang off the head, so both travel with the eye. They are
 	# wired here because this is what owns both of them; neither reaches for the other (rule 5).
 	_interactor.initialize(_camera, _carry)
@@ -133,4 +137,90 @@ func _physics_process(delta: float) -> void:
 	var step := Balance.ACCELERATION * delta
 	velocity.x = move_toward(velocity.x, target.x, step)
 	velocity.z = move_toward(velocity.z, target.z, step)
+
+	var from := global_position
+	var wanted := Vector3(velocity.x, 0.0, velocity.z) * delta
 	move_and_slide()
+	_step_up(from, wanted, delta)
+
+## Godot's `CharacterBody3D` does not climb. A slope it walks up and a stair ramp it is snapped
+## to, but a vertical face stops it however low that face is, and the house is full of them:
+## slab edges, the plinth, kerbs, thresholds, the lip into a sunken room. Stairs were given a
+## hidden ramp for exactly this reason (`HouseBuilder._stair_ramp`); everything else was simply
+## impassable until here.
+##
+## The move has already happened. If it went nowhere near as far as it was asked to, the body
+## is against something, and the something is retried one `STEP_HEIGHT` higher: lift, move,
+## drop back on. Every leg is a `test_move`, so a step that does not work costs nothing and
+## changes nothing — a wall stays a wall, and a ledge with no floor behind it is not a step.
+##
+## What the probe answers is whether there is a step, not where the body goes. The body is only
+## ever raised, in place and by a fraction of the lip per frame, and its own walking carries it
+## across once it is high enough. It used to be placed on top of the step the instant the probe
+## approved, which is how a 0.33 m threshold moved it 0.446 m in one frame.
+func _step_up(from: Vector3, wanted: Vector3, delta: float) -> void:
+	var lost := wanted.length() - Vector3(global_position.x - from.x, 0.0,
+			global_position.z - from.z).length()
+	if lost <= Balance.STEP_EPSILON:
+		return
+	# Walking up a ramp also covers less ground than was asked — the stride is tilted up the
+	# slope — and treating that as a lip lifted the body off every stair ramp each frame and let
+	# it fall back the next: +2.5, +2.5, -1 cm on a 3-frame cycle all the way up the main flight,
+	# measured by `WalkProbe` (2026-09-13). Only something the body cannot stand on is a step.
+	if not _hit_wall():
+		return
+	var lift := Vector3.UP * (Balance.STEP_HEIGHT + Balance.STEP_PROBE_MARGIN)
+	var probe := global_transform
+	probe.origin = from
+	# No headroom to rise into: a low opening is not a step, and forcing it would push the
+	# capsule through the lintel.
+	if test_move(probe, lift):
+		return
+	probe.origin = from + lift
+	# Far enough to be over the step rather than still above the edge of it.
+	var reach := wanted.normalized() * maxf(wanted.length(), Balance.STEP_FORWARD)
+	if test_move(probe, reach):
+		return
+	probe.origin += reach
+	var landing := KinematicCollision3D.new()
+	# Nothing under the raised body within a step: this was a gap, a doorway over a stairwell
+	# or the top of a wall, and walking onto it is not what was asked for.
+	if not test_move(probe, -lift, landing):
+		return
+	var top := probe.origin + landing.get_travel()
+	var rise := top.y - from.y
+	# The probe rose further than a step is allowed to be, so that it would clear the lip
+	# rather than graze it. What it landed on still has to be a step.
+	if rise <= Balance.STEP_EPSILON or rise > Balance.STEP_HEIGHT:
+		return
+	# What was stepped onto has to be something that could have been walked onto, or the body
+	# ends up perched on a face it would immediately slide off — but the descent's own normal
+	# cannot answer that. Coming down over a threshold the capsule is still inside the wall's
+	# column, so what it touches first is the wall's vertical face and the normal is horizontal
+	# even though the height it stopped at is the floor's. Asking again from the top of the
+	# step, where the only thing under the body is what it would be standing on, is the same
+	# question with an answer that means something.
+	var settle := global_transform
+	settle.origin = top
+	var ground := KinematicCollision3D.new()
+	if not test_move(settle, Vector3.DOWN * Balance.STEP_SETTLE):
+		return   # thin air at the top of the step
+	if test_move(settle, Vector3.DOWN * Balance.STEP_SETTLE, ground) \
+			and ground.get_normal(0).angle_to(Vector3.UP) > floor_max_angle:
+		return
+	# Straight up, and only part of the way. The column above `from` was measured clear a few
+	# lines ago, so every height in it is somewhere the body can be; the next frame measures the
+	# rest of the lip from wherever this one left off, and the one after that, until the feet are
+	# over the lip and an ordinary stride carries them across it.
+	global_position = Vector3(from.x, from.y + minf(rise, Balance.STEP_CLIMB_SPEED * delta), from.z)
+	# Gravity banked while the body was off its floor, climbing, would pull it straight back down
+	# the lip it is halfway up.
+	velocity.y = 0.0
+
+## Whether the last move was stopped by a face steeper than a floor, as opposed to only being
+## bent up a slope the body walks on anyway.
+func _hit_wall() -> bool:
+	for i in range(get_slide_collision_count()):
+		if get_slide_collision(i).get_normal().angle_to(Vector3.UP) > floor_max_angle:
+			return true
+	return false

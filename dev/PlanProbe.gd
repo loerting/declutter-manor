@@ -34,6 +34,7 @@ func _check_plan(label: String, plan: FloorPlan) -> void:
 	_check_stairs(plan)
 	_check_clearance(plan)
 	_check_reachability(plan)
+	_check_light_containment(plan)
 	print("  rooms=%d walls=%d openings=%d" % [
 			plan.all_rooms().size(), _wall_count(plan), _opening_count(plan)])
 
@@ -220,6 +221,74 @@ func _check_stairs(plan: FloorPlan) -> void:
 			_fail("stair.head", "%s arrives at %s, outside '%s'" % [where, stair.head(), upper.id])
 		if absf(stair.direction.x) > EPS and absf(stair.direction.y) > EPS:
 			_fail("stair.axis", "%s is not axis-aligned" % where)
+
+# --- Light -----------------------------------------------------------------------------------
+
+## Every bulb lights its own room and nothing else within its reach.
+##
+## The bulbs have no shadow maps, so a wall does not stop one; only its render layer does
+## (`RoomLayers`). When layers were not a thing, bulbs were switched on and off around the player
+## instead, and the room the author stood in changed brightness as a neighbour's bulb went out
+## behind its wall (2026-09-13). This builds the house and looks at what each bulb would actually
+## light: anything on its layers that stands within its range and outside its own room — grown
+## by a wall, because the walls around a room are its own — is a room it shines into.
+func _check_light_containment(plan: FloorPlan) -> void:
+	var house := HouseBuilder.build(plan)
+	var lights: Array[RoomLight] = []
+	var drawn: Array[GeometryInstance3D] = []
+	_collect(house, lights, drawn)
+	var room_bits := ~RoomLayers.bit(RoomLayers.SHARED)
+	for light: RoomLight in lights:
+		var room := plan.find_room(light.room)
+		var storey := plan.storey_of(light.room)
+		var at := _world(light).origin
+		# Its walls, and its floor and ceiling slabs, are the room's own: the wall footings of the
+		# storey above stand in this room's ceiling slab.
+		var own := _room_box(storey, room).grow(WallDeriver.DEFAULT_THICKNESS + EPS)
+		own.position.y -= storey.slab_thickness
+		own.size.y += storey.slab_thickness * 2.0
+		var leaks := 0
+		var example := ""
+		for g: GeometryInstance3D in drawn:
+			if g.layers & light.light_cull_mask & room_bits == 0:
+				continue
+			var box := _world(g) * g.get_aabb()
+			if at.clamp(box.position, box.end).distance_to(at) >= light.omni_range:
+				continue
+			if own.intersects(box):
+				continue
+			leaks += 1
+			example = String(g.get_parent().name) + "/" + String(g.name)
+		if leaks > 0:
+			_fail("light.leak", "the '%s' bulb reaches %d mesh(es) outside its room, e.g. %s"
+					% [light.room, leaks, example])
+	house.free()
+
+func _collect(node: Node, lights: Array[RoomLight], drawn: Array[GeometryInstance3D]) -> void:
+	var light := node as RoomLight
+	if light != null:
+		lights.append(light)
+	var g := node as GeometryInstance3D
+	if g != null:
+		drawn.append(g)
+	for child: Node in node.get_children():
+		_collect(child, lights, drawn)
+
+## A node's transform without a scene tree to ask: the probe builds the house and never adds it.
+func _world(node: Node3D) -> Transform3D:
+	var t := node.transform
+	var up := node.get_parent() as Node3D
+	while up != null:
+		t = up.transform * t
+		up = up.get_parent() as Node3D
+	return t
+
+func _room_box(storey: StoreyDef, room: RoomDef) -> AABB:
+	var r := Rect2(room.polygon[0], Vector2.ZERO)
+	for p: Vector2 in room.polygon:
+		r = r.expand(p)
+	var y0 := room.floor_y(storey.base_y)
+	return AABB(Vector3(r.position.x, y0, r.position.y), Vector3(r.size.x, storey.ceiling_y() - y0, r.size.y))
 
 # --- Reachability -----------------------------------------------------------------------------
 

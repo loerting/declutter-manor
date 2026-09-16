@@ -18,8 +18,14 @@ extends Resource
 @export var coping_proud := 0.04
 ## Water sits this far below the paving, which is where the tile line of a real pool sits.
 @export var water_below := 0.14
-## Steps into the shallow end, at the west end of the basin.
-@export var step_count := 3
+## How much wider than the paving the lawn is cut around the basin. See `lawn_hole`.
+const LAWN_CLEARANCE := 0.02
+## Steps into the shallow end, at the west end of the basin. Four, not three: the flight is
+## divided out of the full depth so that its top tread is one riser under the coping rather than
+## one riser under the water, and at three that riser is 0.48 m — above `Balance.STEP_HEIGHT`, so
+## the body climbed to the top tread and stopped there. A pool you can walk into and cannot walk
+## out of is a hole the player loses the game in, and the author walked into it (2026-09-11).
+@export var step_count := 4
 @export var step_width := 1.2
 
 @export var liner_slot := "porcelain"
@@ -34,6 +40,14 @@ extends Resource
 ## plus a millimetre so the shell's outer faces never end up coplanar with the cut earth.
 func hole() -> Rect2:
 	return rect.grow(shell + 0.001)
+
+## The same footprint taken out of the lawn, cut wider. The paving and the grass are two slabs
+## stopping at the same pit, and cut to the same rectangle their vertical faces end up in the
+## same plane over three square metres — which fights, and which `dev/SeamProbe.tscn` found
+## after the author reported the pool as one of the places textures overlap (2026-09-09). The
+## coping band is far wider than this, so nothing is uncovered by moving the cut out.
+func lawn_hole() -> Rect2:
+	return hole().grow(LAWN_CLEARANCE)
 
 static func make(zone: StringName, r: Rect2, d: float) -> PoolDef:
 	var p := PoolDef.new()

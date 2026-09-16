@@ -37,15 +37,16 @@ func _ready() -> void:
 	# measured without its VoxelGI is a measurement of a tier nobody plays, and the bake is
 	# time the player waits, so it is inside the cold-start budget rather than beside it.
 	WorldBuilder.light(self, WorldBuilder.bounds(house), _tier)
+	WorldBuilder.reflect(self, plan)
 	var startup := float(Time.get_ticks_msec() - t_start) / 1000.0
 
 	var cam: Camera3D = $Camera3D
 	cam.fov = 65.0
-	# Standing in the front door looking down the hall: the deepest sightline in the house, with
-	# the stairs, the arch into the living room and the arch into the dining room all in view.
-	cam.position = Vector3(9.9, 2.05, 6.4)
-	cam.look_at(Vector3(9.9, 1.90, 15.0))
-	WorldBuilder.attach_culler(self, house, plan, cam)
+	# Standing in the front door looking down the hall to the back door: the deepest sightline in
+	# the house, with the stairs and the doors into the office, living room and kitchen in view.
+	cam.position = Vector3(9.0, 2.05, 6.4)
+	cam.look_at(Vector3(9.5, 1.90, 15.0))
+	WorldBuilder.attach_culler(self, plan, cam)
 
 	_measure(startup, items.get_child_count())
 

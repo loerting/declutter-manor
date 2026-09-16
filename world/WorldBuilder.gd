@@ -45,11 +45,50 @@ static func light(parent: Node3D, bounds: AABB, tier: Graphics.Tier) -> void:
 	gi.bake(parent, false)
 	print("VoxelGI baked in %d ms" % [Time.get_ticks_msec() - t0])
 
-## Burns the bulbs of the room the eye is in and the rooms it opens onto. The camera is passed
-## in rather than found, because nothing here knows what owns the eye (rule 5).
-static func attach_culler(parent: Node3D, house: Node3D, plan: FloorPlan, camera: Camera3D) -> void:
-	var culler := LightCuller.new()
-	culler.initialize(plan, LightCuller.collect(house), camera)
+## One reflection probe per enclosed room, so the metal in it has something to reflect.
+##
+## A metal surface in Godot has no diffuse term: it renders the environment and nothing else.
+## Indoors that environment was empty, which is why the manor's twelve spoons read as dark
+## smudges on the worktop they were lying on in plain sight (`Graphics.PROBE_INTENSITY`).
+##
+## Exterior zones are skipped — outside, the sky is the reflection, and it is already there.
+static func reflect(parent: Node3D, plan: FloorPlan) -> void:
+	var holder := Node3D.new()
+	holder.name = "Reflections"
+	parent.add_child(holder)
+	for storey: StoreyDef in plan.storeys:
+		for room: RoomDef in storey.rooms:
+			if room.zone == RoomDef.Zone.EXTERIOR:
+				continue
+			var rect := _plan_bounds(room.polygon)
+			var floor_y := room.floor_y(storey.base_y)
+			var probe := RoomProbe.new()
+			probe.room = room.id
+			probe.name = "Probe_" + String(room.id)
+			probe.position = Vector3(rect.get_center().x,
+					floor_y + storey.height * 0.5, rect.get_center().y)
+			probe.size = Vector3(rect.size.x, storey.height, rect.size.y) \
+					+ Vector3.ONE * Graphics.PROBE_MARGIN * 2.0
+			probe.update_mode = ReflectionProbe.UPDATE_ONCE
+			probe.interior = true
+			probe.ambient_mode = ReflectionProbe.AMBIENT_DISABLED
+			probe.intensity = Graphics.PROBE_INTENSITY
+			probe.max_distance = room.reach() * 2.0 + storey.height
+			holder.add_child(probe)
+
+static func _plan_bounds(polygon: PackedVector2Array) -> Rect2:
+	var r := Rect2(polygon[0], Vector2.ZERO)
+	for p: Vector2 in polygon:
+		r = r.expand(p)
+	return r
+
+## Culls the reflection probes by the room the eye is in. The camera is passed in rather than
+## found, because nothing here knows what owns the eye (rule 5). The bulbs are not touched: they
+## burn all the time, and `RoomLayers` keeps each one in its own room.
+static func attach_culler(parent: Node3D, plan: FloorPlan, camera: Camera3D) -> void:
+	var culler := ProbeCuller.new()
+	# Probes come out of `parent`, because that is where `reflect` puts them.
+	culler.initialize(plan, ProbeCuller.collect(parent), camera)
 	parent.add_child(culler)
 
 ## Touches every material the plan will ask for. Callers that time the build call this first,

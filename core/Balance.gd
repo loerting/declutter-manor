@@ -33,6 +33,36 @@ const FLOOR_SNAP := 0.4
 ## and is the only way into the attic, so the limit has to clear it; the roof at 32 degrees
 ## would also qualify, and cannot be reached. A proper climb interaction may replace this.
 const FLOOR_MAX_ANGLE_DEG := 70.0
+## The tallest lip the player walks over without noticing it. `CharacterBody3D` climbs nothing
+## on its own — a vertical face is a wall however low it is — so every slab edge, plinth, kerb
+## and threshold in the house stopped the player dead until `PlayerController._step_up` existed
+## (the author's 2026-09-09 gate walk). It is above `HouseBuilder.STEP_RISER_MAX` (0.17) so an
+## exterior flight is climbable tread by tread, and above the tallest single step the manor
+## has — the garage slab, 0.33 m down from the hall — with room to spare, because the capsule
+## rests about 2 cm inside the floor it stands on and a limit set to the exact step height is
+## a step that fails. It stays below seat height, so furniture cannot be walked onto.
+const STEP_HEIGHT := 0.38
+## The probe is lifted this much higher than the step it will accept. Otherwise the raised body
+## grazes the very lip it is trying to clear and the whole attempt is refused.
+const STEP_PROBE_MARGIN := 0.05
+## How far down the body is felt for a floor once it is standing on the step, to tell a surface
+## it can stand on from a ledge it would slide off.
+const STEP_SETTLE := 0.01
+## How far forward the raised body is carried when it takes a step. It cannot be the frame's own
+## motion: pressed against a lip, `move_and_slide` leaves barely four millimetres of it, and the
+## step in a doorway is not at the wall's face but at its centre line, because the two rooms'
+## floors each stop at the boundary between them. One body radius carries the capsule over any
+## of them, and a step is only ever taken when the space at the top of it is measured clear.
+const STEP_FORWARD := PLAYER_RADIUS
+## Below this a step is floating-point noise rather than a lip, in both the distance the move
+## fell short and the height it gained.
+const STEP_EPSILON := 0.001
+## How fast the body rises over a lip. `PlayerController._step_up` used to place it on top of the
+## step in the frame it found it, which moved it 0.446 m between two drawn frames at the garage
+## threshold — nine strides at once, with nothing drawn in between, which is a teleport and is
+## what the author walked into (2026-09-11). The lip is climbed over several frames instead, at a
+## rate that clears the tallest step allowed in a quarter of a second.
+const STEP_CLIMB_SPEED := 1.5
 ## Vertical field of view. Wider than the 65 the gate renders use, because a render is looked
 ## at from outside and a corridor is walked through: at 65 the hall reads narrower than it is.
 const FOV := 70.0
@@ -74,7 +104,7 @@ const FINALE_SLOT_COST := 21
 const TARGET_SESSION_MINUTES := 180.0
 const TARGET_ITEM_COUNT := 250
 const TARGET_SET_COUNT := 20
-const TARGET_ZONE_COUNT := 26
+const TARGET_ZONE_COUNT := 25
 ## Per-item budget: 5 s interact + 8 s amortized travel + 30 s search.
 const BUDGET_SECONDS_PER_ITEM := 43.0
 ## No set may take longer than this at the slot count the player will actually have when they

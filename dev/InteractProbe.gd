@@ -9,6 +9,8 @@ extends Node3D
 ## calls a placement function with a slot index it worked out for itself, because that is the
 ## one thing that could pass while the game does not work.
 
+## Physics frames a teleported body is given to come to rest before it is aimed.
+const SETTLE_LIMIT := 60
 const PLAYER := preload("res://player/Player.tscn")
 
 ## How long a container tween is given to finish, in seconds of wall clock. It is a time and
@@ -290,7 +292,17 @@ func _stand_looking_at(target: Vector3) -> void:
 	var floor_y := room.floor_y(_plan.storey_of(room.id).base_y)
 	# South of the target, which is the side of the run the kitchen is on.
 	_player.teleport(Vector3(target.x, floor_y + 0.05, target.z + STAND_OFF))
-	await _frames(2)
+	# Until the body has stopped moving, not for a fixed two frames. Stood a stride south of a
+	# spoon at the west end of the run, the capsule starts inside the kitchen's west wall and is
+	# pushed 14 cm out of it; aimed while that was still happening, the ray missed the spoon in
+	# 2 runs of 8 (2026-09-13).
+	var last := _player.global_position
+	for i in range(SETTLE_LIMIT):
+		await get_tree().physics_frame
+		var now := _player.global_position
+		if now.distance_to(last) < 0.0005 and i >= 2:
+			break
+		last = now
 	_player.aim_at(target)
 	await _frames(2)
 

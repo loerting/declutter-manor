@@ -1,23 +1,26 @@
 class_name ManorPlan
-## The house. Twenty-six zones from `docs/HOUSE.md`, on four storeys, authored as rectangles;
-## every wall is derived from them (`WallDeriver`) and every opening is placed by naming rooms
-## and compass points, never coordinates. Plan (x, z) in metres; north (the street) is -Z.
+## The house. Every zone is a room an American family house actually has, placed where one
+## actually is (`docs/HOUSE.md`, "The programme"), on four storeys, authored as rectangles;
+## every wall is derived from them (`WallDeriver`). Plan (x, z) in metres; north (the street) is -Z.
 ##
-## A centre-hall plan: the entry hall runs front to back through the middle of the house and
-## carries both stairs, with the landing stacked over it and the basement stair hall under it,
-## so the stairwells line up through the building the way structure does.
+## A centre-hall plan. The front door opens into a hall that runs through to the back door onto
+## the deck; the stair rises against the hall's east wall, and the basement stair goes down under
+## it behind an under-stair wall. Living rooms west, kitchen wing east against the garage, with
+## the mudroom between the garage and the kitchen, because that is the door groceries come in by,
+## and the half bath off the mudroom.
 ##
-##            x: 4        8       11.8      14       17          23
-##   z 6      +--------+--------+-----------------+-----------+
-##            | office | entry  | dining          |  garage   |
-##   z 9      +--------+  hall  +-----------------+           |
-##            | living |        | kitchen         |           |
-##   z 11.5   |        |        |                 +-----------+
-##   z 13     |        |        +--------+--------+
-##   z 15.5   +--------+--------+ mud    | powder |
+##   ground   x: 4        8     11     14.5    17          23
+##   z 6      +--------+------+-------------+-----------+
+##            | office | hall |   dining    |  garage   |
+##   z 9.5    +--------+  |S| +------+------+           |
+##            |        |  |S| |      | mud  |           |
+##   z 11.5   | living |      |kitch-| room +-----------+
+##   z 13     |        |      | en   +------+
+##            |        |      |      |powder|
+##   z 15.5   +--------+------+------+------+
 ##
-## Upper floor mirrors it (children's rooms west, master suite east, landing over the hall); the
-## basement mirrors the ground floor so every wall stacks.
+## Upper: kids' room and guest room west, landing and hall bath over the hall, master suite east.
+## Basement: the stair comes down into the rec room; laundry, utility, workshop and storage.
 
 const HOUSE := Rect2(4, 6, 13, 9.5)
 ## Flush with the house front: a garage that stood forward of it left its abutting roof end
@@ -52,6 +55,20 @@ const POOL_AREA := Rect2(12, 15.5, 11, 3.3)
 const POOL := Rect2(14.2, 16.55, 6.6, 1.65)
 const POOL_DEPTH := 1.5
 
+## The stair core. The main flight's east edge is let into the hall's east wall; the basement
+## flight under it shares that edge, and both end at the same line, where the hall carries on to
+## the kitchen door and the back door.
+const HALL_EAST := 11.0
+## How far a flight against a wall is let into it. Flush with the plaster, the stairwell's cut edge
+## is the same plane as the wall face and the two z-fight all the way down the well
+## (`dev/SeamProbe.tscn`, 2026-09-13); a stringer is housed in the wall anyway.
+const HOUSED := 0.02
+const MAIN_STAIR_X := HALL_EAST - WallDeriver.DEFAULT_THICKNESS * 0.5 + HOUSED - 0.45
+const BASEMENT_STAIR_X := HALL_EAST - WallDeriver.DEFAULT_THICKNESS * 0.5 + HOUSED - 0.4
+const STAIR_FOOT_Z := 7.4
+const MAIN_RUN := 4.0
+const BASEMENT_RUN := 3.6
+
 static func build() -> FloorPlan:
 	var plan := FloorPlan.new()
 	plan.id = &"manor"
@@ -72,15 +89,20 @@ static func build() -> FloorPlan:
 
 	plan.storeys = [basement, ground, upper, attic]
 	plan.stairs = [
-		# Both flights stand in the middle of the hall, side by side, with 0.85 m of walkway against
-		# each side wall — which is what every door on those walls needs to be usable
-		# (`dev/PlanProbe.gd`, opening.clearance). The main flight climbs SOUTH, away from the
-		# front door: it used to climb toward it, and what you met walking in was the underside
-		# of a staircase.
-		StairDef.make(&"entry_hall", &"landing", Vector2(9.4, 10.9), WallDeriver.SOUTH, 3.6, 0.9),
-		StairDef.make(&"stair_hall_b", &"entry_hall", Vector2(10.4, 14.5), WallDeriver.NORTH, 3.6, 0.9),
-		# the attic ladder: steep, short, and in the corner of the landing the stair does not use
-		StairDef.make(&"landing", &"attic", Vector2(10.25, 10.2), WallDeriver.EAST, 1.4, 0.7),
+		# Against the hall's east wall, climbing south from inside the front door to the landing.
+		# Every flight in the house used to stand in the middle of a room with a walking lane either
+		# side of it, which no house has (the author, 2026-09-13). 4.0 m of run for a 3.05 m rise
+		# is 37 degrees, inside the IRC's 7 3/4" riser and 10" tread.
+		StairDef.make(&"entry_hall", &"landing", Vector2(MAIN_STAIR_X, STAIR_FOOT_Z), WallDeriver.SOUTH,
+				MAIN_RUN, 0.9),
+		# The basement stair under it, climbing the other way: it comes up out of the rec room and
+		# arrives in the hall where the main flight above is at its highest, so there is headroom
+		# over every step of it. 0.8 m is the IRC width for a stair serving a basement.
+		StairDef.make(&"rec_room", &"entry_hall", Vector2(BASEMENT_STAIR_X, STAIR_FOOT_Z + MAIN_RUN - BASEMENT_RUN),
+				WallDeriver.SOUTH, BASEMENT_RUN, 0.8),
+		# The attic ladder, against the landing's west wall between the kids' room and guest room
+		# doors, and all of it under the attic: a hatch outside the attic band opens into the roof.
+		StairDef.make(&"landing", &"attic", Vector2(8.0 + WallDeriver.DEFAULT_THICKNESS * 0.5 - HOUSED + 0.35, 9.9), WallDeriver.SOUTH, 1.4, 0.7),
 	]
 	plan.decks = [DeckDef.make(&"deck", [WallDeriver.SOUTH, WallDeriver.EAST])]
 	plan.pools = [PoolDef.make(&"pool_area", POOL, POOL_DEPTH)]
@@ -156,20 +178,25 @@ static func _driveway() -> RoomDef:
 	_outside(r, "concrete")
 	return r
 
-# --- Basement: mirrors the ground floor so every wall stacks ----------------------------------
+# --- Basement --------------------------------------------------------------------------------
 
+## The stair lands in the finished half: a rec room under the hall and the living room. The
+## unfinished half is east, under the kitchen wing, where the furnace and the tools are.
 static func _basement(s: StoreyDef) -> void:
 	s.rooms = [
-		_room(&"stair_hall_b", 8, 6, 11.8, 15.5, "concrete"),
-		_room(&"laundry", 4, 6, 8, 10.5, "concrete"),
-		_room(&"rec_room", 4, 10.5, 8, 15.5, "rug_wool"),
-		_room(&"storage", 11.8, 6, 17, 10, "concrete"),
-		_room(&"workshop", 11.8, 10, 17, 13.5, "concrete"),
-		_room(&"utility", 11.8, 13.5, 17, 15.5, "concrete"),
+		_room(&"rec_room", 4, 6, HALL_EAST, 12.5, "rug_wool"),
+		_room(&"laundry", 4, 12.5, 7.5, 15.5, "concrete"),
+		_room(&"utility", 7.5, 12.5, HALL_EAST, 15.5, "concrete"),
+		_room(&"workshop", HALL_EAST, 6, 17, 10.5, "concrete"),
+		_room(&"storage", HALL_EAST, 10.5, 17, 15.5, "concrete"),
 	]
 	var w := WallDeriver.derive(s.rooms)
-	for other: StringName in [&"laundry", &"rec_room", &"storage", &"workshop", &"utility"] as Array[StringName]:
-		WallDeriver.pierce_between(w, &"stair_hall_b", other, Opening.door(0.0))
+	WallDeriver.pierce_between(w, &"rec_room", &"laundry", Opening.door(0.0))
+	WallDeriver.pierce_between(w, &"rec_room", &"utility", Opening.door(0.0))
+	# Either side of the flight standing against this wall, not into its side.
+	WallDeriver.pierce_between_at(w, &"rec_room", &"workshop", Opening.door(0.0), 6.85)
+	WallDeriver.pierce_between_at(w, &"rec_room", &"storage", Opening.door(0.0), 12.0)
+	WallDeriver.pierce_between(w, &"workshop", &"storage", Opening.door(0.0))
 	s.walls = w
 
 # --- Ground ---------------------------------------------------------------------------------------
@@ -179,13 +206,18 @@ static func _ground(s: StoreyDef) -> void:
 	garage.zone = RoomDef.Zone.GARAGE
 	garage.floor_drop = GARAGE_DROP
 	s.rooms = [
-		_room(&"entry_hall", 8, 6, 11.8, 15.5),
-		_room(&"office", 4, 6, 8, 10.5),
-		_room(&"living", 4, 10.5, 8, 15.5),
-		_room(&"dining", 11.8, 6, 17, 9),
-		_tiled(_room(&"kitchen", 11.8, 9, 17, 13, "worktop_stone"), 0.75),
-		_room(&"mudroom", 11.8, 13, 14, 15.5, "concrete"),
-		_room(&"powder", 14, 13, 17, 15.5, "porcelain"),
+		_room(&"entry_hall", 8, 6, HALL_EAST, 15.5),
+		_room(&"office", 4, 6, 8, 9.5),
+		_room(&"living", 4, 9.5, 8, 15.5),
+		_room(&"dining", HALL_EAST, 6, 17, 9.5),
+		_tiled(_room(&"kitchen", HALL_EAST, 9.5, 14.5, 15.5, "worktop_stone"), 0.75),
+		# Carried 1.5 m past the garage's back wall. Ended level with it, four walls met at one point
+		# on the facade; ended 0.5 or 1.0 m past it, the stub of outside wall was too short for
+		# `HouseBuilder._build_plinth` to mitre, and its plinth lapped the garage's by 35 mm
+		# (`dev/SeamProbe.tscn`, 2026-09-13). A mudroom this deep holds a bench and a coat wall.
+		_room(&"mudroom", 14.5, 9.5, 17, 13, "concrete"),
+		# off the mudroom, which is where a half bath goes in a house with a garage entry
+		_room(&"powder", 14.5, 13, 17, 15.5, "porcelain"),
 		garage,
 		_driveway(),
 		_deck(),
@@ -196,16 +228,16 @@ static func _ground(s: StoreyDef) -> void:
 	var w := WallDeriver.derive(s.rooms)
 	WallDeriver.pierce_exterior(w, &"entry_hall", WallDeriver.NORTH, Opening.door(0.0, 1.0, 2.1))
 	WallDeriver.pierce_exterior(w, &"entry_hall", WallDeriver.SOUTH, Opening.door(0.0, 1.0, 2.1))
-	WallDeriver.pierce_between(w, &"entry_hall", &"office", Opening.door(0.0), 0.35)
-	WallDeriver.pierce_between(w, &"entry_hall", &"living", Opening.arch(0.0, 1.8, 2.2))
-	WallDeriver.pierce_between(w, &"entry_hall", &"dining", Opening.arch(0.0, 1.6, 2.2))
-	WallDeriver.pierce_between(w, &"entry_hall", &"kitchen", Opening.door(0.0), 0.3)
-	WallDeriver.pierce_between(w, &"entry_hall", &"mudroom", Opening.door(0.0))
-	WallDeriver.pierce_between(w, &"dining", &"kitchen", Opening.arch(0.0, 2.0, 2.2))
+	WallDeriver.pierce_between_at(w, &"entry_hall", &"office", Opening.door(0.0), 7.75)
+	WallDeriver.pierce_between_at(w, &"entry_hall", &"living", Opening.arch(0.0, 1.8, 2.2), 12.5)
+	# In front of the stair's foot, the only stretch of this wall it does not stand against.
+	WallDeriver.pierce_between_at(w, &"entry_hall", &"dining", Opening.door(0.0, 0.8), 6.7)
+	WallDeriver.pierce_between_at(w, &"entry_hall", &"kitchen", Opening.door(0.0), 13.2)
+	# East of the kitchen run, which stands against this wall's west end.
+	WallDeriver.pierce_between_at(w, &"dining", &"kitchen", Opening.arch(0.0, 1.6, 2.2), 13.4)
+	WallDeriver.pierce_between(w, &"garage", &"mudroom", Opening.door(0.0))
 	WallDeriver.pierce_between(w, &"kitchen", &"mudroom", Opening.door(0.0))
-	WallDeriver.pierce_between(w, &"kitchen", &"powder", Opening.door(0.0, 0.8))
-	WallDeriver.pierce_between(w, &"garage", &"kitchen", Opening.door(0.0))
-	WallDeriver.pierce_exterior(w, &"mudroom", WallDeriver.SOUTH, Opening.door(0.0))
+	WallDeriver.pierce_between(w, &"mudroom", &"powder", Opening.door(0.0, 0.8))
 	WallDeriver.pierce_exterior(w, &"garage", WallDeriver.NORTH, Opening.garage_door(0.0, 4.2, 2.2))
 	WallDeriver.pierce_exterior(w, &"garage", WallDeriver.EAST, Opening.window(0.0, 1.0, 0.9, 1.5))
 	WallDeriver.pierce_exterior(w, &"office", WallDeriver.NORTH, Opening.window(0.0, 1.4, 1.4, 0.9))
@@ -213,8 +245,8 @@ static func _ground(s: StoreyDef) -> void:
 	WallDeriver.pierce_exterior(w, &"living", WallDeriver.WEST, Opening.window(0.0, 2.2, 1.6, 0.7))
 	WallDeriver.pierce_exterior(w, &"living", WallDeriver.SOUTH, Opening.window(0.0, 1.8, 1.6, 0.7))
 	WallDeriver.pierce_exterior(w, &"dining", WallDeriver.NORTH, Opening.window(0.0, 2.4, 1.5, 0.8))
-	WallDeriver.pierce_exterior(w, &"kitchen", WallDeriver.EAST, Opening.window(0.0, 1.2, 1.0, 1.1))
-	WallDeriver.pierce_exterior(w, &"powder", WallDeriver.SOUTH, Opening.window(0.0, 0.6, 0.6, 1.6))
+	# over the sink, looking out at the pool
+	WallDeriver.pierce_exterior(w, &"kitchen", WallDeriver.SOUTH, Opening.window(0.0, 1.4, 1.0, 1.1))
 	WallDeriver.pierce_exterior(w, &"powder", WallDeriver.EAST, Opening.window(0.0, 0.6, 0.6, 1.6))
 	s.walls = w
 
@@ -222,33 +254,34 @@ static func _ground(s: StoreyDef) -> void:
 
 static func _upper(s: StoreyDef) -> void:
 	s.rooms = [
-		_room(&"landing", 8, 9.5, 11.8, 15.5),
-		_room(&"family_bath", 8, 6, 11.8, 9.5, "porcelain"),
-		_room(&"child1", 4, 6, 8, 11, "rug_wool"),
-		_room(&"child2", 4, 11, 8, 15.5, "rug_wool"),
-		_room(&"closet", 11.8, 6, 14, 10),
-		_room(&"master_bath", 14, 6, 17, 10, "porcelain"),
-		_room(&"master_bed", 11.8, 10, 17, 15.5),
+		_room(&"landing", 8, 6, HALL_EAST, 12.5),
+		_room(&"hall_bath", 8, 12.5, HALL_EAST, 15.5, "porcelain"),
+		_room(&"kids_room", 4, 6, 8, 10.5, "rug_wool"),
+		_room(&"guest_room", 4, 10.5, 8, 15.5, "rug_wool"),
+		_room(&"closet", HALL_EAST, 6, 13.5, 10.5),
+		_room(&"master_bath", 13.5, 6, 17, 10.5, "porcelain"),
+		_room(&"master_bed", HALL_EAST, 10.5, 17, 15.5),
 	]
 	var w := WallDeriver.derive(s.rooms)
-	# West of centre: the attic ladder stands in the landing's north-east corner, and a door in
-	# the middle of this wall would open onto the side of it (`dev/PlanProbe.gd`, clearance).
-	WallDeriver.pierce_between(w, &"landing", &"family_bath", Opening.door(0.0), 0.3)
-	WallDeriver.pierce_between(w, &"landing", &"child1", Opening.door(0.0, 0.85))
-	WallDeriver.pierce_between(w, &"landing", &"child2", Opening.door(0.0), 0.3)
-	WallDeriver.pierce_between(w, &"landing", &"master_bed", Opening.door(0.0), 0.3)
+	# The landing's west wall has the attic ladder against it and its east wall has the stairwell:
+	# every door on either is placed clear of them.
+	WallDeriver.pierce_between_at(w, &"landing", &"kids_room", Opening.door(0.0), 7.5)
+	WallDeriver.pierce_between_at(w, &"landing", &"guest_room", Opening.door(0.0), 12.0)
+	WallDeriver.pierce_between_at(w, &"landing", &"master_bed", Opening.door(0.0), 12.0)
+	WallDeriver.pierce_between_at(w, &"landing", &"hall_bath", Opening.door(0.0), 9.3)
 	WallDeriver.pierce_between(w, &"master_bed", &"closet", Opening.door(0.0))
 	WallDeriver.pierce_between(w, &"master_bed", &"master_bath", Opening.door(0.0))
-	WallDeriver.pierce_exterior(w, &"child1", WallDeriver.NORTH, Opening.window(0.0, 1.2, 1.3, 0.9))
-	WallDeriver.pierce_exterior(w, &"child1", WallDeriver.WEST, Opening.window(0.0, 1.2, 1.3, 0.9))
-	WallDeriver.pierce_exterior(w, &"child2", WallDeriver.WEST, Opening.window(0.0, 1.2, 1.3, 0.9))
-	WallDeriver.pierce_exterior(w, &"child2", WallDeriver.SOUTH, Opening.window(0.0, 1.2, 1.3, 0.9))
-	WallDeriver.pierce_exterior(w, &"family_bath", WallDeriver.NORTH, Opening.window(0.0, 0.8, 0.8, 1.4))
+	WallDeriver.pierce_exterior(w, &"landing", WallDeriver.NORTH, Opening.window(0.0, 1.0, 1.2, 1.0))
+	WallDeriver.pierce_exterior(w, &"kids_room", WallDeriver.NORTH, Opening.window(0.0, 1.2, 1.3, 0.9))
+	WallDeriver.pierce_exterior(w, &"kids_room", WallDeriver.WEST, Opening.window(0.0, 1.2, 1.3, 0.9))
+	WallDeriver.pierce_exterior(w, &"guest_room", WallDeriver.WEST, Opening.window(0.0, 1.2, 1.3, 0.9))
+	WallDeriver.pierce_exterior(w, &"guest_room", WallDeriver.SOUTH, Opening.window(0.0, 1.2, 1.3, 0.9))
+	WallDeriver.pierce_exterior(w, &"hall_bath", WallDeriver.SOUTH, Opening.window(0.0, 0.8, 0.8, 1.4))
 	WallDeriver.pierce_exterior(w, &"closet", WallDeriver.NORTH, Opening.window(0.0, 0.8, 0.8, 1.4))
 	WallDeriver.pierce_exterior(w, &"master_bath", WallDeriver.NORTH, Opening.window(0.0, 0.8, 0.8, 1.4))
 	WallDeriver.pierce_exterior(w, &"master_bed", WallDeriver.SOUTH, Opening.window(0.0, 2.0, 1.4, 0.8))
 	# the east wall's northern part is behind the garage roof, so the window sits toward the back
-	WallDeriver.pierce_exterior(w, &"master_bed", WallDeriver.EAST, Opening.window(0.0, 1.2, 1.3, 0.9), 0.72)
+	WallDeriver.pierce_exterior(w, &"master_bed", WallDeriver.EAST, Opening.window(0.0, 1.2, 1.3, 0.9), 0.7)
 	s.walls = w
 
 # --- Attic ------------------------------------------------------------------------------------------

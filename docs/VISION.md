@@ -31,7 +31,7 @@ game must be good for both and must never punish the second.
 | Item physics | **Snap placement, no simulation.** Nothing simulates, ever. |
 | Placement | **Predefined place-slots with a snap preview and a click to confirm.** See "Placement" below — this is a mechanic, specified in `docs/ARCHITECTURE.md`. |
 | House authoring | **The agent authors it, the author reviews it.** It must read as real from the outside as well as inside, because garden, deck and pool are playable. |
-| Scale | ~2 storeys + basement + attic + garage + garden/deck/pool. **26 zones, ~250 item instances, ~55 types, 20 sets.** Derived in `docs/HOUSE.md`, not picked. |
+| Scale | ~2 storeys + basement + attic + garage + garden/deck/pool. **25 zones, ~250 item instances, ~55 types, 20 sets.** Derived in `docs/HOUSE.md`, not picked. |
 | Layout and scatter | **Fixed and authored.** The same house and the same hiding places for every player. This is a one-time-playthrough game; there is no replay value to protect and no randomness to balance. |
 | Extra verbs | **Containers open.** Drawers, cabinets, wardrobes, the fridge. Homes are inside them, and so is clutter that belongs somewhere else entirely. |
 | Set completion | On **placing** every member at home, not on finding them. |

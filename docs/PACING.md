@@ -191,6 +191,13 @@ tier hit **39,704 draw calls and 61 ms a frame** — an omni shadow is six extra
 light, and there are 26 rooms. Room lights keep shadows, but `LightCuller` leaves them on only
 for the four nearest bulbs, and a bulb's range is fitted to its room.
 
+**Measured again after the house redesign and the room-layer lighting (2026-09-13, same machine
+and session as a run of the previous commit, `--items=0`).** Draw calls 641 → **625**. Low tier
+7.95 → **8.18 ms**, inside budget. High tier 17.85 → **19.57 ms**, which was already over the
+16.7 ms budget and is now 1.7 ms further over: every bulb burns all the time now, where the culler
+lit only the eye's neighbourhood. Startup 0.86 → 1.26 s, inside the 4 s budget. One run each —
+the high tier's miss is still the open question it was, now with this on top of it.
+
 Two mitigations are designed in from the start rather than bolted on: distinct meshes are
 **generated once and cached by `(generator, params)`**, so twelve forks share one `ArrayMesh`; and
 box occluders are **generated from the floor plan** at build time, so Godot's occlusion culling

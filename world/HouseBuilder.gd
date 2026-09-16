@@ -26,7 +26,15 @@ const FOUNDATION := 0.35
 ## into the neighbour — which is how a 2 cm strip of the mudroom's oak floor ended up standing
 ## proud of the garage slab.
 const SLAB_TUCK := 0.08
-const SEAM_OVERLAP := 0.01
+## How far a surface that is meant to be hidden by another is pushed inside it. Two surfaces at
+## exactly the same height are two surfaces fighting for the same pixel, and "exactly" is what
+## a derived dimension gives you for free: `FOUNDATION` is `FLOOR_SLAB + CEILING_PLANE` by
+## construction, so every upper storey's walls ended their run in the same plane as the ceiling
+## of the room below — a 20 cm band of z-fighting around the top of every room in the house.
+## `dev/SeamProbe.tscn` is what found it and is what keeps it found.
+## It is deliberately larger than `SeamProbe.GAP`, the distance the probe calls a fight: a fix
+## that lands one millimetre inside the window it is meant to escape is not a fix.
+const HIDE_BIAS := 0.006
 ## Tolerance for deciding two plan edges are the same line, in metres.
 const PLANE_EPS := 0.001
 ## Added to a room's far-corner distance when its light range is fitted automatically.
@@ -47,6 +55,9 @@ const GRADE := 0.0
 const PLINTH_TOP := 0.30
 const PLINTH_DEPTH := 0.35
 const PLINTH_PROUD := 0.025
+## How far the band is let into the wall behind it, so the siding above has something to land on
+## rather than a hairline crack.
+const PLINTH_BITE := 0.01
 const PLINTH_SLOT := "concrete"
 const PLINTH_TINT := Color(0.66, 0.65, 0.62)
 ## Outside steps: the tallest riser allowed and the going. A door whose floor is above the
@@ -74,7 +85,9 @@ const GUTTER_DEPTH := 0.10
 const GUTTER_WALL := 0.014
 const DOWNSPOUT_R := 0.038
 ## The door reads as a door because it contrasts with the wall around it, not because of its
-## panel lines alone.
+## panel lines alone. It is painted steel, not timber: it was on `painted_wood` until the author
+## asked why the garage door was made of wood (2026-09-09), and the plank grain was the answer.
+const GARAGE_DOOR_SLOT := "metal_brushed"
 const GARAGE_DOOR_TINT := Color(1.06, 1.04, 0.99)
 const TRIM_DEPTH := 0.03
 ## How far the casing is let into the wall face; the rest of TRIM_DEPTH stands out from it.
@@ -115,6 +128,11 @@ const BALUSTER_SPACING := 0.13
 const NEWEL := 0.08
 const NEWEL_OVER := 0.08
 const HANDRAIL := Vector2(0.06, 0.045)
+## How far the handrail is tenoned into the newel at each end. The rail used to run half a newel
+## PAST its newel, which put its end cap in the newel's own outer face — 8 of the seams the author
+## walked into, four at each stairwell. Flush would only move the fight to the inner face, so the
+## rail ends inside the newel, which is also how a rail is really hung.
+const RAIL_TENON := 0.02
 ## Thickness of the invisible barrier that makes a guard solid. Thin enough to stay inside the
 ## balusters, thick enough that a body moving at WALK_SPEED cannot tunnel through it in a tick.
 const BARRIER := 0.06
@@ -126,30 +144,65 @@ const GUARD_INSET := 0.05
 ## Depth of the collision ramp under a flight. Only its top face is ever touched; the rest is
 ## there so a body cannot tunnel through it on a fast frame.
 const RAMP_THICKNESS := 0.4
+## Thickness of the wall under a flight that has another flight beneath it.
+const SPANDREL := 0.08
 
 static func build(plan: FloorPlan) -> Node3D:
 	var root := Node3D.new()
 	root.name = "House"
+	# Every piece goes on the render layers of the rooms it faces, as it is built (`RoomLayers`).
+	var layers := RoomLayers.derive(plan)
 	for storey: StoreyDef in plan.storeys:
 		var node := Node3D.new()
 		node.name = String(storey.id)
 		root.add_child(node)
 		for room: RoomDef in storey.rooms:
+			var from := node.get_child_count()
 			_build_room(node, plan, storey, room)
+			RoomLayers.stamp_since(node, from, RoomLayers.mask(layers, room.id))
 		for wall: WallSegment in storey.walls:
+			var from := node.get_child_count()
 			_build_wall(node, plan, storey, wall)
+			RoomLayers.stamp_since(node, from, RoomLayers.mask(layers, wall.room_a)
+					| RoomLayers.mask(layers, wall.room_b))
 	var stairs := Node3D.new()
 	stairs.name = "Stairs"
 	root.add_child(stairs)
 	for stair: StairDef in plan.stairs:
+		var from := stairs.get_child_count()
 		_build_stair(stairs, plan, stair)
+		RoomLayers.stamp_since(stairs, from, RoomLayers.mask(layers, stair.lower_room)
+				| RoomLayers.mask(layers, stair.upper_room))
 	var shell := Node3D.new()
 	shell.name = "Shell"
 	root.add_child(shell)
 	for roof: RoofDef in plan.roofs:
-		_build_roof(shell, plan, roof)
+		var from := shell.get_child_count()
+		_build_roof(shell, plan, roof, _under_roof(plan, layers, roof))
+		# Whatever the roof pass did not claim for a room below is outdoors.
+		for i in range(from, shell.get_child_count()):
+			for part: Node in shell.get_child(i).get_children():
+				var drawn := part as GeometryInstance3D
+				if drawn != null and drawn.layers == 1:
+					drawn.layers = RoomLayers.bit(RoomLayers.OUTDOOR)
+	var from_terrain := shell.get_child_count()
 	TerrainBuilder.build(shell, plan)
+	RoomLayers.stamp_since(shell, from_terrain, RoomLayers.bit(RoomLayers.OUTDOOR))
 	return root
+
+## The layers of the rooms that see a roof's slopes from underneath because they have no ceiling
+## of their own — the attic, whose bulb has to light the boards over it. Fascia, gutters and
+## gable ends are outside and stay off them: the attic bulb reaches 12 m.
+static func _under_roof(plan: FloorPlan, layers: Dictionary, roof: RoofDef) -> int:
+	var out := 0
+	for room: RoomDef in plan.all_rooms():
+		if room.has_ceiling or room.zone == RoomDef.Zone.EXTERIOR:
+			continue
+		for p: Vector2 in room.polygon:
+			if roof.footprint.grow(0.01).has_point(p):
+				out |= RoomLayers.mask(layers, room.id)
+				break
+	return out
 
 # --- Rooms -----------------------------------------------------------------------------------
 
@@ -192,13 +245,15 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 		lamp.light_color = room.light_color
 		lamp.light_energy = room.light_energy * (1.0 if lit else DAYLIT_BULB)
 		lamp.visible = lamp.light_energy > 0.0
-		lamp.omni_range = room.light_range if room.light_range > 0.0 else room.reach() + LIGHT_MARGIN
-		lamp.shadow_enabled = room.light_shadows
-		lamp.omni_shadow_mode = OmniLight3D.SHADOW_DUAL_PARABOLOID
-		var c := room.centroid()
-		lamp.position = Vector3(c.x, cy - room.light_offset, c.y)
+		lamp.omni_range = bulb_range(room)
+		# No shadow map, and it does not need one: `RoomLayers` keeps this bulb from lighting any
+		# room but its own, which is the only thing its shadows were ever preventing that a
+		# player could see.
+		lamp.shadow_enabled = false
+		lamp.position = bulb_position(storey, room)
 		holder.add_child(lamp)
 		if room.has_ceiling:
+			var c := room.centroid()
 			_build_fixture(holder, Vector3(c.x, cy, c.y), room, lamp.visible)
 
 	if not room.has_ceiling:
@@ -209,7 +264,19 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 	for piece: PackedVector2Array in _minus_stairwells(
 			_tucked(plan, storey, room, false), plan, room.id, false):
 		c_i += 1
-		surface(holder, Props.prism(piece, cy, cy + CEILING_PLANE), [ceil_mat], "Ceiling%d" % c_i, true)
+		# The underside hangs HIDE_BIAS below the storey's ceiling height, which is exactly
+		# where the walls of the storey above end their foundation run. Level with them, the
+		# two are coplanar and the room's ceiling crawls along every wall.
+		surface(holder, Props.prism(piece, cy - HIDE_BIAS, cy + CEILING_PLANE), [ceil_mat],
+				"Ceiling%d" % c_i, true)
+
+## Where a room's bulb hangs: under its fixture, at the centre of the room.
+static func bulb_position(storey: StoreyDef, room: RoomDef) -> Vector3:
+	var c := room.centroid()
+	return Vector3(c.x, storey.ceiling_y() - room.light_offset, c.y)
+
+static func bulb_range(room: RoomDef) -> float:
+	return room.light_range if room.light_range > 0.0 else room.reach() + LIGHT_MARGIN
 
 ## A room is daylit when any wall around it carries glazing.
 static func _daylit(storey: StoreyDef, room: RoomDef) -> bool:
@@ -274,12 +341,16 @@ static func cut_rect(polygon: PackedVector2Array, rect: Rect2) -> Array[PackedVe
 		out.append(polygon)
 		return out
 	var r := rect.intersection(b)
-	# The end strips reach a hair past the well so the side strips' end faces sit inside them.
-	# Butted exactly, the side strip's 2 cm end face is coplanar with the end strip's and gets
-	# drawn — a bright line straight across the ceiling of every room with a stairwell.
+	# The strips butt exactly. The end strips used to reach 1 cm past the well to bury the side
+	# strips' end faces, on the theory that two coplanar end faces would fight and draw a bright
+	# line across the ceiling. They cannot: `Props.prism` makes each strip a closed solid, so the
+	# two faces meeting at the joint point in opposite directions and back-face culling always
+	# discards exactly the one that would fight. Z-fighting needs two faces pointing the SAME way.
+	# Rendered both ways at the entry hall's stairwell (`--view=well_ceiling`, 2026-09-10): no
+	# line either way, and butting removes 37 of the overlaps `dev/SeamProbe.gd` counts.
 	for strip: Rect2 in [
-			Rect2(b.position.x, b.position.y, b.size.x, r.position.y - b.position.y + SEAM_OVERLAP),
-			Rect2(b.position.x, r.end.y - SEAM_OVERLAP, b.size.x, b.end.y - r.end.y + SEAM_OVERLAP),
+			Rect2(b.position.x, b.position.y, b.size.x, r.position.y - b.position.y),
+			Rect2(b.position.x, r.end.y, b.size.x, b.end.y - r.end.y),
 			Rect2(b.position.x, r.position.y, r.position.x - b.position.x, r.size.y),
 			Rect2(r.end.x, r.position.y, b.end.x - r.end.x, r.size.y)] as Array[Rect2]:
 		if strip.size.x > 0.005 and strip.size.y > 0.005:
@@ -398,7 +469,15 @@ static func _build_wall(parent: Node3D, plan: FloorPlan, storey: StoreyDef, wall
 
 	var holes: Array[Rect2] = []
 	for o: Opening in wall.openings:
-		holes.append(Rect2(o.u0() - length * 0.5, z_floor - o.top(), o.width, o.height))
+		# A threshold is cut through the footing, not stopped at the finished floor. Stopped
+		# there, the footing keeps a top face inside the doorway that is exactly coplanar with
+		# the two rooms' floor planes meeting under it, and what the author saw at every door on
+		# 2026-09-10 was that face winning the depth test: a band of wall plaster laid flat
+		# across the threshold. A window keeps its sill; only an opening that reaches the floor
+		# has a threshold to lose.
+		var through := footing if o.bottom() <= 0.0 else 0.0
+		holes.append(Rect2(o.u0() - length * 0.5, z_floor - o.top(), o.width,
+				o.height + through))
 
 	# Slab local space: +X along the wall, +Y toward side A, +Z downward. Surface 0 is the
 	# side-A face, 1 the side-B face, 2 the rim — including every opening's reveal.
@@ -412,7 +491,10 @@ static func _build_wall(parent: Node3D, plan: FloorPlan, storey: StoreyDef, wall
 	holder.transform = Transform3D(
 		Basis(Vector3(d.x, 0.0, d.y), Vector3(n.x, 0.0, n.y), Vector3(0.0, -1.0, 0.0)),
 		Vector3(wall.midpoint().x, centre_y, wall.midpoint().y))
-	parent.add_child(holder)
+	# Readable naming, because two walls can name the same pair of rooms — a room with the outside
+	# on two of its sides is the common case. Godot's default for a repeat is `@Node3D@151`, and a
+	# seam reported against that is a seam nobody can find; the readable form appends a number.
+	parent.add_child(holder, true)
 
 	var face_a := _face_material(plan, storey, wall.room_a)
 	var face_b := _face_material(plan, storey, wall.room_b)
@@ -429,7 +511,11 @@ static func _build_wall(parent: Node3D, plan: FloorPlan, storey: StoreyDef, wall
 	_build_skirting(storey, wall, length, z_ref, parts["trim"])
 	_build_plinth(storey, wall, length, centre_y, z_floor, parts["plinth"])
 	_emit(holder, parts["trim"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Trim")
-	_emit(holder, parts["panel"], Mats.of(TRIM_SLOT, GARAGE_DOOR_TINT, 0.8), "GarageDoor")
+	# The one emitted part that is a barrier as well as a surface: an opening is a hole in the
+	# wall's collision, so a leaf that fills it visually and not physically is a door the player
+	# walks through — which is what the author did (2026-09-09).
+	_emit(holder, parts["panel"], Mats.of(GARAGE_DOOR_SLOT, GARAGE_DOOR_TINT, 0.55, 1.0, false, true),
+			"GarageDoor", true)
 	_emit(holder, parts["plinth"], Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true), "Plinth")
 	_emit(holder, parts["glass"], _glass(), "Glass")
 
@@ -465,12 +551,22 @@ static func _glass() -> Material:
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return glass
 
-static func _emit(holder: Node3D, parts: Array, material: Material, node_name: String) -> void:
+static func _emit(holder: Node3D, parts: Array, material: Material, node_name: String,
+		collide := false) -> void:
 	if parts.is_empty():
 		return
-	var mi := Props.mi(Props.union(parts), material)
+	var mesh := Props.union(parts)
+	var mi := Props.mi(mesh, material)
 	mi.name = node_name
 	holder.add_child(mi)
+	if not collide:
+		return
+	var body := StaticBody3D.new()
+	body.name = node_name + "Body"
+	var shape := CollisionShape3D.new()
+	shape.shape = mesh.create_trimesh_shape()
+	body.add_child(shape)
+	holder.add_child(body)
 
 ## Wall-local intervals along X left after removing every opening that reaches the floor,
 ## widened by `margin` so a board butts against the casing rather than running into it.
@@ -499,6 +595,59 @@ static func _floor_runs(wall: WallSegment, length: float, margin: float, floor_o
 		runs = next
 	return runs
 
+## The wall this one runs into at one of its ends, as its thickness, or -1.0 if nothing meets it
+## there. `perpendicular` picks a wall crossing this one; `not perpendicular` one continuing it.
+## `side` restricts the answer to a wall reaching toward that side of this one; 0.0 takes either.
+##
+## Walls are derived on room boundaries (`WallDeriver`), so a wall runs to its neighbour's
+## CENTRELINE, not to its face. Anything laid along a wall's face therefore overshoots the
+## neighbour's face by half the neighbour's thickness, and only the neighbour knows that number.
+static func _meets(storey: StoreyDef, wall: WallSegment, at_start: bool, perpendicular: bool,
+		side := 0.0) -> float:
+	var p := wall.a if at_start else wall.b
+	var out := wall.normal() * side
+	for w: WallSegment in storey.walls:
+		if w == wall:
+			continue
+		if (absf(w.dir().dot(wall.dir())) > 0.99) == perpendicular:
+			continue
+		var q := w.a if w.a.distance_to(p) < w.b.distance_to(p) else w.b
+		if q.distance_to(p) > 0.001:
+			continue
+		if side != 0.0 and (w.midpoint() - p).dot(out) <= 0.0:
+			continue
+		return w.thickness
+	return -1.0
+
+## A board lying along a wall face, mitred where it runs into the board on the wall at its end.
+## Two boards that both run to the corner share a section-deep square of every face they have —
+## 84 of them in this house, one per room corner, every one of them fighting. Cut at 45 they meet
+## on one plane and share nothing, and the cut is symmetric, so neither board has to be told
+## which of the two gives way. `back` is the face against the wall and `front` the exposed one;
+## `lo_cut` and `hi_cut` are how far short of the run's end the back face stops, or negative for
+## a square end. A positive cut is an inside corner and shortens the back face; a negative one is
+## an outside corner and runs it past the wall's end. Either way the front face moves one section
+## depth further in the same direction, which is the 45 the two boards share.
+## Built in wall-local space: x along the wall, y across it, z downward.
+static func _mitred(lo: float, hi: float, lo_cut: float, hi_cut: float, back: float,
+		front: float, z0: float, z1: float) -> Array:
+	var depth := absf(front - back)
+	var back_lo := lo + (lo_cut if is_finite(lo_cut) else 0.0)
+	var back_hi := hi - (hi_cut if is_finite(hi_cut) else 0.0)
+	var front_lo := back_lo + (signf(lo_cut) * depth if is_finite(lo_cut) else 0.0)
+	var front_hi := back_hi - (signf(hi_cut) * depth if is_finite(hi_cut) else 0.0)
+	# Two mitres closer together than the section itself would cross, and a crossed outline is
+	# not a polygon. A run that short is a stub between two doorways; it gets square ends.
+	if back_hi - back_lo < depth or front_hi - front_lo < depth:
+		back_lo = lo
+		back_hi = hi
+		front_lo = lo
+		front_hi = hi
+	return [Props.extrude(PackedVector2Array([
+			Vector2(back_lo, back), Vector2(back_hi, back),
+			Vector2(front_hi, front), Vector2(front_lo, front)]),
+			Vector3.ZERO, Vector3.RIGHT, Vector3.UP, Vector3.BACK, z0, z1), Transform3D.IDENTITY]
+
 static func _build_skirting(storey: StoreyDef, wall: WallSegment, length: float, z_ref: float,
 		trim: Array) -> void:
 	var half_t := wall.thickness * 0.5
@@ -508,15 +657,22 @@ static func _build_skirting(storey: StoreyDef, wall: WallSegment, length: float,
 		if room == null or room.zone != RoomDef.Zone.INTERIOR:
 			continue
 		var z_floor := z_ref - (room.floor_y(storey.base_y) - storey.base_y)
+		# Only an end that reaches the wall's own end can meet another board, and only one with
+		# a wall crossing it on THIS side has a board to meet: a run that dies at a door casing
+		# or at a wall continuing straight on is square-cut, as it is built.
+		var lo_cut := _meets(storey, wall, true, true, side)
+		var hi_cut := _meets(storey, wall, false, true, side)
 		for r: Vector2 in runs:
 			if r.y - r.x < 0.02:
 				continue
-			trim.append(Props.part(Vector3(r.y - r.x, SKIRT_DEPTH, SKIRT_HEIGHT),
-					Vector3((r.x + r.y) * 0.5, side * (half_t + SKIRT_DEPTH * 0.5), z_floor - SKIRT_HEIGHT * 0.5)))
+			var lo := lo_cut * 0.5 if lo_cut > 0.0 and is_equal_approx(r.x, -length * 0.5) else INF
+			var hi := hi_cut * 0.5 if hi_cut > 0.0 and is_equal_approx(r.y, length * 0.5) else INF
+			trim.append(_mitred(r.x, r.y, lo, hi, side * half_t,
+					side * (half_t + SKIRT_DEPTH), z_floor - SKIRT_HEIGHT, z_floor))
 
-## The concrete band at the foot of every outside wall that meets the ground. Runs past both
-## ends by the wall's half-thickness plus its own projection, so two bands meet at an outside
-## corner instead of leaving a notch of siding between them.
+## The concrete band at the foot of every outside wall that meets the ground. Where the facade
+## turns, it runs past the wall's end to the corner and is mitred there, so two bands meet on one
+## plane instead of leaving a notch of siding between them or lapping each other.
 static func _build_plinth(storey: StoreyDef, wall: WallSegment, length: float, centre_y: float,
 		z_floor: float, plinth: Array) -> void:
 	if not wall.is_exterior():
@@ -529,13 +685,39 @@ static func _build_plinth(storey: StoreyDef, wall: WallSegment, length: float, c
 	var z_top := centre_y - (GRADE + PLINTH_TOP)
 	var z_bot := centre_y - (GRADE - PLINTH_DEPTH)
 	var z_ref := centre_y - storey.base_y
-	var ext := half_t + PLINTH_PROUD
 	var runs := _floor_runs(wall, length, 0.0, false, GRADE + PLINTH_TOP, storey, z_floor, z_ref)
+	var lo_turn := _plinth_turn(storey, wall, true, side)
+	var hi_turn := _plinth_turn(storey, wall, false, side)
 	for r: Vector2 in runs:
-		var x0 := r.x - (ext if is_equal_approx(r.x, -length * 0.5) else 0.0)
-		var x1 := r.y + (ext if is_equal_approx(r.y, length * 0.5) else 0.0)
-		plinth.append(Props.part(Vector3(x1 - x0, PLINTH_PROUD + 0.01, z_bot - z_top),
-				Vector3((x0 + x1) * 0.5, side * (half_t + PLINTH_PROUD * 0.5 - 0.005), (z_top + z_bot) * 0.5)))
+		var at_lo := is_equal_approx(r.x, -length * 0.5)
+		var at_hi := is_equal_approx(r.y, length * 0.5)
+		# An end that dies at an opening is let PLINTH_BITE further into it. Stopped on the rim,
+		# the band's end face lies in the reveal's own plane for exactly the 10 mm it is let into
+		# the wall, and both faces look the same way — the last seam at the garage door.
+		plinth.append(_mitred(r.x if at_lo else r.x - PLINTH_BITE,
+				r.y if at_hi else r.y + PLINTH_BITE,
+				lo_turn if at_lo else INF, hi_turn if at_hi else INF,
+				side * (half_t - PLINTH_BITE), side * (half_t + PLINTH_PROUD), z_top, z_bot))
+
+## The mitre at one end of a plinth run, in the units `_mitred` takes: positive shortens the band
+## at a re-entrant corner, negative runs it out past the wall's end at a projecting one, and INF
+## leaves the end square. A wall continuing straight on takes no mitre at all — run past there and
+## two collinear bands on one facade lap each other by a quarter of a metre over their whole
+## height, which was 27 of the seams the author walked into.
+##
+## Which of the two a turn is comes from the side the neighbour reaches toward. A neighbour that
+## reaches toward the plinth's own face closes the corner in, and the band has to stop where the
+## neighbour's band begins; one that reaches the other way opens it out, and the band runs on past
+## the wall's end to meet its neighbour round the corner. Treating every turn as projecting laps
+## the band over its neighbour at every re-entrant corner in the facade.
+static func _plinth_turn(storey: StoreyDef, wall: WallSegment, at_start: bool, side: float) -> float:
+	if _meets(storey, wall, at_start, false) > 0.0:
+		return INF
+	var inner := _meets(storey, wall, at_start, true, side)
+	if inner > 0.0:
+		return inner * 0.5 - PLINTH_BITE
+	var outer := _meets(storey, wall, at_start, true, -side)
+	return PLINTH_BITE - outer * 0.5 if outer > 0.0 else INF
 
 # --- Openings ---------------------------------------------------------------------------------
 
@@ -550,7 +732,7 @@ static func _build_opening(holder: Node3D, plan: FloorPlan, storey: StoreyDef, w
 
 	if o.kind == Opening.Kind.GARAGE_DOOR:
 		_build_garage_door(o, cx, cz, half_t, parts["panel"])
-	if wall.is_exterior() and (o.kind == Opening.Kind.DOOR or o.kind == Opening.Kind.GARAGE_DOOR):
+	if o.kind == Opening.Kind.DOOR or o.kind == Opening.Kind.GARAGE_DOOR:
 		_build_steps(holder, plan, storey, wall, o, cx, z_ref, z_floor, half_t)
 	if o.kind == Opening.Kind.GARAGE_DOOR:
 		return
@@ -569,18 +751,28 @@ static func _build_opening(holder: Node3D, plan: FloorPlan, storey: StoreyDef, w
 		# garage door head.
 		var y := side * (half_t + TRIM_DEPTH * 0.5 - TRIM_PROUD)
 		var w := o.width + TRIM_WIDTH * 2.0
-		trim.append(Props.part(Vector3(TRIM_WIDTH, TRIM_DEPTH, o.height),
-				Vector3(cx - o.width * 0.5 - TRIM_WIDTH * 0.5, y, cz)))
-		trim.append(Props.part(Vector3(TRIM_WIDTH, TRIM_DEPTH, o.height),
-				Vector3(cx + o.width * 0.5 + TRIM_WIDTH * 0.5, y, cz)))
-		trim.append(Props.part(Vector3(w, TRIM_DEPTH, TRIM_WIDTH),
-				Vector3(cx, y, cz - o.height * 0.5 - TRIM_WIDTH * 0.5)))
+		# Casing laps TRIM_PROUD over the reveal, as real casing does — it covers the joint
+		# between the lining and the wall rather than stopping on it. Stopping on it is what
+		# the author saw at every door on 2026-09-10: the casing is let TRIM_PROUD into the
+		# wall face, so an edge that stops at the opening leaves TRIM_PROUD of itself lying
+		# exactly in the reveal's own plane, and 132 bands of trim and plaster fought there.
+		# The lap moves that edge inside the opening, where there is nothing to fight.
+		var jamb := o.height + TRIM_PROUD * 2.0
+		trim.append(Props.part(Vector3(TRIM_WIDTH + TRIM_PROUD, TRIM_DEPTH, jamb),
+				Vector3(cx - o.width * 0.5 - (TRIM_WIDTH - TRIM_PROUD) * 0.5, y, cz)))
+		trim.append(Props.part(Vector3(TRIM_WIDTH + TRIM_PROUD, TRIM_DEPTH, jamb),
+				Vector3(cx + o.width * 0.5 + (TRIM_WIDTH - TRIM_PROUD) * 0.5, y, cz)))
+		trim.append(Props.part(Vector3(w, TRIM_DEPTH, TRIM_WIDTH + TRIM_PROUD),
+				Vector3(cx, y, cz - o.height * 0.5 - (TRIM_WIDTH - TRIM_PROUD) * 0.5)))
 		if o.kind != Opening.Kind.WINDOW:
 			continue
 		# Sill board: only a window has one, and it projects, which is what stops a window
-		# reading as a rectangle painted on the wall.
+		# reading as a rectangle painted on the wall. It sits TRIM_PROUD up into the opening
+		# for the same reason the casing laps: level with the rough sill, its top face and the
+		# reveal's shared a 53 mm band the whole width of every window in the house.
 		trim.append(Props.part(Vector3(w, TRIM_DEPTH * 2.6, TRIM_WIDTH * 1.6),
-				Vector3(cx, y - side * TRIM_DEPTH * 0.8, cz + o.height * 0.5 + TRIM_WIDTH * 0.8)))
+				Vector3(cx, y - side * TRIM_DEPTH * 0.8,
+				cz + o.height * 0.5 + TRIM_WIDTH * 0.8 - TRIM_PROUD)))
 
 ## Outer frame at the wall's mid-plane, vertical mullions dividing the width into panes no wider
 ## than PANE_MAX_WIDTH, and a meeting rail across the middle of a tall window.
@@ -607,42 +799,76 @@ static func _build_garage_door(o: Opening, cx: float, cz: float, half_t: float, 
 		var z := top_z + leaf_h * 0.5 + float(i) * (leaf_h + GARAGE_LEAF_GAP)
 		panel.append(Props.part(Vector3(o.width - 0.02, 0.055, leaf_h), Vector3(cx, -(half_t - 0.075), z)))
 
-## Steps (or, for a garage door, a ramp) from the ground outside an exterior door up to its
-## floor. The ground is whatever paved zone lies outside the door, else grade; a door that opens
-## onto a deck at its own level gets nothing. Built in wall-local space with the flight's `u`
-## pointing outward, so one profile serves every wall orientation.
+## Steps (or, for a garage door, a ramp) from the lower side of a door up to its floor. Outside,
+## the lower side is whatever paved zone lies beyond the door, else grade; a door that opens onto
+## a deck at its own level gets nothing. Inside, it is the lower of the two rooms — the garage —
+## whose slab edge in the doorway was one 0.33 m riser the body had to stop and be lifted over
+## (`dev/WalkProbe.gd`, step.smooth: 25 frames at a standstill, 2026-09-14). Built in wall-local
+## space with the flight's `u` pointing at the lower side, so one profile serves every wall.
 static func _build_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, wall: WallSegment,
 		o: Opening, cx: float, z_ref: float, z_floor: float, half_t: float) -> void:
 	var side := 1.0 if wall.room_a == &"" else -1.0
-	var outward := wall.normal() * side
-	var outside := wall.at_u(o.at) + outward * (half_t + 0.5)
-	var ground := ground_level(plan, storey, outside)
+	var ground := 0.0
+	# How far into the wall the top tread starts. Outside, the flight starts at the wall face; an
+	# inside door has no footing across its threshold, and the upper room's floor stops
+	# `SLAB_TUCK` past the wall's centre line (`_tucked`), so the top tread carries on from there.
+	# Started at the centre line instead, the ramp's top ran under that slab's edge and left a
+	# 4 cm lip the body caught on for two frames (2026-09-14).
+	var lead := 0.0
+	if wall.is_exterior():
+		var outside := wall.at_u(o.at) + wall.normal() * side * (half_t + 0.5)
+		ground = ground_level(plan, storey, outside)
+	else:
+		var a := storey.room(wall.room_a)
+		var b := storey.room(wall.room_b)
+		if a == null or b == null:
+			return
+		var ya := a.floor_y(storey.base_y)
+		var yb := b.floor_y(storey.base_y)
+		side = 1.0 if ya < yb else -1.0
+		ground = minf(ya, yb)
+		lead = half_t - SLAB_TUCK
 	var floor_world := storey.base_y + (z_ref - z_floor)
 	var rise := floor_world - ground
 	if rise < 0.05:
 		return
 	var profile := PackedVector2Array()
 	var run := 0.0
-	if o.kind == Opening.Kind.GARAGE_DOOR:
+	var is_ramp := o.kind == Opening.Kind.GARAGE_DOOR
+	if is_ramp:
 		run = RAMP_RUN
 		profile.append(Vector2(0.0, 0.0))
 		profile.append(Vector2(run, -rise))
 	else:
 		var n := maxi(1, int(ceil(rise / STEP_RISER_MAX)))
 		var r := rise / float(n)
-		run = STEP_GOING * float(n)
+		run = lead + STEP_GOING * float(n)
 		profile.append(Vector2(0.0, 0.0))
 		for i in range(1, n + 1):
-			profile.append(Vector2(STEP_GOING * float(i), -r * float(i - 1)))
-			profile.append(Vector2(STEP_GOING * float(i), -r * float(i)))
+			profile.append(Vector2(lead + STEP_GOING * float(i), -r * float(i - 1)))
+			profile.append(Vector2(lead + STEP_GOING * float(i), -r * float(i)))
 	profile.append(Vector2(run, -rise - STEP_BURY))
 	profile.append(Vector2(0.0, -rise - STEP_BURY))
-	var extra := 0.0 if o.kind == Opening.Kind.GARAGE_DOOR else STEP_SIDE
-	var mesh := Props.extrude(profile, Vector3(cx, side * half_t, z_floor),
-			Vector3(0.0, side, 0.0), Vector3(0.0, 0.0, -1.0), Vector3.RIGHT,
+	var extra := 0.0 if is_ramp else STEP_SIDE
+	var going := Vector3(0.0, side, 0.0)
+	var down := Vector3(0.0, 0.0, -1.0)
+	var across := Vector3.RIGHT
+	var origin := Vector3(cx, side * (half_t - lead), z_floor)
+	var mesh := Props.extrude(profile, origin, going, down, across,
 			-o.width * 0.5 - extra, o.width * 0.5 + extra)
+	# A ramp's own trimesh is already a smooth incline, so it stays its own collider. Real steps
+	# get a flat ramp hidden underneath instead (`ramp_collider`) and lose their trimesh
+	# collision, or the body would climb them tread by tread, stuttering up the flight instead
+	# of striding over it (2026-09-13).
 	surface(holder, mesh, [Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true)],
-			"Ramp" if o.kind == Opening.Kind.GARAGE_DOOR else "Steps", true)
+			"Ramp" if is_ramp else "Steps", is_ramp)
+	# `down` is named for the extrusion, whose profile runs negative downward: in the wall's local
+	# space, where +Z points at the ground, it is the world's up. Passing `-down` as `up` built the
+	# ramp standing on the flight rather than under it, 0.4 m proud of the front steps and the
+	# garage steps alike (2026-09-14). So the ramp starts at the foot and climbs back to the door.
+	if not is_ramp:
+		ramp_collider(holder, origin + going * run - down * rise, -going, down, across, run, rise,
+				o.width + extra * 2.0, RAMP_THICKNESS)
 
 ## World Y of the ground at a plan point: the paved zone there if any, else grade.
 static func ground_level(plan: FloorPlan, storey: StoreyDef, at: Vector2) -> float:
@@ -678,7 +904,7 @@ static func surface(parent: Node3D, mesh: ArrayMesh, materials: Array, node_name
 
 ## The roof is generated from the plan like everything else, so the attic is inside the roof
 ## volume by construction rather than by an author remembering to keep it there.
-static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef) -> void:
+static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef, underside: int) -> void:
 	var holder := Node3D.new()
 	holder.name = "Roof"
 	parent.add_child(holder)
@@ -716,6 +942,7 @@ static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef) -> void:
 	var roof_mats: Array = [tiles, boards, fascia]
 	surface(holder, Props.slab_poly(north, roof.thickness, Vector3.UP, true), roof_mats, "SlopeA", true)
 	surface(holder, Props.slab_poly(south, roof.thickness, Vector3.UP, true), roof_mats, "SlopeB", true)
+	RoomLayers.stamp_since(holder, 0, RoomLayers.bit(RoomLayers.OUTDOOR) | underside)
 
 	# The gable ends close the roof volume. Without them you see straight into the attic from
 	# the side, which is the single most common way a generated house reads as a set.
@@ -729,11 +956,19 @@ static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef) -> void:
 		# The gable continues the wall below it, so it has to sit on the wall's OUTER face, not
 		# on the footprint centre line — otherwise the elevation shows a 10 cm step at the wall
 		# head where the siding suddenly recedes.
-		var out_u := u + (roof.wall_thickness * 0.5 if is_equal_approx(u, g1) else -roof.wall_thickness * 0.5)
+		#
+		# `out` is which way is outward at this end, and it does both jobs: it puts the triangle
+		# on the outer face, and it turns the extrusion inward from there. `slab_poly` extrudes
+		# AGAINST the normal it is given, so passing a fixed +1 built the far gable correctly and
+		# the near one a full wall thickness clear of the house — 0.175 m of gable hanging past
+		# the siding with the wall head showing under it, which is what the author saw floating
+		# over the west elevation (2026-09-11).
+		var out := 1.0 if is_equal_approx(u, g1) else -1.0
+		var out_u := u + out * roof.wall_thickness * 0.5
 		var tri := PackedVector3Array([_uv(along_x, out_u, roof.eave_y, gv0),
 				_uv(along_x, out_u, roof.eave_y, gv1), _uv(along_x, out_u, ridge, vm)])
 		# the gable fills from the wall head to the ridge, so the lift never opens a slot
-		surface(holder, Props.slab_poly(tri, roof.wall_thickness, _uv(along_x, 1.0, 0.0, 0.0)),
+		surface(holder, Props.slab_poly(tri, roof.wall_thickness, _uv(along_x, out, 0.0, 0.0)),
 				[gable], "Gable", true)
 
 	# The ridge cap: a run of capping tiles over the joint, sitting on the two slopes it covers.
@@ -821,7 +1056,16 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 		profile.append(Vector2(going * float(i + 1), riser * float(i + 1)))
 	# drop down to the upper floor's slab underside so the flight reads as built, not floating
 	profile.append(Vector2(stair.run, rise - FLOOR_SLAB))
-	profile.append(Vector2(going * 2.0, 0.0))
+	# A flight with another flight going down under it — the basement stair under the main one —
+	# cannot be solid to the floor, or there is nowhere for the lower one to be. It closes along
+	# a soffit parallel to its own pitch instead, which is how a stair over a stair is built, and
+	# the under-stair wall on its open side (`_spandrel`) is what closes the space off.
+	var below := _flight_below(plan, stair)
+	var soffit_foot := FLOOR_SLAB * stair.run / rise
+	# A ladder closes the same way: built solid to the floor, the attic ladder was a wooden block
+	# the size of a wardrobe standing in the upstairs hall.
+	var open_under := below != null or stair.width < LADDER_WIDTH
+	profile.append(Vector2(soffit_foot if open_under else going * 2.0, 0.0))
 
 	var u := Vector3(stair.direction.x, 0.0, stair.direction.y)
 	var w := Vector3(-stair.direction.y, 0.0, stair.direction.x)
@@ -843,6 +1087,8 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 		var probe := stair.foot + stair.direction * stair.run * 0.5 + across * s * (stair.width * 0.5 + OPEN_PROBE)
 		if lower.contains(probe):
 			_build_rake_rail(rails, stair, s, y0, riser, going, steps)
+			if below != null:
+				_spandrel(holder, lower_storey, lower, stair, origin, u, w, s, soffit_foot, rise)
 	# Guards around the well in the upper floor, on every edge that has floor beyond it. The
 	# head edge is where the flight arrives and stays open.
 	var well := stair.footprint()
@@ -851,7 +1097,7 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 	# foot edge: outward is -direction; side edges: outward is ±across
 	var foot_mid := stair.foot - d * OPEN_PROBE
 	var y_top := y1
-	if upper.contains(foot_mid):
+	if upper.contains(foot_mid) and not _under_a_flight(plan, stair, stair.foot - d * GUARD_INSET):
 		var a := stair.foot - d * GUARD_INSET - across * (stair.width * 0.5 + GUARD_INSET)
 		var b := stair.foot - d * GUARD_INSET + across * (stair.width * 0.5 + GUARD_INSET)
 		_build_guard(rails, Vector3(a.x, y_top, a.y), Vector3(b.x, y_top, b.y))
@@ -859,12 +1105,45 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 		var mid := well.get_center() + across * s * (stair.width * 0.5 + OPEN_PROBE)
 		if not upper.contains(mid):
 			continue
+		# An edge under a flight standing in the room above is closed by that flight's under-stair
+		# wall, and a rail there would stand inside it.
+		if _under_a_flight(plan, stair, well.get_center() + across * s * (stair.width * 0.5 + GUARD_INSET)):
+			continue
 		var a := stair.foot + across * s * (stair.width * 0.5 + GUARD_INSET) - d * GUARD_INSET
 		var b := a + d * (guard_len + GUARD_INSET)
 		_build_guard(rails, Vector3(a.x, y_top, a.y), Vector3(b.x, y_top, b.y))
 	_emit(holder, rails["post"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Balusters")
 	_emit(holder, rails["rail"], Mats.of(stair.tread_slot, Color.WHITE, 0.6, 1.0, true), "Handrail")
 	_emit_barrier(holder, rails["barrier"])
+
+## The flight that goes down from this flight's own floor through the space under it, or null.
+static func _flight_below(plan: FloorPlan, stair: StairDef) -> StairDef:
+	for other: StairDef in plan.stairs:
+		if other != stair and other.upper_room == stair.lower_room \
+				and other.footprint().intersects(stair.footprint()):
+			return other
+	return null
+
+## Whether a point on this flight's well edge lies under a flight that stands in the room this one
+## arrives in.
+static func _under_a_flight(plan: FloorPlan, stair: StairDef, at: Vector2) -> bool:
+	for other: StairDef in plan.stairs:
+		if other != stair and other.lower_room == stair.upper_room and other.footprint().has_point(at):
+			return true
+	return false
+
+## The wall under a flight's open side, from the floor to its soffit: the triangle a real stair
+## over a basement stair is closed with, plastered like the room it faces. It is solid, because
+## what is behind it is a hole down to the basement.
+static func _spandrel(holder: Node3D, storey: StoreyDef, room: RoomDef, stair: StairDef,
+		origin: Vector3, u: Vector3, w: Vector3, side: float, soffit_foot: float, rise: float) -> void:
+	var tri := PackedVector2Array([Vector2(soffit_foot, 0.0),
+			Vector2(stair.run, rise - FLOOR_SLAB), Vector2(stair.run, 0.0)])
+	var outer := side * stair.width * 0.5
+	var inner := outer - side * SPANDREL
+	var mesh := Props.extrude(tri, origin, u, Vector3.UP, w, minf(inner, outer), maxf(inner, outer))
+	surface(holder, mesh, [Mats.of(room.wall_slot, Color(1.32, 1.34, 1.36), 0.95, room.wall_scale, true)],
+			"Spandrel", true)
 
 ## One static body carrying every guard on this flight. A guard is a barrier in the physics
 ## world even though it is balusters in the visual one, so `size` and `transform` are given
@@ -893,19 +1172,34 @@ static func _emit_barrier(holder: Node3D, bars: Array) -> void:
 ## which nobody sees, because there is no visible body to see them against (`docs/VISION.md`).
 static func _stair_ramp(holder: Node3D, stair: StairDef, origin: Vector3, u: Vector3, w: Vector3,
 		rise: float) -> void:
-	var along := (u * stair.run + Vector3.UP * rise).normalized()
-	var normal := w.cross(along).normalized()
-	if normal.y < 0.0:
+	ramp_collider(holder, origin, u, Vector3.UP, w, stair.run, rise, stair.width, RAMP_THICKNESS)
+
+## The same hidden flat ramp under any other tread-by-tread flight — the outside steps at a
+## door and the ones off the deck. Climbing real treads used to mean `PlayerController._step_up`
+## surmounting each riser as its own lip, one lift per tread: on a three- or four-riser run that
+## is a visible stutter up the flight rather than a stride over it, which is what a 17-19 cm
+## exterior riser read as (2026-09-13). `_stair_ramp`'s box already solved exactly this for the
+## interior flights; this is that same box built from a going/up/across frame instead of a
+## `StairDef`, so a caller that has no stair — a wall-local opening, a deck edge — can still ask
+## for one. `going` and `up` need not be world axes: `_build_steps` works in a wall's local space,
+## where "up" is that wall's local vertical, not global Y.
+static func ramp_collider(holder: Node3D, origin: Vector3, going: Vector3, up: Vector3,
+		across: Vector3, run: float, rise: float, width: float, thickness: float) -> void:
+	var along := (going * run + up * rise).normalized()
+	var normal := across.cross(along).normalized()
+	if normal.dot(up) < 0.0:
 		normal = -normal
-	var length := sqrt(stair.run * stair.run + rise * rise)
-	var centre := origin + u * (stair.run * 0.5) + Vector3.UP * (rise * 0.5) \
-			- normal * (RAMP_THICKNESS * 0.5)
+	var length := sqrt(run * run + rise * rise)
+	var centre := origin + going * (run * 0.5) + up * (rise * 0.5) - normal * (thickness * 0.5)
+	# X across the flight, Y its face normal, Z along it. Z is derived rather than taken as
+	# -along: flipping `normal` above for a flight that runs toward -Y in wall space made
+	# (across, normal, -along) left-handed, a mirrored box, and the garage steps' ramp stopped the
+	# body dead at its foot (2026-09-14). The box is symmetric, so which way Z points is free.
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(stair.width, RAMP_THICKNESS, length)
+	shape.size = Vector3(width, thickness, length)
 	var node := CollisionShape3D.new()
 	node.shape = shape
-	# X across the flight, Y its face normal, Z along it. Right-handed, so Z is -along.
-	node.transform = Transform3D(Basis(w, normal, -along), centre)
+	node.transform = Transform3D(Basis(across, normal, across.cross(normal)), centre)
 	var body := StaticBody3D.new()
 	body.name = "FlightBody"
 	body.add_child(node)
@@ -957,7 +1251,7 @@ static func _build_guard(rails: Dictionary, a: Vector3, b: Vector3) -> void:
 	for p: Vector3 in [a, b] as Array[Vector3]:
 		rails["post"].append(Props.part(Vector3(NEWEL, post_h, NEWEL), p + Vector3.UP * post_h * 0.5))
 	var basis := Basis(dir, Vector3.UP, dir.cross(Vector3.UP))
-	rails["rail"].append([Props.box(Vector3(length + NEWEL, HANDRAIL.y, HANDRAIL.x)),
+	rails["rail"].append([Props.box(Vector3(length - NEWEL + RAIL_TENON * 2.0, HANDRAIL.y, HANDRAIL.x)),
 			Transform3D(basis, (a + b) * 0.5 + Vector3.UP * (RAIL_HEIGHT + HANDRAIL.y * 0.5))])
 	rails["barrier"].append([Vector3(length + NEWEL, RAIL_HEIGHT, BARRIER),
 			Transform3D(basis, (a + b) * 0.5 + Vector3.UP * RAIL_HEIGHT * 0.5)])

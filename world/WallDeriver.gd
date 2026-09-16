@@ -148,6 +148,21 @@ static func pierce_exterior(walls: Array[WallSegment], room: StringName, facing:
 		return
 	_add(wall, opening, at_fraction)
 
+## As `pierce_between`, with the opening centred on a plan coordinate along the wall — x on a
+## wall running east-west, z on one running north-south. For the openings whose position is
+## fixed by something standing beside them in the room rather than by the wall itself: a door
+## has to clear the foot of a stair or the end of a kitchen run, and a fraction of whatever
+## length the wall happens to be cannot say that.
+static func pierce_between_at(walls: Array[WallSegment], room_a: StringName, room_b: StringName,
+		opening: Opening, along: float) -> void:
+	var wall := between(walls, room_a, room_b)
+	if wall == null:
+		push_error("WallDeriver: no wall between '%s' and '%s'" % [room_a, room_b])
+		return
+	var start := wall.a.x if absf(wall.dir().x) > 0.5 else wall.a.y
+	var step := wall.dir().x if absf(wall.dir().x) > 0.5 else wall.dir().y
+	_add(wall, opening, (along - start) * step / wall.length())
+
 static func _add(wall: WallSegment, opening: Opening, at_fraction: float) -> void:
 	opening.at = wall.length() * at_fraction
 	wall.openings.append(opening)

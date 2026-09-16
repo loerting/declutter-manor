@@ -22,57 +22,86 @@ That brackets the zone count between 18 and 42. Two further constraints narrow i
 - **Every zone must earn a distinct ambience bed** (see the audio decision in `VISION.md`). A zone
   that sounds like the room next door is not a zone, it is a corner.
 
-**26 zones**, ~9.6 items each, ~7 minutes of attention each. Lot 26 x 19 m, house footprint
-13 x 9.5 m plus an attached 6 x 6.5 m garage.
+**25 zones**, ~10 items each, ~7.2 minutes of attention each. Lot 26 x 19 m, house footprint
+13 x 9.5 m plus an attached 6 x 5.5 m garage.
+
+The first programme had 26, and several of them existed to make the number rather than because a
+house has them: a basement "stair hall", a 2 x 2.5 m mud room with three doors, a pantry nobody
+could explain. The author walked it on 2026-09-13 and asked for every room to be one an American
+family house actually has, where one actually is. The redesign landed on 25, which is still
+inside the 18-42 bracket above; nothing downstream reads the exact count except
+`Balance.TARGET_ZONE_COUNT`.
 
 ## The programme
 
-**Basement — 6 zones.** Stair hall, laundry, workshop, storage room, utility/boiler, rec room.
-The workshop and storage room are where large-tier items live and where the tool sets go home.
+Every zone is named for what the family uses it for, because that is what decides which items
+belong in it — a zone whose purpose cannot be said in one line is not a zone.
 
-**Ground floor — 8 zones.** Entry hall, living room, kitchen, dining room, powder room,
-pantry/mud room, home office, attached garage. The kitchen carries the densest container work
-(drawers, cabinets, fridge) and is the reference implementation for the place-slot system.
+**Basement — 5 zones.** Rec room (the finished half, where the stair comes down: the couch, the
+TV, the kids' games), laundry (washer, dryer, detergent, the basket), utility (furnace, water
+heater, breaker panel, paint cans), workshop (the bench and the tools), storage (boxes,
+suitcases, seasonal decorations). The workshop and storage are where large-tier items live and
+where the tool sets go home.
 
-**Upper floor — 8 zones.** Landing, master bedroom, walk-in closet, master bath, child bedroom 1,
-child bedroom 2, family bath, attic (pull-down ladder). The attic is deliberately small,
-awkward to reach, and holds the most absurd misplacements — it is the payoff for the concept's
+**Ground floor — 8 zones.** Entry hall (coats, keys, mail, umbrellas), home office (desk, files,
+books), living room (sofa, TV, shelves), dining room (table, sideboard, the good plates),
+kitchen (cooking, the densest container work — drawers, cabinets, fridge — and the reference
+implementation for the place-slot system), mudroom (the garage entry: shoes, bags, the dog lead,
+sports kit), half bath (hand towels, soap), attached two-car garage (car stuff, bikes, garden
+tools, the recycling).
+
+**Upper floor — 7 zones.** Upstairs hall (the linen cupboard), master bedroom, walk-in closet
+(clothes, shoes), master bath, kids' room (toys, school things), guest room (the spare bed and
+whatever got put there), hall bath (the kids' bath: toys, towels).
+
+**Attic — 1 zone**, reached by a pull-down ladder from the upstairs hall. It is deliberately
+small, awkward to reach, and holds the most absurd misplacements — the payoff for the concept's
 "toaster in the attic".
 
-**Exterior — 4 zones.** Front yard and driveway, rear deck, pool area, side garden with a shed.
+**Exterior — 4 zones.** Front yard and driveway, rear deck, pool area, side garden.
 
 ## The layout as built (`world/plans/ManorPlan.gd`)
 
-A centre-hall plan. The entry hall runs front to back through the middle of the house and
-carries both stairs; the landing stacks over it and the basement stair hall under it, so the
-stairwells line up through the building the way structure does. The basement mirrors the ground
-floor so every wall stacks. Plan metres, north (the street) at the top:
+A centre-hall plan, the most common two-storey American house there is. The front door opens into
+a hall that runs through to the back door onto the deck. The stair rises against the hall's
+east wall, from inside the front door toward the back; the basement stair goes down directly
+under it the other way, behind an under-stair wall, and is entered from the back of the hall
+where the main flight overhead is at its highest. Plan metres, north (the street) at the top:
 
-               x: 4        8       11.8      14       17          23
-        z 6      +--------+--------+-----------------+-----------+
-                 | office | entry  | dining          |  garage   |
-        z 9      +--------+  hall  +-----------------+           |
-                 | living |        | kitchen         |           |
-        z 11.5   |        |        |                 +-----------+
-        z 13     |        |        +--------+--------+
-        z 15.5   +--------+--------+ mud    | powder |
+               x: 4        8     11     14.5    17          23
+        z 6      +--------+------+-------------+-----------+
+                 | office | hall |   dining    |  garage   |
+        z 9.5    +--------+  |S| +------+------+           |
+                 |        |  |S| |      | mud  |           |
+        z 11.5   | living |      |kitch-| room +-----------+
+        z 13     |        |      | en   +------+
+                 |        |      |      | half |
+        z 15.5   +--------+------+------+ bath +
 
-**The stair core is 3.8 m wide, and that width is derived rather than chosen.** Two 0.9 m
-flights stand side by side down the middle of it — the main flight climbing south, away from
-the front door, and the basement flight climbing north beside it — which leaves 0.85 m of clear
-walkway against each side wall. Every door on those walls needs `Balance.DOOR_CLEARANCE` of
-floor in front of it, and at the 3.0 m the hall was first authored at there was 0.5 m: five
-doorways in the house opened onto the side of a flight, two of them the only doors of two
-bedrooms. `dev/PlanProbe.gd` now measures it, so the hall cannot be narrowed again without the
-probe saying which doors it broke.
+West of the hall, the office at the front and the living room behind it. East, the dining room at
+the front and the kitchen behind it, with the mudroom between the kitchen and the garage —
+the door the groceries come in by — and the half bath off the mudroom.
 
-Upper floor: children's rooms over the office and living room, family bath over the front of
-the hall, landing over the back of it, closet and master bath over the dining room, master
-bedroom over the kitchen. Basement: laundry / rec room west, storage / workshop / utility east,
-stair hall in the middle. The attic is a 12.4 x 2.5 m band astride the ridge, reached by a
-steep ladder-flight from the landing, with knee walls derived from the roof pitch and gable
-tops on its two end walls, which run across the slope and would otherwise stop at knee height
-with the roof still climbing above them.
+Upstairs: kids' room and guest room west, the upstairs hall over the ground hall with the
+stairwell against its east wall and the attic ladder against its west wall, the hall bath at
+its back, and the master suite east — bedroom behind, walk-in closet and bath at the front.
+Basement: the stair comes down into the rec room under the west half; laundry and utility behind
+it, workshop and storage east under the kitchen wing.
+
+**No flight stands in the middle of a room.** The first two layouts put both flights abreast down
+the middle of a 3.8 m stair hall, with a lane either side, because five doorways needed
+`Balance.DOOR_CLEARANCE` and a centred pair was the first arrangement the probe accepted. No house
+is built like that, and the author said so. Stacking the basement flight under the main one is
+what makes a wall-hugging stair possible: the main flight closes along a soffit instead of solid
+to the floor (`HouseBuilder._flight_below`), and its open side is closed with a plastered
+spandrel down to the floor (`HouseBuilder._spandrel`), which `dev/WalkProbe.gd` drives a body
+into. Every door on the hall's east wall sits either in front of the stair's foot or behind its
+head, placed by coordinate (`WallDeriver.pierce_between_at`), and `dev/PlanProbe.gd` still
+measures every doorway's clearance.
+
+The attic is a 12.4 x 2.5 m band astride the ridge, with knee walls derived from the roof pitch
+and gable tops on its two end walls. The ladder's whole run has to lie under that band: a ladder
+half outside it climbs into the knee wall, which `WalkProbe` measured.
 
 Outdoors: driveway north of the garage, deck behind the hall, pool surround behind the kitchen
 wing, side garden along the west wall. The deck is 6 x 3 m of boards level with the floor

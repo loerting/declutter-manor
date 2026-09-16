@@ -435,28 +435,34 @@ not a fallback nobody looks at**:
 | Medium | `VoxelGI` baked once at load from the generated house | SSAO, lower shadow quality |
 | Low | Ambient + reflection probes only | No SSIL, no SSAO |
 
-### A bulb burns in its own room, and nowhere else
+### A bulb lights its own room, and nowhere else
 
-`LightCuller` decides which of the 26 room bulbs are on. The first version left every bulb
-burning and gave shadow maps to the four nearest, which cost 39,704 draw calls before it and
-1,605 after — and was wrong in a way no draw-call count shows: **an omni light with no shadow
-map shines through walls.** Twenty-two bulbs were lighting rooms they are not in; the set of
-which four were shadowed changed as the player moved; and so the lighting in a room changed
-noticeably as the player entered it. That is what the author reported on 2026-09-09, twice, as
-two separate problems.
+**Nothing about the lighting depends on where the player stands.** Every room bulb burns all
+the time and none carries a shadow map; `RoomLayers` puts each room's geometry on a render layer
+and sets each bulb's `light_cull_mask` to its own room's layer (plus layer 1, which items are on).
+A bulb therefore cannot light a room it is not in, whatever walls are between — which is the one
+thing its shadow map was ever preventing that a player could see.
 
-So the rule is the floor plan's rather than the camera's. A bulb burns when the eye is in its
-room or in a room that shares a wall or a flight of stairs with it — adjacency derived from the
-wall list and the stair list, so a plan change cannot leave a stale one behind — and the
-nearest `SHADOWED` of the burning bulbs carry shadow maps, the eye's own room first. Nothing
-two rooms away burns at all, so nothing lights through a wall it should not, and a bulb that
-changes state is behind two walls. The bulb carries its own room id (`RoomLight`) instead of
-being matched to one by position: a bulb near a wall is nearer to the room on the far side of
-it than to half of its own.
+Two rooms share a layer only when neither bulb's range reaches the other room's box, grown to
+the middle of its walls and through its slabs; a flight counts as part of both rooms it joins. It
+is a greedy colouring, and the house needs about ten of the eighteen room layers. A wall is drawn
+on both its rooms' layers, which is correct: each face looks into one room, and a bulb on the
+far side sees that face from behind and lights nothing. The outside — terrain, paving, roof tops,
+fascia — is on layer 20, which only the sun lights; a roof's slopes are also on the layers of any
+ceilingless room under them, which is how the attic bulb lights its boards.
 
-Outdoors the eye is in no room, and the house then lights itself the old way — every bulb on,
-none shadowed — because that is the arrangement the approved exterior gate renders were made
-with, and an unshadowed light costs one pass.
+This replaced `LightCuller`, which switched bulbs on and off around the player and gave shadow
+maps to the nearest few. It was wrong in a way no draw-call count shows: **an omni light with no
+shadow map shines through walls**, so which bulbs were on decided how bright the room you stood
+in was. The author reported "the lighting changes every time I enter a room" on 2026-09-09 and
+again on 2026-09-13. `dev/HouseView.gd --eye=x,y,z` renders one frame with the bulbs chosen from
+a different position: the hall seen from the front door changed 61% of its pixels between the eye
+in the hall and the eye one step into the living room under the culler, and 0.0% under layers.
+`dev/PlanProbe.gd` (`light.leak`) builds the house and fails if any bulb's layers reach a mesh
+inside its range and outside its room; with every bulb's mask set to all layers it reports 24.
+
+Only the reflection probes are still culled by room (`ProbeCuller`): a probe affects only what
+stands inside its own box, so one two rooms away changes nothing the eye can see.
 
 Forward+ is the target renderer; the Compatibility renderer is the floor for old and integrated
 GPUs, selected at launch and requiring a restart. **The Phase 1 gate includes renders at all three

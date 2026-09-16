@@ -54,7 +54,7 @@ belongs elsewhere.
 
 Standing on the first commit of the phase: the controller, `WorldBuilder` as the single path
 into a lit house, stair ramps, the plan-authored spawn, and `dev/WalkProbe.gd`, which drops a
-real body into all 26 zones and walks it up all three flights.
+real body into every zone and walks it up all three flights.
 
 Standing on the second: the whole place-slot system (`PlaceSlotGroup` + `PlaceSlots`, all three
 fill orders), `CarryComponent`, the `Inventory` autoload, the ghost preview with its white

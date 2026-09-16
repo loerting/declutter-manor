@@ -32,6 +32,23 @@ const SHADOW_ATLAS := {Tier.LOW: 4096, Tier.MEDIUM: 4096, Tier.HIGH: 8192}
 ## 16-bit depth over a 40 m cascade resolves to well under a millimetre and halves the atlas.
 const SHADOW_16_BITS := true
 
+## Every room gets a reflection probe, on every tier. This is not polish: a metal in Godot has
+## no diffuse response at all, so it renders nothing but what it reflects, and the manor's
+## interiors gave it nothing to reflect. Twelve steel spoons on a stone worktop came out as
+## flat dark smudges and were reported missing twice by the author before the cause was found
+## (2026-09-10) — SDFGI's cascades are far too coarse to resolve a 6 mm spoon, and the low tier
+## has no GI at all. Reflections are what makes the game's only pickup readable, so they are
+## not a setting the low tier goes without.
+##
+## `interior` keeps the sky out of a room that cannot see it; ambient stays DISABLED because
+## the environment and SDFGI already light the room and a probe adding its own on top blew
+## every interior render out. Baked once at build time: nothing in the house moves except
+## drawers and doors, and a probe that re-renders six faces a frame is not affordable.
+const PROBE_INTENSITY := 1.0
+## Grown past the room's own walls so the box a reflection is projected into contains the
+## surfaces standing on the boundary rather than cutting them in half.
+const PROBE_MARGIN := 0.25
+
 static func tier_name(tier: Tier) -> String:
 	match tier:
 		Tier.LOW: return "low"

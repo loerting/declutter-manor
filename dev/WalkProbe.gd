@@ -29,9 +29,33 @@ const DRIFT_EPS := 0.25
 ## Frames a body is driven at a guard rail. Half a second longer than it needs to cross the
 ## OPEN_PROBE gap at walking pace, so a body that is going to get through has got through.
 const SHOVE_FRAMES := 90
+## How far back from an opening a body starts when it is driven through it, and how long it is
+## given. Two metres at 2.8 m/s is under a second; 120 frames is twice that, so a body that is
+## going to arrive has arrived and one that is stuck has been stuck for a while.
+const APPROACH := 2.0
+const WALK_FRAMES := 120
+## What one physics frame is allowed to move the body, as a multiple of the distance walking
+## covers in one. Anything above this is not walking, it is a jump: the body left one place and
+## arrived at another without crossing what was between them, which is what the author saw going
+## over a threshold (2026-09-11). The margin is for the frame a step is actually climbed on,
+## where the body legitimately gains the height of the step as well as the length of the stride.
+const LURCH_BUDGET := 2.5
+## A body walking over a step keeps walking. Once it is up to pace, a frame that covers less
+## ground than this fraction of a stride is a frame it stood at the lip being lifted — the
+## stop-lift-go the author felt at the garage door (2026-09-14).
+const STALL_PACE := 0.6
 
 var _violations := 0
+## Frames of the last `_walk` spent below `STALL_PACE` after reaching it, and the slowest one.
+var _stall := 0
+var _slowest := 1.0
 var _stood := 0
+## The longest single-frame move of the last `_walk`, in metres, and where it happened.
+var _lurch := 0.0
+var _lurch_at := Vector3.ZERO
+## The longest of all of them, so the summary says how close the run came to the budget rather
+## than only whether it crossed it.
+var _worst_lurch := 0.0
 var _player: PlayerController
 var _plan: FloorPlan
 
@@ -57,7 +81,18 @@ func _run() -> void:
 		await _check_stair(stair)
 	for stair: StairDef in _plan.stairs:
 		await _check_guard(stair)
+		await _check_spandrel(stair)
+	for pool: PoolDef in _plan.pools:
+		await _check_pool(pool)
+	for storey: StoreyDef in _plan.storeys:
+		for wall: WallSegment in storey.walls:
+			for o: Opening in wall.openings:
+				await _check_step(storey, wall, o)
+				await _check_shut(storey, wall, o)
 	print("")
+	print("  worst single frame moved the body %.3f m, %.0f%% of a stride (budget %.0f%%)"
+			% [_worst_lurch, _worst_lurch / (Balance.WALK_SPEED
+			* get_physics_process_delta_time()) * 100.0, LURCH_BUDGET * 100.0])
 	print("WalkProbe: %d violation(s)" % _violations)
 	get_tree().quit(_violations)
 
@@ -147,11 +182,22 @@ func _check_stair(stair: StairDef) -> void:
 	# measured is that the flight lands you on the floor it serves, not how far you keep going
 	# afterwards. A flight that arrives opposite an open door used to walk the body through it.
 	Input.action_press(&"move_forward")
+	# A climb goes up. Every frame the body loses height on the way is a frame the eye bobbed,
+	# and a ramp that bounced it — lifted by the step-up, dropped back by the slope — did that
+	# every third frame on every flight (2026-09-13).
+	var prev_y := _player.global_position.y
+	var bobs := 0
 	for i in range(CLIMB_FRAMES):
 		await get_tree().physics_frame
+		var y := _player.global_position.y
+		if y < prev_y - Balance.STEP_EPSILON:
+			bobs += 1
+		prev_y = y
 		if absf(_player.global_position.y - y1) <= LAND_EPS and _player.is_on_floor():
 			break
 	Input.action_release(&"move_forward")
+	if bobs > 0:
+		_fail("stair.smooth", "%s: the body dropped back %d times on the way up" % [label, bobs])
 	var at := _player.global_position
 	if absf(at.y - y1) > LAND_EPS + 0.1:
 		_fail("stair.climb", "%s (%.1f degrees): walked up to y=%.2f, the landing is %.2f"
@@ -197,6 +243,189 @@ func _check_guard(stair: StairDef) -> void:
 		if well.has_point(Vector2(at.x, at.z)) or at.y < y1 - LAND_EPS:
 			_fail("stair.guard", "%s->%s: a body walked through the guard on the %s side and is at %.2f"
 					% [stair.lower_room, stair.upper_room, outward, at.y])
+
+## The wall under a flight that has the basement stair beneath it is all that stands between the
+## hall and a hole two storeys deep, and `_check_guard` cannot reach it: the floor beside that
+## well is inside the flight above. So it is driven at directly, from the open side of the flight
+## at the tall end of the wall, where a body would actually walk into it.
+func _check_spandrel(stair: StairDef) -> void:
+	if HouseBuilder._flight_below(_plan, stair) == null:
+		return
+	var lower := _plan.find_room(stair.lower_room)
+	var y0 := lower.floor_y(_plan.storey_of(lower.id).base_y)
+	var across := Vector2(-stair.direction.y, stair.direction.x)
+	var driven := 0
+	for s: float in [1.0, -1.0] as Array[float]:
+		var outward := across * s
+		var at := stair.foot + stair.direction * stair.run * 0.8 \
+				+ outward * (stair.width * 0.5 + Balance.PLAYER_RADIUS + 0.3)
+		if not lower.contains(at):
+			continue
+		driven += 1
+		await _drop(Vector3(at.x, y0 + DROP, at.y))
+		_player.teleport(_player.global_position, rad_to_deg(atan2(outward.x, outward.y)))
+		Input.action_press(&"move_forward")
+		for i in range(SHOVE_FRAMES):
+			await get_tree().physics_frame
+		Input.action_release(&"move_forward")
+		var now := _player.global_position
+		if stair.footprint().has_point(Vector2(now.x, now.z)) or now.y < y0 - LAND_EPS:
+			_fail("stair.spandrel", "%s->%s: a body walked through the under-stair wall and is at %s"
+					% [stair.lower_room, stair.upper_room, now])
+	if driven == 0:
+		_fail("stair.spandrel", "%s->%s has a flight below it and no open side to drive at"
+				% [stair.lower_room, stair.upper_room])
+
+## A doorway between two floors at different heights is walked up, not measured. Godot's
+## `CharacterBody3D` climbs nothing on its own, so before `PlayerController._step_up` existed
+## every one of these was a wall: the author walked the 2026-09-09 gate and could not get out
+## of the garage, whose slab is one storey slab below the hall it opens onto. Nothing here
+## tested it, because `_check_stair` only ever drove at flights — and a flight is the one lip
+## in the house that already had a hidden ramp under it.
+##
+## A front door is the same question from the garden: its steps carried a hidden ramp built
+## upside down, standing 0.4 m proud of the treads, and nothing walked up to it (2026-09-14).
+func _check_step(storey: StoreyDef, wall: WallSegment, o: Opening) -> void:
+	if o.kind != Opening.Kind.DOOR:
+		return
+	var centre := wall.at_u(o.u0() + o.width * 0.5)
+	var high: RoomDef
+	var outward: Vector2
+	var y_low: float
+	var label: String
+	if wall.is_exterior():
+		high = storey.room(wall.room_b if wall.room_a == &"" else wall.room_a)
+		if high == null:
+			return
+		outward = wall.normal() * (-1.0 if high.contains(centre + wall.normal() * 0.5) else 1.0)
+		y_low = HouseBuilder.ground_level(_plan, storey, centre + outward * APPROACH)
+		label = "outside->%s" % high.id
+	else:
+		var a := storey.room(wall.room_a)
+		var b := storey.room(wall.room_b)
+		if a == null or b == null:
+			return
+		var low := a if a.floor_y(storey.base_y) < b.floor_y(storey.base_y) else b
+		high = b if low == a else a
+		outward = wall.normal() * (1.0 if low.contains(centre + wall.normal() * APPROACH) else -1.0)
+		if not low.contains(centre + outward * APPROACH):
+			return   # the doorway is in a corner and there is nowhere to stand back to
+		y_low = low.floor_y(storey.base_y)
+		label = "%s->%s" % [low.id, high.id]
+	var y_high := high.floor_y(storey.base_y)
+	if y_high - y_low <= LAND_EPS:
+		return
+	var start := centre + outward * APPROACH
+	await _drop(Vector3(start.x, y_low + DROP, start.y))
+	if not _player.is_on_floor():
+		_fail("step.climb", "%s: no floor to start the approach on" % label)
+		return
+	# Arriving is standing on the upper floor INSIDE the upper room. Height alone is reached the
+	# moment the body is up on the threshold, which is still in the middle of the wall.
+	await _walk(-outward, WALK_FRAMES, func() -> bool:
+		var at := _player.global_position
+		return absf(at.y - y_high) <= LAND_EPS and _player.is_on_floor() \
+				and high.contains(Vector2(at.x, at.z)))
+	if _stall > 0:
+		_fail("step.smooth", "%s: the body stalled at the step for %d frames (slowest %.0f%% of walking pace)"
+				% [label, _stall, _slowest * 100.0])
+	var at := _player.global_position
+	if not high.contains(Vector2(at.x, at.z)):
+		_fail("step.climb", "%s: a %.2f m step stopped the body — it is still at y=%.2f, %.2f m short"
+				% [label, y_high - y_low, at.y, centre.distance_to(Vector2(at.x, at.z))])
+	elif absf(at.y - y_high) > LAND_EPS + 0.1:
+		_fail("step.climb", "%s: crossed but stands at y=%.2f, the floor is %.2f" % [label, at.y, y_high])
+	else:
+		print("  stepped up %s — %.2f m" % [label, y_high - y_low])
+
+## A pool is the one hole in this house deep enough to lose the player in: 1.5 m of vertical
+## wall on three sides, no jump, and nothing that ends the game and puts them back. The steps in
+## the shallow end are the whole of the way out, so they are walked, from the deep end, and the
+## body has to arrive on the paving. They did not reach the rim when this check was written — the
+## flight was divided out of the water line rather than the coping and stopped 0.48 m short, so a
+## body that fell in stayed in (the author's walk, 2026-09-11).
+func _check_pool(pool: PoolDef) -> void:
+	var c := pool.rect.get_center()
+	# Out is the paving beyond the water's edge at the step end, and standing on it is the only
+	# thing that counts. Height alone is reached on the second tread from the top.
+	var out := Vector2(pool.rect.position.x - pool.coping * 0.5, c.y)
+	var rim := HouseBuilder.ground_level(_plan, _plan.storeys[1], out)
+	# The deep end, which is the end away from the steps: they are built at the west end.
+	var deep := Vector2(pool.rect.end.x - pool.rect.size.x * 0.2, c.y)
+	await _drop(Vector3(deep.x, rim + DROP, deep.y))
+	if _player.global_position.y > rim - pool.depth * 0.5:
+		_fail("pool.escape", "'%s': a body dropped into the pool did not reach the bottom" % pool.room)
+		return
+	var arrived := func() -> bool:
+		var p := _player.global_position
+		return p.y >= rim - LAND_EPS and not pool.rect.has_point(Vector2(p.x, p.z))
+	await _walk(Vector2(-1.0, 0.0), CLIMB_FRAMES, arrived)
+	if _stall > 0:
+		_fail("pool.smooth", "'%s': the body stalled on the way out for %d frames (slowest %.0f%% of walking pace)"
+				% [pool.room, _stall, _slowest * 100.0])
+	var at := _player.global_position
+	if not arrived.call():
+		_fail("pool.escape", "'%s': a body in the pool cannot climb out — it stopped at y=%.2f, %.2f m below the rim"
+				% [pool.room, at.y, rim - at.y])
+	else:
+		print("  climbed out of '%s' — %.2f m of depth, onto the paving at y=%.2f"
+				% [pool.room, pool.depth, at.y])
+
+## A leaf that fills an opening visually has to fill it physically. An opening is a hole in the
+## wall's own collision mesh, so the two are not the same thing and nothing connects them: the
+## garage door was four painted panels with no body behind them and the author walked straight
+## through it (2026-09-09).
+func _check_shut(storey: StoreyDef, wall: WallSegment, o: Opening) -> void:
+	if o.kind != Opening.Kind.GARAGE_DOOR:
+		return
+	var inside_id := wall.room_a if wall.room_b == &"" else wall.room_b
+	var room := storey.room(inside_id)
+	if room == null:
+		return
+	var centre := wall.at_u(o.u0() + o.width * 0.5)
+	var outward := wall.normal() * (-1.0 if room.contains(centre + wall.normal()) else 1.0)
+	var start := centre + outward * APPROACH
+	await _drop(Vector3(start.x, HouseBuilder.ground_level(_plan, storey, start) + DROP, start.y))
+	await _walk(-outward, SHOVE_FRAMES, func() -> bool: return false)
+	var at := Vector2(_player.global_position.x, _player.global_position.z)
+	if room.contains(at):
+		_fail("door.solid", "'%s': a body walked through the garage door and is %.2f m inside"
+				% [inside_id, centre.distance_to(at)])
+
+## Drives the body in a plan direction until `arrived` says so or the frames run out.
+func _walk(towards: Vector2, frames: int, arrived: Callable) -> void:
+	# Same convention as `_check_stair`: the body faces -Z, so a plan direction is atan2 of its
+	# negation. Facing it the other way walks the probe out of the room it is testing.
+	_player.teleport(_player.global_position, rad_to_deg(atan2(-towards.x, -towards.y)))
+	Input.action_press(&"move_forward")
+	_lurch = 0.0
+	_stall = 0
+	_slowest = 1.0
+	var stride := Balance.WALK_SPEED * get_physics_process_delta_time()
+	var at_pace := false
+	var was := _player.global_position
+	for i in range(frames):
+		await get_tree().physics_frame
+		var moved := _player.global_position.distance_to(was)
+		if moved > _lurch:
+			_lurch = moved
+			_lurch_at = was
+		var ground := Vector2(_player.global_position.x - was.x, _player.global_position.z - was.z).length()
+		if ground >= stride * STALL_PACE:
+			at_pace = true
+		elif at_pace:
+			_stall += 1
+			_slowest = minf(_slowest, ground / stride)
+		was = _player.global_position
+		if arrived.call():
+			break
+	Input.action_release(&"move_forward")
+	var budget := Balance.WALK_SPEED * get_physics_process_delta_time() * LURCH_BUDGET
+	_worst_lurch = maxf(_worst_lurch, _lurch)
+	if _lurch > budget:
+		_fail("walk.lurch", "one frame moved the body %.3f m (%.0f%% of a stride) near %.1f,%.1f,%.1f"
+				% [_lurch, _lurch / (Balance.WALK_SPEED * get_physics_process_delta_time()) * 100.0,
+				_lurch_at.x, _lurch_at.y, _lurch_at.z])
 
 func _drop(from: Vector3) -> void:
 	_player.teleport(from)
