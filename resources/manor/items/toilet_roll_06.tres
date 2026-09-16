@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_qkxyp"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_j1goe"]
+
+[sub_resource type="Resource" id="Resource_a1pav"]
+script = ExtResource("2_j1goe")
+room = &"side_garden"
+xform = Transform3D(0.99072427, 0, -0.13588773, 0, 1, 0, 0.13588773, 0, 0.99072427, 0.7184352, -1.1920929e-07, 7.21887)
+
+[resource]
+script = ExtResource("1_qkxyp")
+id = &"toilet_roll_06"
+name_key = "item.toilet_roll"
+slot_cost = 2
+set_id = &"toilet_roll"
+generator = &"toilet_roll"
+home = &"toilet_roll_home"
+start = SubResource("Resource_a1pav")

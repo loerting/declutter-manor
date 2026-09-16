@@ -38,7 +38,7 @@ Every zone is named for what the family uses it for, because that is what decide
 belong in it — a zone whose purpose cannot be said in one line is not a zone.
 
 **Basement — 5 zones.** Rec room (the finished half, where the stair comes down: the couch, the
-TV, the kids' games), laundry (washer, dryer, detergent, the basket), utility (furnace, water
+kids' games, a table-tennis table; no TV, because the house has one and it is in the living room), laundry (washer, dryer, detergent, the basket), utility (furnace, water
 heater, breaker panel, paint cans), workshop (the bench and the tools), storage (boxes,
 suitcases, seasonal decorations). The workshop and storage are where large-tier items live and
 where the tool sets go home.
@@ -101,16 +101,20 @@ measures every doorway's clearance.
 
 The attic is a 12.4 x 2.5 m band astride the ridge, with knee walls derived from the roof pitch
 and gable tops on its two end walls. The ladder's whole run has to lie under that band: a ladder
-half outside it climbs into the knee wall, which `WalkProbe` measured.
+half outside it climbs into the knee wall, which `WalkProbe` measured. What is stored up there is what
+an attic is for: the steamer trunk with the photo albums, two stacks of boxes, an armchair under a dust
+sheet, a dressmaker's form and three rolled rugs tied with string.
 
 Outdoors: driveway north of the garage, deck behind the hall, pool surround behind the kitchen
 wing, side garden along the west wall. The deck is 6 x 3 m of boards level with the floor
 inside, on a rim beam and posts, with a flight down its south edge to the lawn and another east
 onto the pool paving. The pool is a 6.6 x 1.7 m lap pool 1.5 m deep, cut through the paving and
-the lawn under it, with a coped rim and steps at the shallow end. The side garden is gravel, tinted well down from the scan: that scan is near white, and at the
+the lawn under it, with a coped rim and steps at the shallow end; the paving runs 3.7 m past its deep
+end, where the diving board stands with the loungers and the pool bin beside it. The side garden is gravel, tinted well down from the scan: that scan is near white, and at the
 tint the other paving uses it read as a concrete slab in the aerial. The front walk is part of the driveway zone — an L from
 the driveway's west edge to the front stoop — because a path is not a place items live, and an
-exterior zone may be any polygon since only walls need rectangles.
+exterior zone may be any polygon since only walls need rectangles. The strip between the walk and the
+front wall is in the zone too, and the front flower bed fills it.
 
 The roof carries a ridge cap along the ridge and a gutter along each eave, with a downspout at
 one end of each running to the ground. The gable ends are siding, the same wall continued up.
@@ -138,6 +142,6 @@ the house had nothing to abut for two metres and was open to the sky.
 
 ## The finale
 
-The largest object needs 21 slots and is the last thing moved. Provisionally an upright piano
+The largest object needs 56 slots and is the last thing moved. Provisionally an upright piano
 sitting in the garage that belongs against the living room wall — visible from the driveway on the
 first exterior view, unmovable for the entire game, and a straight-line carry once it finally is.

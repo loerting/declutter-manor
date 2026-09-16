@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_uvhel"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_s7xwy"]
+
+[sub_resource type="Resource" id="Resource_csqs0"]
+script = ExtResource("2_s7xwy")
+room = &"entry_hall"
+xform = Transform3D(-0.2251976, -0.97431314, -4.258858e-08, 0, -4.371139e-08, 1, -0.97431314, 0.2251976, 9.8437e-09, 8.907193, 0.52500004, 14.766839)
+
+[resource]
+script = ExtResource("1_uvhel")
+id = &"cushion_03"
+name_key = "item.cushion"
+slot_cost = 2
+set_id = &"cushion"
+generator = &"cushion"
+params = {
+"tint": Color(0.93, 0.88, 0.78, 1)
+}
+home = &"cushion_home"
+start = SubResource("Resource_csqs0")

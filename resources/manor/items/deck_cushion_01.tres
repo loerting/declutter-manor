@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_mmsvi"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_gevch"]
+
+[sub_resource type="Resource" id="Resource_mmsvi"]
+script = ExtResource("2_gevch")
+room = &"laundry"
+xform = Transform3D(-4.371138e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138e-08, -0.69799995, 0.23000002, 0.42000008)
+container = &"laundry_washer_dryer_door"
+
+[resource]
+script = ExtResource("1_mmsvi")
+id = &"deck_cushion_01"
+name_key = "item.deck_cushion"
+slot_cost = 4
+set_id = &"deck_cushion"
+generator = &"deck_cushion"
+home = &"deck_cushion_home"
+start = SubResource("Resource_mmsvi")

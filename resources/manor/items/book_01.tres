@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_2a04d"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_qxd1c"]
+
+[sub_resource type="Resource" id="Resource_2a04d"]
+script = ExtResource("2_qxd1c")
+room = &"kitchen"
+xform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.10750008, 0.013400018, 0.0002002716)
+anchor = &"kitchen_fridge_freezer"
+
+[resource]
+script = ExtResource("1_2a04d")
+id = &"book_01"
+name_key = "item.book"
+set_id = &"book"
+generator = &"book"
+params = {
+"bands": 2,
+"height": 0.215,
+"tint": Color(0.16, 0.22, 0.36, 1),
+"width": 0.026
+}
+home = &"book_home"
+start = SubResource("Resource_2a04d")

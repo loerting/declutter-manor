@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_laundry_washer_dryer_0"]
+script = ExtResource("2_psg")
+id = &"laundry_basket_home"
+name_key = "home.laundry_basket_home"
+accepts = Array[StringName]([&"laundry_basket"])
+capacity = 2
+step = Vector3(0, 0.06, 0)
+anchor = &"beside"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"laundry_washer_dryer"
+generator = &"washer_dryer"
+room = &"laundry"
+wall = 2
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_laundry_washer_dryer_0")])

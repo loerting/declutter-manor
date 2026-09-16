@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_knnig"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_aiyec"]
+
+[sub_resource type="Resource" id="Resource_knnig"]
+script = ExtResource("2_aiyec")
+room = &"pool_area"
+anchor = &"pool_diving_board_tip"
+
+[resource]
+script = ExtResource("1_knnig")
+id = &"decoration_box_01"
+name_key = "item.decoration_box"
+slot_cost = 8
+set_id = &"decoration_box"
+generator = &"decoration_box"
+params = {
+"lid": Color(0.72, 0.1, 0.09, 1),
+"tint": Color(0.12, 0.34, 0.2, 1)
+}
+home = &"decoration_box_home"
+start = SubResource("Resource_knnig")

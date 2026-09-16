@@ -18,6 +18,9 @@ const DIR := "res://assets/textures/"
 static var _specs: Dictionary = {}
 static var _cache: Dictionary = {}
 static var _warned := false
+## Furniture and items are generated on worker threads (`Generation`), and every one of them asks
+## for materials: the cache and the first load of a slot's textures are one thread at a time.
+static var _lock := Mutex.new()
 
 static func _load_specs() -> void:
 	if not _specs.is_empty():
@@ -49,6 +52,13 @@ static func _tex(slot: String, map: String) -> Texture2D:
 ## baked ambient occlusion, which is nothing on a flat board.
 static func of(slot: String, tint := Color.WHITE, rough_mul := 1.0, scale_mul := 1.0,
 		world_space := false, matte := false, vertex_tint := false) -> Material:
+	_lock.lock()
+	var m := _of(slot, tint, rough_mul, scale_mul, world_space, matte, vertex_tint)
+	_lock.unlock()
+	return m
+
+static func _of(slot: String, tint: Color, rough_mul: float, scale_mul: float, world_space: bool,
+		matte: bool, vertex_tint: bool) -> Material:
 	_load_specs()
 	var key := "%s|%s|%.3f|%.3f|%s|%s|%s" % [slot, tint.to_html(), rough_mul, scale_mul,
 			world_space, matte, vertex_tint]

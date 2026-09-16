@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_d7fiq"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_i7m6f"]
+
+[sub_resource type="Resource" id="Resource_umltx"]
+script = ExtResource("2_i7m6f")
+room = &"landing"
+xform = Transform3D(0.6892866, 0, 0.7244888, 0, 1, 0, -0.7244888, 0, 0.6892866, 9.824287, 3.5, 7.073948)
+
+[resource]
+script = ExtResource("1_d7fiq")
+id = &"phone_charger_02"
+name_key = "item.phone_charger"
+set_id = &"phone_charger"
+generator = &"phone_charger"
+home = &"phone_charger_home"
+start = SubResource("Resource_umltx")

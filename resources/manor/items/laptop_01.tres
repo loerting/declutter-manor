@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_1kx2c"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_wmy52"]
+
+[sub_resource type="Resource" id="Resource_e3fhe"]
+script = ExtResource("2_wmy52")
+room = &"mudroom"
+xform = Transform3D(0.5858951, 0, 0.8103869, 0, 1, 0, -0.8103869, 0, 0.5858951, 16.549082, 0.45000005, 9.821971)
+
+[resource]
+script = ExtResource("1_1kx2c")
+id = &"laptop_01"
+name_key = "item.laptop"
+slot_cost = 2
+set_id = &"laptop"
+generator = &"laptop"
+home = &"laptop_home"
+start = SubResource("Resource_e3fhe")

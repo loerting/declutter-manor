@@ -11,8 +11,8 @@ one of them and must be resolved, not averaged away.
 |---|---|---|
 | Session target | 180 min | Author's stated "roughly a 3-hour play session" |
 | Item instances | 250 | `docs/VISION.md` scale decision |
-| Distinct item types | ~55 | 250 instances / ~4.5 instances per type |
-| Sets | 20 | One slot per set; see the slot ladder below |
+| Distinct item types | 55 | `docs/CONTENT.md`, from what a family of four owns |
+| Sets | 55 | One set per item type, one slot per set (author, 2026-09-14); see the slot ladder below |
 | Zones (rooms + exterior areas) | ~22 | 6 basement, 7 ground, 6 upper, 3-4 exterior |
 | Walk speed | 2.8 m/s | Cozy first-person norm: above real walking (1.4), below shooter sprint (5.5) |
 | Mean one-way path, random point to random point | 24 m | Property ~26x19 m, three interior storeys, stairs traversed on ~55% of trips |
@@ -39,40 +39,58 @@ their homes. The two long legs (~24 m each) are shared by the whole load; the ga
     k = 5   ->  22 m  ->   8 s per item
     k = 8   ->  18 m  ->   6 s per item
 
-Slot capacity runs 1 -> 21 across the session, mean ~11; mean item slot cost is ~2.2, so the mean
-load is ~5 items. **8 s per item amortized.**
+Slot capacity runs 1 -> 56 across the session. The mean item slot cost over `docs/CONTENT.md` is
+1.93, so after the first few sets a whole set fits in one trip and `k` is the set's size, not the
+capacity. **The content model's travel comes to ~7.5 s per item amortized**, close to the 8 s this
+section assumed with twenty sets.
 
 ## The slot ladder
 
-Start at 1 slot. Each completed set grants +1, permanently, forever. Twenty sets => 21 slots at
-100%. The finale piece costs 21 slots, so **the last set completion and the endgame coincide** —
+Start at 1 slot. Each completed set grants +1, permanently, forever. Fifty-five sets => 56 slots at
+100%. The finale piece costs 56 slots, so **the last set completion and the endgame coincide** —
 the final upgrade is immediately spent on the final act, and there is no post-endgame limbo.
 
-| Set # | Members | Slots when started | Cumulative items | Cumulative time |
-|---|---|---|---|---|
-| 1 (starter) | 5 | 1 | 5 | ~4 min |
-| 2-4 | 8 each | 2-4 | 29 | ~20 min |
-| 5-10 | 12 each | 5-10 | 101 | ~70 min |
-| 11-17 | 15 each | 11-17 | 206 | ~145 min |
-| 18-20 | 15 each | 18-20 | 251 | ~180 min |
+Sets are one item type each and range from 1 member (the television) to 15 (books, clothes
+hangers). `docs/CONTENT.md` runs the per-item budget above over the whole list, playing the sets
+greedily — the lowest scatter tier first, then the lightest set that can be carried:
 
-Set sizes sum to 250. An upgrade lands every ~9 minutes on average.
+| Checkpoint | Sets done | Capacity after | Cumulative time |
+|---|---|---|---|
+| First upgrade (TV remote) | 1 | 2 | ~1 min |
+| Starting rooms clear | 4 | 5 | ~6 min |
+| Ground-floor sets done | 13 | 14 | ~19 min |
+| Every set fits one trip | 23 | 24 | ~46 min |
+| Last set, then the finale | 55 | 56 | ~177 min + 1 min finale |
+
+An upgrade lands every ~3.2 minutes on average, and every ~1.3 minutes in the first ten. **After set 23
+the slot count stops limiting any single set.** Further slots only let the player carry several
+sets in one trip. The run time hardly depends on it, because searching is 30 of the ~43 seconds per
+item, but whether the late game still feels like it is speeding up is a play-test question.
 
 ## The first twenty minutes — a pre-solved problem
 
 At 1 slot, an item costs 21 s travel + 5 s interact + ~30 s search = ~56 s. A twelve-member
 starter set would be **eleven minutes of pure fetch-questing before the game improves once**. That
-is the single most likely reason a player quits, and it is the reason the ladder above starts
-differently:
+is the single most likely reason a player quits, and it is the reason the ladder starts differently:
 
-- **Set 1 has five members**, and they are scattered across only the **two starting rooms** — the
-  twist is introduced, not weaponised. First upgrade at ~4 minutes.
-- **Set 2 is eight members across one storey.** Second upgrade at ~10 minutes.
-- Full-property scatter begins at **set 5**, by which point the player has 5 slots and has learned
+- **The first four sets start only in the entry hall and the living room** — the TV remote, the car
+  keys, the game controllers and the sofa cushions, nine items. First upgrade within a minute.
+- **The next nine sets start only on the ground floor.** Thirteen upgrades by ~19 minutes.
+- Full-property scatter begins at **set 14**, by which point the player has 14 slots and has learned
   the house's shape.
 
 This is a rule, not a suggestion: **no set may be authored whose expected completion time at the
-slot count the player will have exceeds 12 minutes.** `dev/PacingProbe.gd` checks it per set.
+slot count the player will have exceeds 12 minutes.** `dev/PacingProbe.gd` checks it per set. On
+the current list the longest is the Book set at 10.1 minutes, 7.5 of them spent searching — the
+15-member sets are the first to break the rule if search time measures longer than 30 s.
+
+**The model, run over the real house (2026-09-16).** `dev/PacingProbe.tscn` walks every authored start to
+its home through the plan's doorways and flights: **178 minutes against the 180-minute target**, longest set
+the hangers at 10.0 minutes, no set over the twelve-minute rule. Both the estimate in this document and the
+measurement over the built house land within 1% of the target, from different arithmetic — the estimate
+assumed 24 m legs, the measurement walks them. What neither of them measures is the 30 seconds of searching
+per item: at 45 s the run is 240 minutes, 33% out, and the two fifteen-member sets break the rule. That is
+the play test's question, and it is the number to measure first.
 
 ## Performance budget
 
@@ -88,6 +106,15 @@ absence.
 | Cold start: mesh generation + house build | <= 4 s |
 | Any single frame after the first | <= 100 ms |
 | Resident memory | <= 700 MB |
+
+**The cold start was missed by the content and is met again (2026-09-16).** With all 81 pieces and 250
+items the world was ready in 10.0-10.5 s, of which 6.7 s was mesh generation. Two changes fixed it without
+caching anything to disk: `Props` stopped sending every intermediate mesh through the rendering server and
+reading it back, and `world/Generation.gd` builds every piece and every distinct item on the worker pool
+(`docs/ARCHITECTURE.md`, "Generation is paid at every boot"). **World ready is 1.8-2.2 s**, of which
+generation is 1.0-1.2 s and the house 0.6 s — inside the 4 s budget with the content complete. Measured on
+the author's machine with the editor open, five boots; a machine with fewer cores keeps less of the gain,
+which is not measured here.
 
 **Raised in Phase 0, decided in Phase 1: textures import VRAM-compressed.** The first export
 produced a 206 MB PCK from 56 MB of source textures, because `fetch_textures.py` imported them
@@ -197,6 +224,29 @@ and session as a run of the previous commit, `--items=0`).** Draw calls 641 → 
 16.7 ms budget and is now 1.7 ms further over: every bulb burns all the time now, where the culler
 lit only the eye's neighbourhood. Startup 0.86 → 1.26 s, inside the 4 s budget. One run each —
 the high tier's miss is still the open question it was, now with this on top of it.
+
+**Measured again with all the content in (2026-09-16).** The editor was open but idle, and
+`nvidia-smi` put its GPU load at 0%, so the old "pessimistic because of the editor" caveat does not
+explain the miss. `--items=0`, now meaning the real 81 pieces and 250 items:
+
+| | High | Medium | Low |
+|---|---|---|---|
+| mean frame, 1600x900 | 20.1 ms | 16.0 ms | 9.1 ms |
+| mean frame, 1920x1080 | 30.3 ms -> **22.7 ms** | 19.9 ms | 11.9 ms |
+| startup | 2.0 s | **23.8 s** | 1.9 s |
+| draw calls | 1913 | 1913 | 1911 |
+
+Price of each high-tier feature at 1600x900, measured by switching it off alone: SDFGI 3.5 ms, the
+8192 shadow map 3.1 ms, soft sun shadows 3.2 ms, SSIL 2.4 ms, SSAO 0.7 ms. Two of those costs were
+quality settings rather than features, and `Graphics` now sets both per tier: the shadow filter was
+Soft Ultra project-wide with no reason recorded (Soft Low saves 2.75 ms), and SSIL at low quality
+measures within noise of having none. That is the 30.3 -> 22.7 ms above. Renders of five views before
+and after differ by a mean of 0.3-1.2 of 255. **Still open:** at 1080p on this GTX 1080, SDFGI with
+SSAO alone is 17.8 ms, so the high tier cannot hold 60 fps on this card with its look intact. Which
+hardware the high tier is for is the author's call. The medium tier's runtime VoxelGI bake grew with
+the furniture to 23.8 s, and its frames are no cheaper than high's. Draw calls are over on every tier:
+items 748, furniture 584, and 687 of the total are the sun's shadow pass, which draws interiors the
+sun cannot reach. The calls are CPU cost; they did not move the frame time on this machine.
 
 Two mitigations are designed in from the start rather than bolted on: distinct meshes are
 **generated once and cached by `(generator, params)`**, so twelve forks share one `ArrayMesh`; and

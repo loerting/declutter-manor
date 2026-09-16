@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+
+[resource]
+script = ExtResource("1_fd")
+id = &"guest_bed"
+generator = &"bed"
+params = {
+"width": 1.37,
+"length": 1.9,
+"headboard": 1.05,
+"nightstands": 1,
+"pillows": true,
+"cover": Color(0.86, 0.8, 0.7, 1)
+}
+room = &"guest_room"
+along = -0.2

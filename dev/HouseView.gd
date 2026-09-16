@@ -4,6 +4,7 @@ extends Node3D
 ## Phase 1 gate is the same views at all three.
 ##
 ##     godot --path . dev/HouseView.tscn -- --plan=manor --view=front --tier=low --screenshot=/abs/path.png
+##     godot --path . dev/HouseView.tscn -- --cam=x,y,z --at=x,y,z --open --screenshot=/abs/path.png
 ##
 ## With no --screenshot it stays open and flies (right mouse to look, WASD, Q/E, Shift).
 
@@ -68,6 +69,7 @@ func _ready() -> void:
 	var view := ""
 	var shot := ""
 	var plan_name := "garage"
+	var open_all := false
 	var free: Array[Vector3] = []
 	var eye := Vector3.INF
 	for arg: String in OS.get_cmdline_user_args():
@@ -83,6 +85,8 @@ func _ready() -> void:
 			view = arg.trim_prefix("--view=")
 		elif arg.begins_with("--tier="):
 			_tier = Graphics.from_string(arg.trim_prefix("--tier="))
+		elif arg == "--open":
+			open_all = true
 		elif arg.begins_with("--screenshot="):
 			shot = arg.trim_prefix("--screenshot=")
 
@@ -105,6 +109,10 @@ func _ready() -> void:
 			plan.id, Time.get_ticks_msec() - t0, t_mat, WorldBuilder.meshes(house).size(), bounds,
 			Graphics.tier_name(_tier)])
 
+	if open_all:
+		# Every drawer, door and lid held open: what is inside one is only worth a picture open.
+		for node: Node in get_tree().get_nodes_in_group(ContainerComponent.GROUP):
+			(node as ContainerComponent).force(true)
 	WorldBuilder.light(self, bounds, _tier)
 	WorldBuilder.reflect(self, plan)
 

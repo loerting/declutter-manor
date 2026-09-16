@@ -82,7 +82,8 @@ Proven in the style test; every one of them fixed a prop that read as fake.
 
 - Godot renders a triangle front-facing when its right-hand-rule cross product points *into* the
   solid. `SurfaceTool.generate_normals()` follows the same convention. Two generators shipped
-  inside-out before this was understood. **Run `dev/Diag.gd` after touching any generator.**
+  inside-out before this was understood. **Run `dev/Diag.gd` after touching a `Props` primitive, and
+  `dev/FurnitureProbe.tscn -- --family=<name>` after touching any item or furniture family.**
 - **Every new generator returns through `Props.with_tangents()`.** Triplanar ignores UV1 when
   sampling but still builds its normal-map frame from the mesh tangent, and `SurfaceTool` cannot
   make tangents without UVs.
@@ -127,6 +128,10 @@ boundary that appears in the floor plan, or a colour/material that appears in `M
     godot --headless --path . --script res://dev/PlanProbe.gd # house consistency, interior vs exterior
     godot --headless --path . dev/WalkProbe.tscn             # the house can be walked and climbed
     godot --headless --path . dev/InteractProbe.tscn         # pick up, open, put away, stack
+    godot --headless --path . dev/FurnitureProbe.tscn        # furniture placement, clear fronts, groups, every family's winding
+    godot --headless --path . dev/HudProbe.tscn              # HUD layout 720p-1440p and +40% text; card and carry bar content
+    godot --headless --path . dev/PacingProbe.tscn           # the run against PACING.md, walked in the real house
+    godot --path . dev/GenerationProbe.tscn                  # the worker pool builds the meshes the ordered path builds
     godot --path . -- --view=<name> --screenshot=<abs path>   # the only proof of anything visual
 
 A headless boot exits 0 even when a script failed to compile — always grep the log for

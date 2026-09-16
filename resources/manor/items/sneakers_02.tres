@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_fanyr"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_tvkoc"]
+
+[sub_resource type="Resource" id="Resource_e4gyu"]
+script = ExtResource("2_tvkoc")
+room = &"hall_bath"
+xform = Transform3D(-0.38250563, 0, 0.9239532, 0, 1, 0, -0.9239532, 0, -0.38250563, 9.823256, 3.5, 15.169482)
+
+[resource]
+script = ExtResource("1_fanyr")
+id = &"sneakers_02"
+name_key = "item.sneakers"
+slot_cost = 2
+set_id = &"sneakers"
+generator = &"sneakers"
+params = {
+"length": 0.29,
+"tint": Color(0.08, 0.08, 0.09, 1)
+}
+home = &"sneakers_home"
+start = SubResource("Resource_e4gyu")

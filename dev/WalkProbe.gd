@@ -29,6 +29,10 @@ const DRIFT_EPS := 0.25
 ## Frames a body is driven at a guard rail. Half a second longer than it needs to cross the
 ## OPEN_PROBE gap at walking pace, so a body that is going to get through has got through.
 const SHOVE_FRAMES := 90
+## How far a guard's collider may reach past the rail that is drawn: the barrier's own half
+## thickness and the few centimetres its underside runs below the foot newel, and nothing a body
+## could catch on.
+const RAIL_BOUNDS_SLACK := 0.08
 ## How far back from an opening a body starts when it is driven through it, and how long it is
 ## given. Two metres at 2.8 m/s is under a second; 120 frames is twice that, so a body that is
 ## going to arrive has arrived and one that is stuck has been stuck for a while.
@@ -58,6 +62,7 @@ var _lurch_at := Vector3.ZERO
 var _worst_lurch := 0.0
 var _player: PlayerController
 var _plan: FloorPlan
+var _house: Node3D
 
 func _fail(check: String, detail: String) -> void:
 	_violations += 1
@@ -65,7 +70,8 @@ func _fail(check: String, detail: String) -> void:
 
 func _ready() -> void:
 	_plan = ManorPlan.build()
-	add_child(HouseBuilder.build(_plan))
+	_house = HouseBuilder.build(_plan)
+	add_child(_house)
 	_player = PLAYER.instantiate() as PlayerController
 	assert(_player != null, "WalkProbe: Player.tscn is not a PlayerController")
 	add_child(_player)
@@ -82,8 +88,12 @@ func _run() -> void:
 	for stair: StairDef in _plan.stairs:
 		await _check_guard(stair)
 		await _check_spandrel(stair)
+	_check_rail_bounds(_house)
 	for pool: PoolDef in _plan.pools:
 		await _check_pool(pool)
+	for deck: DeckDef in _plan.decks:
+		for dir: Vector2 in deck.step_edges:
+			await _check_deck_flight(deck, dir)
 	for storey: StoreyDef in _plan.storeys:
 		for wall: WallSegment in storey.walls:
 			for o: Opening in wall.openings:
@@ -244,6 +254,32 @@ func _check_guard(stair: StairDef) -> void:
 			_fail("stair.guard", "%s->%s: a body walked through the guard on the %s side and is at %.2f"
 					% [stair.lower_room, stair.upper_room, outward, at.y])
 
+## A guard's collider stands where its rail is drawn and nowhere else. The raked guards were
+## boxes laid along the rake, and a box's square ends reached half a metre past both newels: a
+## corner at chest height over the hall floor and one just above the landing, which the author
+## walked into and could not slide off (2026-09-14). The drawn rail is the balusters, newels and
+## handrail beside the barrier; the collider's bounds may exceed theirs by `RAIL_BOUNDS_SLACK`.
+func _check_rail_bounds(node: Node) -> void:
+	var drawn := AABB()
+	var bodies: Array[StaticBody3D] = []
+	for child: Node in node.get_children():
+		var mesh := child as MeshInstance3D
+		if mesh != null and (mesh.name == &"Balusters" or mesh.name == &"Handrail"):
+			var box := mesh.global_transform * mesh.get_aabb()
+			drawn = box if drawn.size == Vector3.ZERO else drawn.merge(box)
+		var body := child as StaticBody3D
+		if body != null and body.name == &"GuardBody":
+			bodies.append(body)
+		_check_rail_bounds(child)
+	var allowed := drawn.grow(RAIL_BOUNDS_SLACK)
+	for body: StaticBody3D in bodies:
+		for shape_node: Node in body.get_children():
+			var shape := shape_node as CollisionShape3D
+			var solid := shape.global_transform * shape.shape.get_debug_mesh().get_aabb()
+			if not allowed.encloses(solid):
+				_fail("stair.rail.bounds", "%s: a guard collider spans %s..%s, the drawn rail %s..%s"
+						% [node.name, solid.position, solid.end, drawn.position, drawn.end])
+
 ## The wall under a flight that has the basement stair beneath it is all that stands between the
 ## hall and a hole two storeys deep, and `_check_guard` cannot reach it: the floor beside that
 ## well is inside the flight above. So it is driven at directly, from the open side of the flight
@@ -370,6 +406,38 @@ func _check_pool(pool: PoolDef) -> void:
 	else:
 		print("  climbed out of '%s' — %.2f m of depth, onto the paving at y=%.2f"
 				% [pool.room, pool.depth, at.y])
+
+## A flight off the deck is walked up from the garden and has to end standing on the boards. Its
+## hidden ramp was built from the deck edge rising outward — the same upside-down frame the door
+## steps had — so it stood over the treads as a slope climbing away from the player, and nothing
+## here walked at it until the author did (2026-09-14).
+func _check_deck_flight(deck: DeckDef, dir: Vector2) -> void:
+	var room := _plan.find_room(deck.room)
+	var storey := _plan.storey_of(deck.room)
+	var top := room.floor_y(storey.base_y)
+	var mid := ExteriorBuilder.flight_mid(_plan, room, deck, dir)
+	var label := "garden->%s %s" % [deck.room, dir]
+	var start := mid + dir * APPROACH
+	await _drop(Vector3(start.x, HouseBuilder.ground_level(_plan, storey, start) + DROP, start.y))
+	if not _player.is_on_floor():
+		_fail("deck.climb", "%s: no ground to start the approach on" % label)
+		return
+	var arrived := func() -> bool:
+		var at := _player.global_position
+		return absf(at.y - top) <= LAND_EPS and _player.is_on_floor() \
+				and room.contains(Vector2(at.x, at.z) + dir * Balance.PLAYER_RADIUS * 2.0)
+	await _walk(-dir, WALK_FRAMES, arrived)
+	if _stall > 0:
+		_fail("deck.smooth", "%s: the body stalled on the flight for %d frames (slowest %.0f%% of walking pace)"
+				% [label, _stall, _slowest * 100.0])
+	var at := _player.global_position
+	if not arrived.call():
+		_fail("deck.climb", "%s: the body stopped at y=%.2f, %.2f m from the deck edge, which is at y=%.2f"
+				% [label, at.y, mid.distance_to(Vector2(at.x, at.z)), top])
+	else:
+		var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP, at + Vector3.DOWN, Layers.bit(Layers.WORLD))
+		print("  climbed %s onto the deck at y=%.3f, ground under it %s" % [label, at.y,
+				get_world_3d().direct_space_state.intersect_ray(q).get("position", "none")])
 
 ## A leaf that fills an opening visually has to fill it physically. An opening is a hole in the
 ## wall's own collision mesh, so the two are not the same thing and nothing connects them: the

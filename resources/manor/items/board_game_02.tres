@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_imjxl"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_rfyv6"]
+
+[sub_resource type="Resource" id="Resource_wt2ir"]
+script = ExtResource("2_rfyv6")
+room = &"guest_room"
+xform = Transform3D(0.06842366, 0, -0.99765635, 0, 1, 0, 0.99765635, 0, 0.06842366, 5.442547, 3.5, 14.70332)
+
+[resource]
+script = ExtResource("1_imjxl")
+id = &"board_game_02"
+name_key = "item.board_game"
+slot_cost = 2
+set_id = &"board_game"
+generator = &"board_game"
+params = {
+"band": Color(0.95, 0.94, 0.9, 1),
+"depth": 0.22,
+"tint": Color(0.14, 0.2, 0.42, 1),
+"width": 0.3
+}
+home = &"board_game_home"
+start = SubResource("Resource_wt2ir")

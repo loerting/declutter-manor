@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_bsgvg"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_ww6qy"]
+
+[sub_resource type="Resource" id="Resource_uvvr0"]
+script = ExtResource("2_ww6qy")
+room = &"deck"
+xform = Transform3D(4.36603e-08, 0.9988312, -0.04833492, 1, -4.371139e-08, 0, -2.1127864e-09, -0.04833492, -0.9988312, 10.063406, 0.48400006, 17.356686)
+
+[resource]
+script = ExtResource("1_bsgvg")
+id = &"binder_01"
+name_key = "item.binder"
+slot_cost = 2
+set_id = &"binder"
+generator = &"binder"
+params = {
+"tint": Color(0.1, 0.16, 0.34, 1)
+}
+home = &"binder_home"
+start = SubResource("Resource_uvvr0")

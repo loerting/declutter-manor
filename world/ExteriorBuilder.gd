@@ -73,7 +73,7 @@ static func build_deck(holder: Node3D, plan: FloorPlan, storey: StoreyDef, room:
 
 	var steps: Array = []
 	for dir: Vector2 in deck.step_edges:
-		_deck_steps(holder, plan, storey, b, top, dir, deck, steps, against)
+		_deck_steps(holder, plan, storey, room, top, dir, deck, steps)
 
 	var wood := Mats.of(room.floor_slot, BOARD_TINT, 0.7, 1.0, true)
 	HouseBuilder.surface(holder, Props.union(boards), [wood], "Deck", true)
@@ -83,14 +83,16 @@ static func build_deck(holder: Node3D, plan: FloorPlan, storey: StoreyDef, room:
 	# tread by tread the way it used to at every other flight in the house (`HouseBuilder._build_steps`).
 	HouseBuilder.surface(holder, Props.union(steps), [wood], "DeckSteps", false)
 
-## A flight off one edge of the deck, cut to the rise it actually has. It sits at the far end of
-## that edge from the house rather than in the middle of it: the mudroom's back door is a metre
-## east of the deck and has steps of its own down to the same grade, and a flight centred on the
-## east edge landed a tread inside them — 0.099 m2 of two staircases in one place, which is the
-## biggest single seam `dev/SeamProbe.tscn` found in the house. `_side_segment` returns an edge's
+## Where the flight off the deck's `dir` edge leaves the deck, at the middle of its width. It sits at
+## the far end of that edge from the house rather than in the middle of it: the mudroom's back door
+## is a metre east of the deck and has steps of its own down to the same grade, and a flight centred
+## on the east edge landed a tread inside them — 0.099 m2 of two staircases in one place, which is
+## the biggest single seam `dev/SeamProbe.tscn` found in the house. `_side_segment` returns an edge's
 ## corners in compass order, so seg[0] is its end toward side i-1 and seg[1] its end toward i+1.
-static func _deck_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, b: Rect2, top: float,
-		dir: Vector2, deck: DeckDef, boards: Array, against: Array[bool]) -> void:
+## `dev/WalkProbe.gd` climbs the flight from here, so the probe cannot walk up a different place.
+static func flight_mid(plan: FloorPlan, room: RoomDef, deck: DeckDef, dir: Vector2) -> Vector2:
+	var b := HouseBuilder.bounds(room.polygon)
+	var against := _house_sides(plan, b)
 	var i := _side_index(dir)
 	var seg := _side_segment(b, i, 0.0)
 	var mid: Vector2 = (seg[0] + seg[1]) * 0.5
@@ -99,6 +101,12 @@ static func _deck_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, b: R
 		var far: Vector2 = seg[1] if house_at_0 else seg[0]
 		var near: Vector2 = seg[0] if house_at_0 else seg[1]
 		mid = far + (near - far).normalized() * (deck.step_width * 0.5)
+	return mid
+
+## A flight off one edge of the deck, cut to the rise it actually has.
+static func _deck_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, room: RoomDef, top: float,
+		dir: Vector2, deck: DeckDef, boards: Array) -> void:
+	var mid := flight_mid(plan, room, deck, dir)
 	var ground := HouseBuilder.ground_level(plan, storey, mid + dir * 0.6)
 	var rise := top - ground
 	if rise < 0.05:
@@ -121,12 +129,14 @@ static func _deck_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, b: R
 		boards.append(Props.part(Vector3(size.x, size.y + extra, size.z),
 				Vector3(c.x, y + riser * 0.5 - extra * 0.5, c.y)))
 	# The visible treads stay a sawtooth; the body rides a flat ramp hidden underneath them,
-	# exactly like the interior flights (`HouseBuilder._stair_ramp`).
-	var origin := Vector3(mid.x, top, mid.y)
-	var going_3d := Vector3(dir.x, 0.0, dir.y)
-	var across := Vector3(-dir.y, 0.0, dir.x)
-	HouseBuilder.ramp_collider(holder, origin, going_3d, Vector3.UP, across,
-			going * float(risers), rise, deck.step_width, HouseBuilder.RAMP_THICKNESS)
+	# exactly like the interior flights (`HouseBuilder._stair_ramp`). It starts at the foot and
+	# climbs back to the deck: started at the deck edge it rose outward from there, a slope standing
+	# over the treads that stopped the body at the bottom step (`dev/WalkProbe.gd`, 2026-09-14).
+	var run := going * float(risers)
+	var outward := Vector3(dir.x, 0.0, dir.y)
+	var foot := Vector3(mid.x, ground, mid.y) + outward * run
+	HouseBuilder.ramp_collider(holder, foot, -outward, Vector3.UP, Vector3(-dir.y, 0.0, dir.x),
+			run, rise, deck.step_width, HouseBuilder.RAMP_THICKNESS)
 
 ## For each side of the deck (0 north, 1 east, 2 south, 3 west), whether the building is on the
 ## other side of it. Probed rather than authored: room polygons meet on the wall centre line,

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_nx28i"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_llns8"]
+
+[sub_resource type="Resource" id="Resource_oy6g2"]
+script = ExtResource("2_llns8")
+room = &"entry_hall"
+xform = Transform3D(0.022840139, 0, 0.9997391, 0, 1, 0, -0.9997391, 0, 0.022840139, 8.220448, 0.44989994, 11.258164)
+
+[resource]
+script = ExtResource("1_nx28i")
+id = &"rubber_duck_02"
+name_key = "item.rubber_duck"
+set_id = &"rubber_duck"
+generator = &"rubber_duck"
+params = {
+"size": 0.72
+}
+home = &"rubber_duck_home"
+start = SubResource("Resource_oy6g2")

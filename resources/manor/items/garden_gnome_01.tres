@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_s2c6f"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_guwuj"]
+
+[sub_resource type="Resource" id="Resource_s2c6f"]
+script = ExtResource("2_guwuj")
+room = &"master_bed"
+xform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0.3000002, 0.09199977, -0.26900005)
+anchor = &"master_bed_duvet"
+
+[resource]
+script = ExtResource("1_s2c6f")
+id = &"garden_gnome_01"
+name_key = "item.garden_gnome"
+slot_cost = 4
+set_id = &"garden_gnome"
+generator = &"garden_gnome"
+params = {
+"carries": "",
+"coat": Color(0.18, 0.3, 0.6, 1),
+"hat": Color(0.72, 0.12, 0.1, 1)
+}
+home = &"garden_gnome_home"
+start = SubResource("Resource_s2c6f")

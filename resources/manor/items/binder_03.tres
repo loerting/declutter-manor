@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_y0pk0"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_jq1mu"]
+
+[sub_resource type="Resource" id="Resource_exqlm"]
+script = ExtResource("2_jq1mu")
+room = &"powder"
+xform = Transform3D(-4.3113733e-08, -0.98632723, -0.16479866, 1, -4.371139e-08, 0, -7.203578e-09, -0.16479866, 0.98632723, 15.188209, 0.48400006, 13.900041)
+
+[resource]
+script = ExtResource("1_y0pk0")
+id = &"binder_03"
+name_key = "item.binder"
+slot_cost = 2
+set_id = &"binder"
+generator = &"binder"
+params = {
+"tint": Color(0.06, 0.06, 0.07, 1)
+}
+home = &"binder_home"
+start = SubResource("Resource_exqlm")

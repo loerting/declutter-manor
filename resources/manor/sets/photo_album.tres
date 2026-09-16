@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SetDef" format=3]
+
+[ext_resource type="Script" path="res://data/SetDef.gd" id="1_dphjx"]
+
+[resource]
+script = ExtResource("1_dphjx")
+id = &"photo_album"
+name_key = "set.photo_album"

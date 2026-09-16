@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_d4dxv"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_eo6hx"]
+
+[sub_resource type="Resource" id="Resource_kb1ux"]
+script = ExtResource("2_eo6hx")
+room = &"workshop"
+xform = Transform3D(-3.8803766e-08, -0.88772666, -0.46037087, 1, -4.371139e-08, 0, -2.012345e-08, -0.46037087, 0.88772666, 13.195571, -2.2790003, 8.004989)
+
+[resource]
+script = ExtResource("1_d4dxv")
+id = &"perfume_03"
+name_key = "item.perfume"
+set_id = &"perfume"
+generator = &"perfume"
+params = {
+"cap": Color(0.04, 0.04, 0.045, 1),
+"shape": 2,
+"tint": Color(0.72, 0.8, 0.9, 0.45)
+}
+home = &"perfume_home"
+start = SubResource("Resource_kb1ux")

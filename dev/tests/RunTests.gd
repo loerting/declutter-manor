@@ -11,6 +11,8 @@ func _ready() -> void:
 	_test_save_round_trip()
 	_test_transform_survives_the_format()
 	_test_fixture_loads_and_migrates()
+	_test_v2_fixture_loads()
+	_test_v3_fixture_loads()
 	_test_migration_chain_advances()
 	_test_migration_refuses_a_future_version()
 	_test_migration_refuses_a_gap()
@@ -21,6 +23,8 @@ func _ready() -> void:
 	_test_fill_orders()
 	_test_group_validation()
 	_test_inventory_capacity()
+	_test_set_tracker()
+	_test_every_set_has_a_home()
 
 	print("\n%d checks, %d failed" % [_checks, _failures])
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -87,8 +91,48 @@ func _test_fixture_loads_and_migrates() -> void:
 		return
 	var migrated := SaveManager.migrate(parsed as Dictionary, SaveManager.SAVE_VERSION, SaveManager.default_chain())
 	_ok("fixture migrates to the current version", not migrated.is_empty(), SaveManager.last_error)
-	_ok("fixture keeps its item transforms",
-		((migrated.get("items", {}) as Dictionary).get("spoon_01", {}) as Dictionary).get("xform", null) is Transform3D)
+	var spoon: Dictionary = (migrated.get("items", {}) as Dictionary).get("spoon_01", {})
+	_ok("fixture keeps its item transforms", spoon.get("xform", null) is Transform3D)
+	# Version 2: no set counts as having paid, and no item claims a slot it never recorded.
+	_ok("v1 -> v2 records no granted sets", migrated.get("granted", null) is Array
+			and (migrated["granted"] as Array).is_empty())
+	_ok("v1 -> v2 gives every item an empty slot", spoon.get("group", null) == &""
+			and int(spoon.get("index", 0)) == -1)
+	_ok("v1 -> v2 keeps the slot count", int(migrated.get("slots", -1)) == 3)
+
+## Version 2's fixture reaches the current version and keeps what version 2 added; every item it
+## has gains an empty anchor, because version 2 put nothing on one.
+func _test_v2_fixture_loads() -> void:
+	print("Fixture v2")
+	var f := FileAccess.open("res://dev/fixtures/manor_v2.sav", FileAccess.READ)
+	_ok("v2 fixture is readable", f != null)
+	if f == null:
+		return
+	var parsed: Variant = str_to_var(f.get_as_text())
+	f.close()
+	var data := SaveManager.migrate(parsed as Dictionary if parsed is Dictionary else {}, SaveManager.SAVE_VERSION, SaveManager.default_chain())
+	_ok("v2 fixture migrates to the current version", int(data.get("version", -1)) == SaveManager.SAVE_VERSION, SaveManager.last_error)
+	_ok("v2 fixture keeps its granted sets", (data.get("granted", []) as Array).has(&"cutlery"))
+	var spoon: Dictionary = (data.get("items", {}) as Dictionary).get(&"spoon_01", {})
+	_ok("v2 fixture keeps an item's slot", spoon.get("group", &"") == &"kitchen_cutlery"
+			and int(spoon.get("index", -1)) == 0)
+	_ok("v2 -> v3 puts no item on an anchor", spoon.get("anchor", null) == &"")
+
+## The current version's fixture needs no migration and keeps an item on an anchor. It is the fixture
+## the next version's migration will be tested against.
+func _test_v3_fixture_loads() -> void:
+	print("Fixture v3")
+	var f := FileAccess.open("res://dev/fixtures/manor_v3.sav", FileAccess.READ)
+	_ok("v3 fixture is readable", f != null)
+	if f == null:
+		return
+	var parsed: Variant = str_to_var(f.get_as_text())
+	f.close()
+	var data := SaveManager.migrate(parsed as Dictionary if parsed is Dictionary else {}, 3, SaveManager.default_chain())
+	_ok("v3 fixture loads at version 3", int(data.get("version", -1)) == 3, SaveManager.last_error)
+	var duck: Dictionary = (data.get("items", {}) as Dictionary).get(&"rubber_duck_01", {})
+	_ok("v3 fixture keeps an item on its anchor", duck.get("anchor", &"") == &"kitchen_fridge_door_bin"
+			and duck.get("xform", null) is Transform3D)
 
 # --- Migration machinery ---------------------------------------------------------------------------
 
@@ -274,3 +318,82 @@ func _test_inventory_capacity() -> void:
 	Inventory.reset()
 	_ok("a reset run is empty and back to the start",
 		Inventory.used() == 0 and Inventory.capacity == Balance.START_SLOTS)
+
+# --- Sets -------------------------------------------------------------------------------------------
+
+## The progression rule, without a house: a set completes when every member is in its own home
+## group, grants exactly one slot the first time, and never again — not when a member is taken
+## out and put back, and not when a save says it already paid (docs/VISION.md, "The loop").
+func _test_set_tracker() -> void:
+	print("Set tracker")
+	var content := Catalogue.new()
+	var a := ItemDef.make(&"t_spoon_a", &"spoon", &"t_drawer", &"t_set")
+	var b := ItemDef.make(&"t_spoon_b", &"spoon", &"t_drawer", &"t_set")
+	var loose := ItemDef.make(&"t_mug", &"mug", &"t_shelf")
+	content.items = [a, b, loose] as Array[ItemDef]
+	content.sets = [SetDef.make(&"t_set", "set.t")] as Array[SetDef]
+	var completions: Array[StringName] = []
+	var on_complete := func(id: StringName) -> void: completions.append(id)
+	EventBus.set_completed.connect(on_complete)
+
+	Inventory.reset()
+	SetTracker.begin(content)
+	_ok("a set counts its members from the items", SetTracker.total(&"t_set") == 2)
+	EventBus.item_placed.emit(a.id, &"t_drawer")
+	_ok("one member home is progress, not completion",
+		SetTracker.placed(&"t_set") == 1 and not SetTracker.is_complete(&"t_set"))
+	EventBus.item_placed.emit(b.id, &"some_other_drawer")
+	_ok("put away somewhere that is not its home is not home", SetTracker.placed(&"t_set") == 1)
+	EventBus.item_placed.emit(b.id, &"t_drawer")
+	_ok("every member home completes the set", SetTracker.is_complete(&"t_set"))
+	_ok("and grants one slot", Inventory.capacity == Balance.START_SLOTS + Balance.SLOTS_PER_COMPLETED_SET)
+	_ok("and says so once", completions == ([&"t_set"] as Array[StringName]), str(completions))
+	EventBus.item_picked_up.emit(a.id)
+	_ok("taking a member back out reopens the set", not SetTracker.is_complete(&"t_set"))
+	_ok("but the slot stays", Inventory.capacity == Balance.START_SLOTS + 1)
+	EventBus.item_placed.emit(a.id, &"t_drawer")
+	_ok("finishing it again grants nothing", Inventory.capacity == Balance.START_SLOTS + 1
+			and completions.size() == 1, "capacity %d, %d completions" % [Inventory.capacity, completions.size()])
+	_ok("the grant is remembered for the save", SetTracker.granted() == ([&"t_set"] as Array[StringName]))
+
+	# A loaded save: the set already paid, and its members are placed back as the save describes.
+	Inventory.reset(2)
+	SetTracker.begin(content, [&"t_set"] as Array[StringName])
+	EventBus.item_placed.emit(a.id, &"t_drawer")
+	EventBus.item_placed.emit(b.id, &"t_drawer")
+	_ok("a set a save says has paid does not pay again on load",
+		Inventory.capacity == 2 and completions.size() == 1)
+	EventBus.item_placed.emit(loose.id, &"t_shelf")
+	_ok("scenery changes no set", SetTracker.placed(&"t_set") == 2)
+	_ok("every member at home is counted across sets", SetTracker.home_count() == 2, str(SetTracker.home_count()))
+	EventBus.set_completed.disconnect(on_complete)
+	Inventory.reset()
+	SetTracker.begin(Catalogue.new())
+
+## What the HUD tells the player about a set, for the real content: one home the whole set shares, on a
+## piece that stands in a room of the plan, with a name the player can read, and one slot cost. A set
+## whose members disagree has no single answer to "where does this go".
+func _test_every_set_has_a_home() -> void:
+	print("Homes")
+	var plan := ManorPlan.build()
+	var content := WorldBuilder.catalogue(plan)
+	var wrong: Array[String] = []
+	for s: SetDef in content.sets:
+		var members := content.members(s.id)
+		if members.is_empty():
+			wrong.append("%s has no members" % s.id)
+			continue
+		for def: ItemDef in members:
+			if def.home != members[0].home or def.slot_cost != members[0].slot_cost:
+				wrong.append("%s: %s disagrees with %s on home or slot cost" % [s.id, def.id, members[0].id])
+		var group := content.find_group(members[0].home)
+		var piece := content.piece_of(members[0].home)
+		if group == null or piece == null:
+			wrong.append("%s: no piece carries '%s'" % [s.id, members[0].home])
+			continue
+		if plan.find_room(piece.room) == null:
+			wrong.append("%s: '%s' stands in '%s', which the plan does not have" % [s.id, piece.id, piece.room])
+		if group.name_key == "" or tr(group.name_key) == group.name_key:
+			wrong.append("%s: home '%s' has no name ('%s')" % [s.id, group.id, group.name_key])
+	_ok("the content has every set", content.sets.size() == Balance.TARGET_SET_COUNT, str(content.sets.size()))
+	_ok("every set resolves one named home in a room", wrong.is_empty(), "\n\t".join(wrong))

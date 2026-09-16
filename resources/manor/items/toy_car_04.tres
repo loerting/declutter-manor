@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_23d2t"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_hb4nc"]
+
+[sub_resource type="Resource" id="Resource_ul6cd"]
+script = ExtResource("2_hb4nc")
+room = &"landing"
+xform = Transform3D(0.86622125, 0, 0.49966064, 0, 1, 0, -0.49966064, 0, 0.86622125, 9.276241, 3.5, 9.145712)
+
+[resource]
+script = ExtResource("1_23d2t")
+id = &"toy_car_04"
+name_key = "item.toy_car"
+set_id = &"toy_car"
+generator = &"toy_car"
+params = {
+"shape": 0,
+"tint": Color(0.14, 0.5, 0.26, 1)
+}
+home = &"toy_car_home"
+start = SubResource("Resource_ul6cd")

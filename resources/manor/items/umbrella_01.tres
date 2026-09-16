@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_fmgr2"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_u0psf"]
+
+[sub_resource type="Resource" id="Resource_fmgr2"]
+script = ExtResource("2_u0psf")
+room = &"dining"
+xform = Transform3D(-5.2889395e-09, -0.12099683, -0.9926529, 1, -4.371139e-08, 0, -4.3390237e-08, -0.9926529, 0.12099683, 12.667766, 0.48739994, 7.338889)
+
+[resource]
+script = ExtResource("1_fmgr2")
+id = &"umbrella_01"
+name_key = "item.umbrella"
+slot_cost = 2
+set_id = &"umbrella"
+generator = &"umbrella"
+params = {
+"canopy": Color(0.1, 0.13, 0.24, 1),
+"handle": Color(0.62, 0.42, 0.28, 1),
+"wood": true
+}
+home = &"umbrella_home"
+start = SubResource("Resource_fmgr2")

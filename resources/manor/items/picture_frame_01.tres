@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_nrfqg"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_0ogsl"]
+
+[sub_resource type="Resource" id="Resource_nrfqg"]
+script = ExtResource("2_0ogsl")
+room = &"garage"
+xform = Transform3D(0.95398456, 0.2998557, 1.3107109e-08, 0, -4.371139e-08, 1, 0.2998557, -0.95398456, -4.169999e-08, 20.694132, 1.1385043, 11.299082)
+
+[resource]
+script = ExtResource("1_nrfqg")
+id = &"picture_frame_01"
+name_key = "item.picture_frame"
+set_id = &"picture_frame"
+generator = &"picture_frame"
+params = {
+"finish": "walnut",
+"height": 0.18,
+"photo": 2,
+"rail": 0.028,
+"width": 0.13
+}
+home = &"picture_frame_home"
+start = SubResource("Resource_nrfqg")

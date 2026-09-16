@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_na68w"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_vlrth"]
+
+[sub_resource type="Resource" id="Resource_t1tmg"]
+script = ExtResource("2_vlrth")
+room = &"deck"
+xform = Transform3D(0.9654885, 0, -0.2604457, 0, 1, 0, 0.2604457, 0, 0.9654885, 8.074759, 0.45000005, 17.654457)
+
+[resource]
+script = ExtResource("1_na68w")
+id = &"dinner_plate_04"
+name_key = "item.dinner_plate"
+slot_cost = 2
+set_id = &"dinner_plate"
+generator = &"dinner_plate"
+home = &"dinner_plate_home"
+start = SubResource("Resource_t1tmg")

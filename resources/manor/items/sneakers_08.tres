@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_ct2aa"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_xd0pv"]
+
+[sub_resource type="Resource" id="Resource_wtvu2"]
+script = ExtResource("2_xd0pv")
+room = &"storage"
+xform = Transform3D(-0.340115, 0, -0.94038385, 0, 1, 0, 0.94038385, 0, -0.340115, 12.608554, -2.2999654, 12.8672285)
+
+[resource]
+script = ExtResource("1_ct2aa")
+id = &"sneakers_08"
+name_key = "item.sneakers"
+slot_cost = 2
+set_id = &"sneakers"
+generator = &"sneakers"
+params = {
+"length": 0.21,
+"tint": Color(0.25, 0.55, 0.3, 1)
+}
+home = &"sneakers_home"
+start = SubResource("Resource_wtvu2")

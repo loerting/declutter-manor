@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_6aflu"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_jbckd"]
+
+[sub_resource type="Resource" id="Resource_n34m8"]
+script = ExtResource("2_jbckd")
+room = &"entry_hall"
+xform = Transform3D(-0.80981624, 0, -0.58668363, 0, 1, 0, 0.58668363, 0, -0.80981624, 9.157215, 0.44999993, 9.957184)
+
+[resource]
+script = ExtResource("1_6aflu")
+id = &"dumbbell_02"
+name_key = "item.dumbbell"
+slot_cost = 4
+set_id = &"dumbbell"
+generator = &"dumbbell"
+home = &"dumbbell_home"
+start = SubResource("Resource_n34m8")

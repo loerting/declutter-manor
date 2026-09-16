@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_gl36r"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_i46pl"]
+
+[sub_resource type="Resource" id="Resource_gl36r"]
+script = ExtResource("2_i46pl")
+room = &"kitchen"
+xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.051799774)
+anchor = &"kitchen_west_run_b_bowl"
+
+[resource]
+script = ExtResource("1_gl36r")
+id = &"goggles_01"
+name_key = "item.goggles"
+set_id = &"goggles"
+generator = &"goggles"
+params = {
+"frame": Color(0.14, 0.34, 0.66, 1),
+"lens": Color(0.22, 0.46, 0.94, 0.88)
+}
+home = &"goggles_home"
+start = SubResource("Resource_gl36r")

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_i66e4"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_5nrg6"]
+
+[sub_resource type="Resource" id="Resource_i66e4"]
+script = ExtResource("2_5nrg6")
+room = &"kitchen"
+xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38350004, 0.33600044)
+container = &"kitchen_range_oven"
+
+[resource]
+script = ExtResource("1_i66e4")
+id = &"sneakers_01"
+name_key = "item.sneakers"
+slot_cost = 2
+set_id = &"sneakers"
+generator = &"sneakers"
+params = {
+"length": 0.29,
+"tint": Color(0.93, 0.93, 0.92, 1)
+}
+home = &"sneakers_home"
+start = SubResource("Resource_i66e4")

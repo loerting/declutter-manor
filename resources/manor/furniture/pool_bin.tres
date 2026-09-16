@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_pool_bin_0"]
+script = ExtResource("2_psg")
+id = &"pool_noodle_home"
+name_key = "home.pool_noodle_home"
+accepts = Array[StringName]([&"pool_noodle"])
+capacity = 4
+fill_order = 2
+layout = 2
+step = Vector3(0.13, 0, 0)
+row_length = 2
+row_step = Vector3(0, 0, 0.13)
+anchor = &"noodles"
+
+[sub_resource type="Resource" id="Resource_pool_bin_1"]
+script = ExtResource("2_psg")
+id = &"goggles_home"
+name_key = "home.goggles_home"
+accepts = Array[StringName]([&"goggles"])
+capacity = 4
+layout = 2
+base_xform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
+step = Vector3(0, 0.024, 0)
+row_length = 2
+row_step = Vector3(0.25, 0, 0)
+anchor = &"basket"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"pool_bin"
+generator = &"pool_bin"
+room = &"pool_area"
+along = 3.8
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_pool_bin_0"), SubResource("Resource_pool_bin_1")])

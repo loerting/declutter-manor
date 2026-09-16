@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_cgpr3"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_rlphg"]
+
+[sub_resource type="Resource" id="Resource_qjpsm"]
+script = ExtResource("2_rlphg")
+room = &"driveway"
+xform = Transform3D(2.922923e-08, 0.66868687, 0.7435441, 1, -4.371139e-08, 0, 3.2501344e-08, 0.7435441, -0.66868687, 22.66434, 0.022400007, 3.4949703)
+
+[resource]
+script = ExtResource("1_cgpr3")
+id = &"book_04"
+name_key = "item.book"
+set_id = &"book"
+generator = &"book"
+params = {
+"bands": 1,
+"height": 0.18,
+"tint": Color(0.16, 0.22, 0.36, 1),
+"width": 0.044
+}
+home = &"book_home"
+start = SubResource("Resource_qjpsm")

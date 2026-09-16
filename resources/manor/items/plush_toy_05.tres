@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_jghyf"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_8f753"]
+
+[sub_resource type="Resource" id="Resource_jghyf"]
+script = ExtResource("2_8f753")
+room = &"hall_bath"
+xform = Transform3D(-0.87464553, 0, -0.48476297, 0, 1, 0, 0.48476297, 0, -0.87464553, 10.601452, 3.5694, 14.44627)
+
+[resource]
+script = ExtResource("1_jghyf")
+id = &"plush_toy_05"
+name_key = "item.plush_toy"
+slot_cost = 2
+set_id = &"plush_toy"
+generator = &"plush_toy"
+params = {
+"kind": 1,
+"pad": Color(0.98, 0.95, 0.92, 1),
+"size": 0.75,
+"tint": Color(0.95, 0.76, 0.8, 1)
+}
+home = &"plush_toy_home"
+start = SubResource("Resource_jghyf")

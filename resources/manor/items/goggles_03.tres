@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_b7esb"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_6uwpw"]
+
+[sub_resource type="Resource" id="Resource_6pm5y"]
+script = ExtResource("2_6uwpw")
+room = &"rec_room"
+xform = Transform3D(-0.92417634, 0, -0.3819661, 0, 1, 0, 0.3819661, 0, -0.92417634, 7.7462893, -2.3000002, 7.386369)
+
+[resource]
+script = ExtResource("1_b7esb")
+id = &"goggles_03"
+name_key = "item.goggles"
+set_id = &"goggles"
+generator = &"goggles"
+params = {
+"frame": Color(0.92, 0.4, 0.62, 1),
+"lens": Color(0.55, 0.8, 0.96, 0.8)
+}
+home = &"goggles_home"
+start = SubResource("Resource_6pm5y")

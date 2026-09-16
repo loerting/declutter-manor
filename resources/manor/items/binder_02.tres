@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_usjga"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_fcalp"]
+
+[sub_resource type="Resource" id="Resource_usjga"]
+script = ExtResource("2_fcalp")
+room = &"kids_room"
+xform = Transform3D(-1.24096085e-08, -0.28389874, 0.95885426, 1, -4.371139e-08, 0, 4.1912852e-08, 0.95885426, 0.28389874, 4.544355, 3.934, 9.807262)
+
+[resource]
+script = ExtResource("1_usjga")
+id = &"binder_02"
+name_key = "item.binder"
+slot_cost = 2
+set_id = &"binder"
+generator = &"binder"
+params = {
+"tint": Color(0.62, 0.1, 0.1, 1)
+}
+home = &"binder_home"
+start = SubResource("Resource_usjga")

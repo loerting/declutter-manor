@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_8ai5k"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_nbjl5"]
+
+[sub_resource type="Resource" id="Resource_s25q0"]
+script = ExtResource("2_nbjl5")
+room = &"utility"
+xform = Transform3D(-2.2520616e-08, -0.51521164, 0.857063, 1, -4.371139e-08, 0, 3.7463412e-08, 0.857063, 0.51521164, 8.325881, -2.2863998, 14.20857)
+
+[resource]
+script = ExtResource("1_8ai5k")
+id = &"screwdriver_06"
+name_key = "item.screwdriver"
+set_id = &"screwdriver"
+generator = &"screwdriver"
+params = {
+"cross": true,
+"shaft": 0.15
+}
+home = &"screwdriver_home"
+start = SubResource("Resource_s25q0")

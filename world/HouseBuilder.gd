@@ -98,8 +98,10 @@ const TRIM_WIDTH := 0.055
 const GARAGE_LEAVES := 4
 const GARAGE_LEAF_GAP := 0.012
 ## Skirting along every interior wall foot. It is the cheapest thing that stops a wall meeting a
-## floor at a razor edge, and it hides every floor seam at the wall line.
-const SKIRT_HEIGHT := 0.10
+## floor at a razor edge, and it hides every floor seam at the wall line. 95 mm and not 100: a kitchen's
+## toe kick, a vanity's plinth and a shelving unit's bottom deck all stop at 100 mm, and where they meet
+## the wall their tops lay in the skirting's (`dev/SeamProbe.gd`, 2026-09-16).
+const SKIRT_HEIGHT := 0.095
 const SKIRT_DEPTH := 0.015
 ## A window is a frame with glass in it, not a hole with glass in it. The frame sits at the
 ## wall's mid-plane inside the reveal; anything wider than a pane gets mullions, anything tall
@@ -544,12 +546,7 @@ static func _side_name(room_id: StringName) -> String:
 	return "outside" if room_id == &"" else String(room_id)
 
 static func _glass() -> Material:
-	# Real glass is mostly a mirror of the sky from outside and mostly invisible from inside;
-	# the Fresnel term does both if the surface is smooth and not metallic. The first version
-	# was metallic 0.3 and rough, which made every window a dark grey plate.
-	var glass := Props.mat(Color(0.86, 0.92, 0.95, 0.20), 0.02)
-	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	return glass
+	return Props.glass(Color(0.86, 0.92, 0.95, 0.20), 0.02)
 
 static func _emit(holder: Node3D, parts: Array, material: Material, node_name: String,
 		collide := false) -> void:
@@ -1146,18 +1143,16 @@ static func _spandrel(holder: Node3D, storey: StoreyDef, room: RoomDef, stair: S
 			"Spandrel", true)
 
 ## One static body carrying every guard on this flight. A guard is a barrier in the physics
-## world even though it is balusters in the visual one, so `size` and `transform` are given
-## rather than taken from the meshes.
+## world even though it is balusters in the visual one, so each bar is given as a shape and its
+## transform rather than taken from the meshes.
 static func _emit_barrier(holder: Node3D, bars: Array) -> void:
 	if bars.is_empty():
 		return
 	var body := StaticBody3D.new()
 	body.name = "GuardBody"
 	for bar: Array in bars:
-		var shape := BoxShape3D.new()
-		shape.size = bar[0]
 		var node := CollisionShape3D.new()
-		node.shape = shape
+		node.shape = bar[0]
 		node.transform = bar[1]
 		body.add_child(node)
 	holder.add_child(body)
@@ -1228,12 +1223,23 @@ static func _build_rake_rail(rails: Dictionary, stair: StairDef, s: float, y0: f
 	var basis := Basis(dir, w.cross(dir), w)
 	rails["rail"].append([Props.box(Vector3(a.distance_to(b) + NEWEL, HANDRAIL.y, HANDRAIL.x)),
 			Transform3D(basis, (a + b) * 0.5)])
-	# The same line as a solid, for collision only. Balusters 13 cm apart are a fence to the eye
+	# The same run as a solid, for collision only. Balusters 13 cm apart are a fence to the eye
 	# and a row of gaps to a 30 cm capsule: `dev/WalkProbe.gd` never tested a rail, so the author
-	# walked through one (2026-09-09). The barrier hangs below the rail rather than standing on
-	# the treads, because the treads under a rake are a sawtooth and the collider is a ramp.
-	rails["barrier"].append([Vector3(a.distance_to(b) + NEWEL, RAIL_HEIGHT, BARRIER),
-			Transform3D(basis, (a + b) * 0.5 - Vector3.UP * RAIL_HEIGHT * 0.5)])
+	# walked through one (2026-09-09). Its underside is the nosing line, which is the top of the
+	# flight's ramp, because the treads under a rake are a sawtooth and the collider is a ramp.
+	# Its ends are plumb at the newels' outer faces. It used to be a box laid along the rake, whose
+	# square ends reached past both newels: a corner at chest height over the hall floor and one
+	# just above the landing, where nothing is drawn, and the body caught on both (2026-09-14).
+	var ends: Array[float] = [-NEWEL, top_u + NEWEL]
+	var hull := PackedVector3Array()
+	for uu: float in ends:
+		var top: float = rail_y.call(uu)
+		for y: float in [top, top - RAIL_HEIGHT - riser] as Array[float]:
+			for half: float in [BARRIER * 0.5, -BARRIER * 0.5] as Array[float]:
+				hull.append(at.call(uu, y) + w * half)
+	var prism := ConvexPolygonShape3D.new()
+	prism.points = hull
+	rails["barrier"].append([prism, Transform3D.IDENTITY])
 	# balusters, two per tread, the last tread's belong to the head newel
 	for i in range(steps - 1):
 		var tread := y0 + riser * float(i + 1)
@@ -1253,8 +1259,9 @@ static func _build_guard(rails: Dictionary, a: Vector3, b: Vector3) -> void:
 	var basis := Basis(dir, Vector3.UP, dir.cross(Vector3.UP))
 	rails["rail"].append([Props.box(Vector3(length - NEWEL + RAIL_TENON * 2.0, HANDRAIL.y, HANDRAIL.x)),
 			Transform3D(basis, (a + b) * 0.5 + Vector3.UP * (RAIL_HEIGHT + HANDRAIL.y * 0.5))])
-	rails["barrier"].append([Vector3(length + NEWEL, RAIL_HEIGHT, BARRIER),
-			Transform3D(basis, (a + b) * 0.5 + Vector3.UP * RAIL_HEIGHT * 0.5)])
+	var box := BoxShape3D.new()
+	box.size = Vector3(length + NEWEL, RAIL_HEIGHT, BARRIER)
+	rails["barrier"].append([box, Transform3D(basis, (a + b) * 0.5 + Vector3.UP * RAIL_HEIGHT * 0.5)])
 	var count := int(floor((length - NEWEL) / BALUSTER_SPACING))
 	var top := RAIL_HEIGHT
 	for i in range(1, count + 1):

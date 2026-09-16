@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_cdq14"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_ywybq"]
+
+[sub_resource type="Resource" id="Resource_owfeo"]
+script = ExtResource("2_ywybq")
+room = &"powder"
+xform = Transform3D(-0.67546827, 0, -0.7373891, 0, 1, 0, 0.7373891, 0, -0.67546827, 15.815553, 0.45000005, 15.139533)
+
+[resource]
+script = ExtResource("1_cdq14")
+id = &"photo_album_04"
+name_key = "item.photo_album"
+slot_cost = 2
+set_id = &"photo_album"
+generator = &"photo_album"
+params = {
+"depth": 0.33,
+"foil": Color(0.62, 0.46, 0.26, 1),
+"tint": Color(0.36, 0.24, 0.16, 1),
+"width": 0.31
+}
+home = &"photo_album_home"
+start = SubResource("Resource_owfeo")

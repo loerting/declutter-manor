@@ -19,15 +19,38 @@ const PLAYER := preload("res://player/Player.tscn")
 const TWEEN_TIMEOUT := 5.0
 ## How far in front of the run the player stands. Inside both the reach and the snap radius.
 const STAND_OFF := 0.9
+## Beyond the stand point, room for the capsule before a wall.
+const STAND_CLEARANCE := 0.35
+const STAND_SIDES: Array[Vector2] = [Vector2.DOWN, Vector2.UP, Vector2.RIGHT, Vector2.LEFT]
 ## A placed spoon is at its slot if it is this close to it. It is a tolerance on floating point,
 ## not on geometry: the item is assigned the slot transform, not moved towards it.
 const SLOT_EPS := 0.0005
+## Where the probe saves. Beside the real save rather than over it, and deleted afterwards
+## (`SaveManager.basename_override`).
+const SAVE_NAME := "probe_interact"
+## A free-standing start rests on what is under it if its lowest point is this close to it.
+const REST_EPS := 0.003
+## Where the authoring round trip writes. Not the content, not the save, and deleted afterwards.
+const AUTHOR_DIR := "user://probe_author"
+## The set the core verb is proven on: twelve spoons and the kitchen drawer, the reference
+## implementation (`docs/ARCHITECTURE.md`). Every other set in the house is there too, and is
+## counted and saved, but only this one is carried through.
+const REFERENCE_SET := &"cutlery"
+## The kitchen run's family, for the drawer dimensions the stack has to fit inside.
+const BASE_RUN := preload("res://props/furniture/BaseRun.gd")
 
 var _violations := 0
 var _plan: FloorPlan
 var _player: PlayerController
 var _items: Node3D
+## The reference set's members.
 var _defs: Array[ItemDef] = []
+var _content: Catalogue
+var _set: StringName
+## The generated house and its furniture: torn down and rebuilt to prove a save loads.
+var _built: Array[Node] = []
+var _census: ClutterCensus
+var _completions: Array[StringName] = []
 ## Dev builds only. With it, the probe stops when the twelve spoons are in the drawer and takes
 ## the picture — the only proof of a stack that stacks is one somebody can look at
 ## (`CLAUDE.md`, "Absolute honesty").
@@ -42,14 +65,21 @@ func _ready() -> void:
 		if arg.begins_with("--screenshot="):
 			_shot = arg.trim_prefix("--screenshot=")
 	_plan = ManorPlan.build()
-	add_child(HouseBuilder.build(_plan))
-	WorldBuilder.furnish(self, _plan)
+	_content = WorldBuilder.catalogue(_plan)
+	_set = REFERENCE_SET
+	_defs = _content.members(_set)
+	_build(_content)
 	if _shot != "" and BuildConfig.is_dev_only():
 		# The picture is taken with the lighting the game uses, through the one path that
 		# builds it, or it is a picture of a different house (`docs/ARCHITECTURE.md`).
 		WorldBuilder.light(self, WorldBuilder.bounds(self), Graphics.Tier.HIGH)
-	_items = get_node("Items") as Node3D
-	_defs = ManorItems.build(_plan)
+	Inventory.reset()
+	SetTracker.begin(_content)
+	EventBus.set_completed.connect(func(id: StringName) -> void: _completions.append(id))
+	SaveManager.basename_override = SAVE_NAME
+	_census = ClutterCensus.new()
+	_census.initialize(self, _plan)
+	add_child(_census)
 	_player = PLAYER.instantiate() as PlayerController
 	add_child(_player)
 	# The probe drives the player, so the player must not take the pointer: a windowed dev run
@@ -60,12 +90,22 @@ func _ready() -> void:
 func _run() -> void:
 	print("=== manor (hash %s) ===" % _plan.plan_hash())
 	_check_content()
+	_check_starts()
+	_check_author_writes()
 	_check_slot_arithmetic()
 	await _check_container_fsm()
+	await _check_reachable()
+	_check_census_before()
 	await _check_take_and_return()
 	await _check_stacking()
 	await _capture()
 	await _check_travel()
+	await _check_set_completes()
+	_check_author_homes()
+	var saved := _check_save()
+	await _check_reload(saved)
+	await _check_content_change(saved)
+	_remove_save()
 	print("")
 	print("InteractProbe: %d violation(s)" % _violations)
 	get_tree().quit(_violations)
@@ -81,20 +121,20 @@ func _check_content() -> void:
 	for def: ItemDef in _defs:
 		if not ItemFactory.knows(def.generator):
 			_fail("content.family", "'%s' names no family '%s'" % [def.id, def.generator])
-		if def.home != group.id:
-			_fail("content.home", "'%s' has no home group" % def.id)
+		if ProgressSave.find_slots(self, def.home) == null:
+			_fail("content.home", "'%s' has no home group '%s' in the house" % [def.id, def.home])
 		if not Balance.is_valid_slot_cost(def.slot_cost):
 			_fail("content.cost", "'%s' costs %d slots" % [def.id, def.slot_cost])
 		if def.start == null:
 			_fail("content.start", "'%s' starts nowhere" % def.id)
-	if _defs.size() != FurnitureBuilder.CUTLERY_CAPACITY:
+	if _defs.size() != group.capacity:
 		_fail("content.count", "%d spoons for a drawer that holds %d"
-				% [_defs.size(), FurnitureBuilder.CUTLERY_CAPACITY])
-	# Counted over the whole house, not over the `Items` node: six of them start inside the
-	# cupboard and are children of it.
+				% [_defs.size(), group.capacity])
+	# Counted over the whole house, not over the `Items` node: some start inside a cupboard and
+	# are children of it.
 	var built := _count_items(self)
-	if built != _defs.size():
-		_fail("content.built", "%d defs, %d items in the house" % [_defs.size(), built])
+	if built != _content.items.size():
+		_fail("content.built", "%d defs, %d items in the house" % [_content.items.size(), built])
 
 func _all_items(node: Node) -> Array[ItemNode]:
 	var out: Array[ItemNode] = []
@@ -104,6 +144,30 @@ func _all_items(node: Node) -> Array[ItemNode]:
 	for child: Node in node.get_children():
 		out.append_array(_all_items(child))
 	return out
+
+## The reference set's items under `node`, in tree order.
+func _reference_in(node: Node) -> Array[ItemNode]:
+	var out: Array[ItemNode] = []
+	for item: ItemNode in _all_items(node):
+		if item.def.set_id == _set:
+			out.append(item)
+	return out
+
+## Per room, how many of these items start there.
+func _starting_counts(defs: Array[ItemDef]) -> Dictionary:
+	var out := {}
+	for def: ItemDef in defs:
+		if def.set_id != &"" and def.start != null:
+			out[def.start.room] = int(out.get(def.start.room, 0)) + 1
+	return out
+
+## What the rooms count once the reference set is home and nothing else has moved.
+func _others() -> Dictionary:
+	var rest: Array[ItemDef] = []
+	for def: ItemDef in _content.items:
+		if def.set_id != _set:
+			rest.append(def)
+	return _starting_counts(rest)
 
 func _count_items(node: Node) -> int:
 	var n := 1 if node is ItemNode else 0
@@ -122,21 +186,19 @@ func _check_slot_arithmetic() -> void:
 			_fail("slots.arith", "slot %d is at %s, not %s"
 					% [i, group.slot_xform(i).origin, expected])
 	var rise := group.slot_xform(group.capacity - 1).origin.y - group.slot_xform(0).origin.y
-	var want := FurnitureBuilder.CUTLERY_STEP * float(group.capacity - 1)
-	if absf(rise - want) > SLOT_EPS:
-		_fail("slots.arith", "the stack rises %.4f m over %d slots, not %.4f"
-				% [rise, group.capacity, want])
+	if rise <= 0.0:
+		_fail("slots.arith", "a stack of %d rises %.4f m" % [group.capacity, rise])
 	# The whole stack has to fit inside the drawer it is in, or the twelfth spoon is in the air
 	# above an open drawer.
-	if rise > FurnitureBuilder.DRAWER_HEIGHT - 0.03:
+	if rise > BASE_RUN.DRAWER_HEIGHT - 0.03:
 		_fail("slots.arith", "the stack is %.3f m tall in a %.3f m drawer"
-				% [rise, FurnitureBuilder.DRAWER_HEIGHT])
+				% [rise, BASE_RUN.DRAWER_HEIGHT])
 
 # --- Containers -----------------------------------------------------------------------------
 
 func _check_container_fsm() -> void:
-	var drawer := _container(FurnitureBuilder.CUTLERY_DRAWER)
 	var slots := _slots()
+	var drawer := slots.container()
 	if drawer.state() != ContainerComponent.State.CLOSED:
 		_fail("container.fsm", "a container did not start closed")
 	if slots.available():
@@ -166,12 +228,38 @@ func _check_container_fsm() -> void:
 		if c.state() != ContainerComponent.State.CLOSED:
 			_fail("container.fsm", "'%s' does not shut" % c.container_id)
 
+## Every item in the house can be picked up from where a player can stand: with every container
+## open, some eye at standing height, within reach, with nothing solid at its eye or its feet, sees the
+## item before anything else (`Clearance.reachable`). Nothing else looked, and a start inside a piece
+## whose body is one solid box is an item no ray reaches (2026-09-16).
+func _check_reachable() -> void:
+	var containers: Array[ContainerComponent] = []
+	for node: Node in get_tree().get_nodes_in_group(ContainerComponent.GROUP):
+		containers.append(node as ContainerComponent)
+	for c: ContainerComponent in containers:
+		c.force(true)
+	for i in range(2):
+		await get_tree().physics_frame
+	var space := get_world_3d().direct_space_state
+	for item: ItemNode in ProgressSave.items_in(self):
+		var centre := item.global_transform * item.extent().get_center()
+		var room := _plan.room_at(centre, ProgressSave.ROOM_SLACK)
+		if room == null:
+			_fail("start.reachable", "'%s' is in no room" % item.def.id)
+			continue
+		var floor_y := room.floor_y(_plan.storey_of(room.id).base_y)
+		if not Clearance.reachable(space, _plan, item.extent(), item.global_transform, floor_y):
+			_fail("start.reachable", "'%s' in '%s' at %s: no eye within reach sees it first" % [item.def.id, room.id, centre])
+	for c: ContainerComponent in containers:
+		c.force(false)
+
 # --- Picking up -----------------------------------------------------------------------------
 
 ## Walk up to a spoon on the worktop, look at it, and press the button — the whole of the ray,
 ## the reach, the prompt and the pick-up in one measurement.
 func _check_take_and_return() -> void:
-	var spoon := _items.get_child(0) as ItemNode
+	var loose := _reference_in(_items)
+	var spoon := loose[0]
 	var was := spoon.global_transform
 	await _stand_looking_at(was.origin)
 	if _player.interactor().prompt() != Interactor.Prompt.TAKE:
@@ -188,7 +276,7 @@ func _check_take_and_return() -> void:
 		_fail("carry.hidden", "a carried spoon is still standing in the room")
 
 	# One slot, so the second spoon cannot be taken and the player has to be told why.
-	var other := _items.get_child(1) as ItemNode
+	var other := loose[1]
 	await _stand_looking_at(other.global_position)
 	if _player.interactor().prompt() != Interactor.Prompt.NO_SLOT:
 		_fail("carry.full", "a full inventory does not say so (prompt %d)"
@@ -212,18 +300,18 @@ func _check_take_and_return() -> void:
 ## looking at the drawer and pressing the button, and each is checked against the slot the
 ## group generated, not against the one the probe would have chosen.
 func _check_stacking() -> void:
-	var drawer := _container(FurnitureBuilder.CUTLERY_DRAWER)
 	var slots := _slots()
+	var drawer := slots.container()
 	drawer.open()
 	await _settle(drawer)
-	# Half of them are shut in the cupboard, so the cupboard is opened first — the same order
-	# the player has to do it in.
-	var cupboard := _container(FurnitureBuilder.CLUTTER_CUPBOARD)
+	# One of them is shut in the cupboard, so the cupboard is opened first — the same order the
+	# player has to do it in.
+	var cupboard := _container(_clutter_container())
 	cupboard.open()
 	await _settle(cupboard)
 	if slots.group.takes(_mug()):
 		_fail("place.accepts", "the cutlery drawer accepts a mug")
-	var spoons := _all_items(self)
+	var spoons := _reference_in(self)
 	if spoons.size() != _defs.size():
 		_fail("place.stack", "%d spoons to put away, %d authored" % [spoons.size(), _defs.size()])
 	for i in range(spoons.size()):
@@ -231,7 +319,7 @@ func _check_stacking() -> void:
 		if not _player.carry().try_take(spoon):
 			_fail("place.stack", "spoon %d could not be picked up" % i)
 			return
-		var target := slots.slot_global(i)
+		var target := slots.slot_global(i, spoon.def)
 		await _stand_looking_at(target.origin)
 		if _player.interactor().prompt() != Interactor.Prompt.PLACE:
 			_fail("place.stack", "spoon %d in front of an open drawer prompts %d, not PLACE"
@@ -250,6 +338,15 @@ func _check_stacking() -> void:
 		if slots.occupied_count() != i + 1:
 			_fail("place.stack", "%d spoons in the drawer after %d placements"
 					% [slots.occupied_count(), i + 1])
+	# The bottom spoon lies on the drawer floor: the slot is a point on the surface and the rest is
+	# measured off the spoon, so neither side of that can drift without this failing.
+	var bottom := _in_slot(slots, 0)
+	if bottom != null:
+		var surface := (slots.global_transform * slots.group.slot_xform(0)).origin.y
+		var lowest := (bottom.global_transform * bottom.extent()).position.y
+		if absf(lowest - surface) > REST_EPS:
+			_fail("place.rests", "the bottom spoon is %.1f mm off the drawer floor"
+					% ((lowest - surface) * 1000.0))
 	if slots.free_count() != 0:
 		_fail("place.stack", "%d slots still free after twelve spoons" % slots.free_count())
 	if slots.next_index() != -1:
@@ -259,7 +356,7 @@ func _check_stacking() -> void:
 ## ever hung off the carcass instead of off the moving part.
 func _check_travel() -> void:
 	var slots := _slots()
-	var drawer := _container(FurnitureBuilder.CUTLERY_DRAWER)
+	var drawer := slots.container()
 	var spoon := slots.get_child(0) as ItemNode
 	if spoon == null:
 		_fail("place.travel", "nothing in the drawer to travel with it")
@@ -268,30 +365,268 @@ func _check_travel() -> void:
 	drawer.close()
 	await _settle(drawer)
 	var moved := out.distance_to(spoon.global_position)
-	if absf(moved - FurnitureBuilder.DRAWER_TRAVEL) > 0.01:
+	if absf(moved - BASE_RUN.DRAWER_TRAVEL) > 0.01:
 		_fail("place.travel", "the drawer shut by %.3f m and the spoon in it moved %.3f m"
-				% [FurnitureBuilder.DRAWER_TRAVEL, moved])
+				% [BASE_RUN.DRAWER_TRAVEL, moved])
 
 ## The twelve spoons, in the drawer, seen from where the player put them.
 func _capture() -> void:
 	if _shot == "" or not BuildConfig.is_dev_only():
 		return
 	var slots := _slots()
-	var at := slots.slot_global(0).origin
+	var at := slots.slot_global(0, _defs[0]).origin
 	_player.teleport(Vector3(at.x, at.y + 0.35, at.z + 0.75))
 	await _frames(2)
 	_player.aim_at(at)
 	await WorldBuilder.capture(self, _shot)
+
+# --- Authoring ------------------------------------------------------------------------------
+
+## Every item, at its authored start, reads back as exactly that start through the authoring
+## tool — so pressing F6 on an item nobody moved writes nothing new. And every start out in the
+## open rests on what is under it, which is the check that fails when the kitchen moves and the
+## content does not.
+func _check_starts() -> void:
+	var space := get_world_3d().direct_space_state
+	for item: ItemNode in ProgressSave.items_in(self):
+		var start := item.def.start
+		var why := HomeAuthor.refusal(item, _plan)
+		if why != "":
+			_fail("author.start", "'%s' at its start %s" % [item.def.id, why])
+			continue
+		var back := HomeAuthor.placement_of(item, _plan)
+		if back.room != start.room or back.container != start.container \
+				or not back.xform.is_equal_approx(start.xform):
+			_fail("author.start", "'%s' reads back as %s/%s %s, authored %s/%s %s" % [item.def.id,
+					back.room, back.container, back.xform.origin, start.room, start.container,
+					start.xform.origin])
+		# A start on a piece rests on the fixture its anchor names, which is geometry and not a collider:
+		# the fruit in a bowl, the jaws of a vise, the lid of a trunk.
+		if start.container != &"" or start.anchor != &"":
+			continue
+		var box := item.global_transform * item.extent()
+		var centre := box.get_center()
+		var bottom := box.position.y
+		var q := PhysicsRayQueryParameters3D.create(Vector3(centre.x, bottom + 0.05, centre.z),
+				Vector3(centre.x, bottom - 0.05, centre.z), Layers.bit(Layers.WORLD))
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			_fail("author.rests", "'%s' has nothing within 5 cm under it" % item.def.id)
+		elif absf(bottom - (hit["position"] as Vector3).y) > REST_EPS:
+			_fail("author.rests", "'%s' stands %.1f mm off the surface under it"
+					% [item.def.id, (bottom - (hit["position"] as Vector3).y) * 1000.0])
+
+## The tool's writer, round-tripped: two items and a set written as files, a catalogue that
+## refers to them, and all of it loaded back from disk rather than from the cache.
+func _check_author_writes() -> void:
+	var c := Catalogue.new()
+	c.sets = [SetDef.make(&"probe_set", "set.probe")] as Array[SetDef]
+	for def: ItemDef in [_defs[0], _defs[_defs.size() - 1]]:
+		var copy := HomeAuthor.like(def, def.id)
+		copy.start = def.start.duplicate() as ItemPlacement
+		copy.set_id = &"probe_set"
+		c.items.append(copy)
+	var err := int(HomeAuthor.save_set(c.sets[0], AUTHOR_DIR))
+	for def: ItemDef in c.items:
+		err = maxi(err, int(HomeAuthor.save_item(def, AUTHOR_DIR)))
+	err = maxi(err, int(HomeAuthor.save_catalogue(c, AUTHOR_DIR)))
+	if err != OK:
+		_fail("author.write", error_string(err))
+		return
+	var text := FileAccess.get_file_as_string(AUTHOR_DIR + "/catalogue.tres")
+	if text.count("[sub_resource") != 0:
+		_fail("author.write", "the catalogue embeds its items instead of referring to their files")
+	var back := ResourceLoader.load(AUTHOR_DIR + "/catalogue.tres", "",
+			ResourceLoader.CACHE_MODE_IGNORE_DEEP) as Catalogue
+	if back == null or back.items.size() != 2 or back.sets.size() != 1:
+		_fail("author.read", "the written catalogue does not load back as 2 items and 1 set")
+	else:
+		for i in range(2):
+			var a := c.items[i]
+			var b := back.items[i]
+			if b.id != a.id or b.home != a.home or b.set_id != a.set_id or b.start == null \
+					or b.start.container != a.start.container \
+					or not b.start.xform.is_equal_approx(a.start.xform):
+				_fail("author.read", "'%s' loads back changed" % a.id)
+	var next := HomeAuthor.next_id(_content, &"spoon")
+	if next != StringName("spoon_%02d" % (_defs.size() + 1)):
+		_fail("author.id", "the next spoon id is '%s' with %d spoons authored" % [next, _defs.size()])
+	_remove_dir(AUTHOR_DIR)
+
+## In the drawer, every spoon names the drawer as its home, and none of them can be written as a
+## start — a start is a wrong place, and a place-slot group is a right one.
+func _check_author_homes() -> void:
+	for item: ItemNode in _reference_in(self):
+		if HomeAuthor.home_of(item) != item.def.home:
+			_fail("author.home", "'%s' in group '%s' reads home '%s'"
+					% [item.def.id, item.def.home, HomeAuthor.home_of(item)])
+		if HomeAuthor.refusal(item, _plan) == "":
+			_fail("author.home", "'%s' in the drawer could be written as a start" % item.def.id)
+
+func _remove_dir(path: String) -> void:
+	for sub: String in DirAccess.get_directories_at(path):
+		_remove_dir(path.path_join(sub))
+	for file: String in DirAccess.get_files_at(path):
+		DirAccess.remove_absolute(path.path_join(file))
+	DirAccess.remove_absolute(path)
+
+# --- Sets and saving ------------------------------------------------------------------------
+
+## Twelve spoons out of place, each counted in the room its start names, before anything is
+## touched.
+func _check_census_before() -> void:
+	var expected := _starting_counts(_content.items)
+	var counts := _census.counts()
+	if counts != expected:
+		_fail("census.start", "the room counts start as %s, not %s" % [counts, expected])
+
+## The drawer full is the set complete: one slot granted, said once, and the kitchen off the list.
+func _check_set_completes() -> void:
+	await _frames(2)
+	if not SetTracker.is_complete(_set):
+		_fail("set.complete", "twelve spoons in the drawer and the set is at %d of %d"
+				% [SetTracker.placed(_set), SetTracker.total(_set)])
+	if Inventory.capacity != Balance.START_SLOTS + Balance.SLOTS_PER_COMPLETED_SET:
+		_fail("set.slot", "capacity is %d after one set, not %d"
+				% [Inventory.capacity, Balance.START_SLOTS + Balance.SLOTS_PER_COMPLETED_SET])
+	if _completions != ([_set] as Array[StringName]):
+		_fail("set.once", "set_completed fired %s" % [_completions])
+	if _census.counts() != _others():
+		_fail("census.clear", "with the kitchen finished the rooms count %s, not %s"
+				% [_census.counts(), _others()])
+
+## Through the real file: captured off the house, written, read back.
+func _check_save() -> Dictionary:
+	if not SaveManager.save_game(ProgressSave.capture(self, _plan)):
+		_fail("save.write", SaveManager.last_error)
+		return {}
+	var back := SaveManager.load_game()
+	if int(back.get("slots", -1)) != Inventory.capacity:
+		_fail("save.read", "the save reads back %s slots" % back.get("slots", null))
+	return back
+
+## The house is torn down and built again from nothing, the save is put over it, and the drawer
+## has to hold the same twelve spoons in the same order — with the slot still granted and not
+## granted a second time.
+func _check_reload(saved: Dictionary) -> void:
+	var before := _stack_ids()
+	await _rebuild(_content, saved)
+	var after := _stack_ids()
+	if after != before:
+		_fail("save.stack", "the drawer reloaded as %s, it was saved as %s" % [after, before])
+	var slots := _slots()
+	for i in range(slots.group.capacity):
+		var item := _in_slot(slots, i)
+		if item != null and not item.global_position.is_equal_approx(slots.slot_global(i, item.def).origin):
+			_fail("save.stack", "slot %d reloaded at %s, not at its slot" % [i, item.global_position])
+	if not SetTracker.is_complete(_set):
+		_fail("save.set", "the set reloaded incomplete")
+	if Inventory.capacity != Balance.START_SLOTS + Balance.SLOTS_PER_COMPLETED_SET:
+		_fail("save.slots", "capacity reloaded as %d" % Inventory.capacity)
+	if _completions.size() != 1:
+		_fail("save.once", "loading paid the set again: %s" % [_completions])
+	if _census.counts() != _others():
+		_fail("save.census", "the reloaded rooms count %s, not %s" % [_census.counts(), _others()])
+	print("  saved, rebuilt and reloaded: %d spoons in the drawer, set %s, %d slots"
+			% [_stack_ids().size() - _stack_ids().count(&""),
+			"complete" if SetTracker.is_complete(_set) else "open", Inventory.capacity])
+
+## The content changes under the save: a thirteenth spoon is added to the set. The old save must
+## still load — the twelve back in the drawer, the new spoon where it is authored to start, the set
+## open again at twelve of thirteen, and the slot it already paid still there and not paid twice.
+func _check_content_change(saved: Dictionary) -> void:
+	# A copy: the loaded catalogue is the one `WorldBuilder.catalogue` hands everyone.
+	var changed := _content.copy()
+	var extra := HomeAuthor.like(_defs[0], HomeAuthor.next_id(_content, &"spoon"))
+	extra.start = (_defs[0].start as ItemPlacement).duplicate() as ItemPlacement
+	extra.start.xform = extra.start.xform.translated(Vector3(0.0, 0.0, 0.08))
+	changed.items.append(extra)
+	await _rebuild(changed, saved)
+	if _stack_ids().size() != _slots().group.capacity:
+		_fail("change.stack", "%d spoons back in the drawer after a content change" % _stack_ids().size())
+	var added: ItemNode = null
+	for item: ItemNode in ProgressSave.items_in(self):
+		if item.def.id == extra.id:
+			added = item
+	if added == null:
+		_fail("change.added", "the added spoon is not in the house")
+	elif not added.global_transform.is_equal_approx(extra.start.xform):
+		_fail("change.added", "the added spoon is at %s, authored at %s"
+				% [added.global_position, extra.start.xform.origin])
+	if SetTracker.placed(_set) != 12 or SetTracker.total(_set) != 13:
+		_fail("change.set", "the set is at %d of %d, not 12 of 13"
+				% [SetTracker.placed(_set), SetTracker.total(_set)])
+	if Inventory.capacity != Balance.START_SLOTS + Balance.SLOTS_PER_COMPLETED_SET:
+		_fail("change.slots", "capacity is %d after a content change" % Inventory.capacity)
+	var want := _others()
+	want[extra.start.room] = int(want.get(extra.start.room, 0)) + 1
+	if _census.counts() != want:
+		_fail("change.census", "the room counts are %s, not %s with the added spoon in '%s'"
+				% [_census.counts(), want, extra.start.room])
+	print("  content changed under the save: set at %d of %d, %d slots, kitchen counts %s"
+			% [SetTracker.placed(_set), SetTracker.total(_set), Inventory.capacity,
+			_census.counts()])
+
+func _build(content: Catalogue) -> void:
+	var house := HouseBuilder.build(_plan)
+	add_child(house)
+	var from := get_child_count()
+	_items = WorldBuilder.furnish(self, _plan, content)
+	_built = [house] as Array[Node]
+	for i in range(from, get_child_count()):
+		_built.append(get_child(i))
+
+func _rebuild(content: Catalogue, saved: Dictionary) -> void:
+	for node: Node in _built:
+		remove_child(node)
+		node.queue_free()
+	await _frames(1)
+	_build(content)
+	ProgressSave.apply(self, _items, _plan, content, saved)
+	# The game builds its census after the save is applied, so it counts from the start; this one
+	# outlives the house it counted, and is asked again the same way.
+	_census.recount()
+	await _frames(2)
+
+func _stack_ids() -> Array[StringName]:
+	var out: Array[StringName] = []
+	var slots := _slots()
+	for i in range(slots.group.capacity):
+		var item := _in_slot(slots, i)
+		out.append(item.def.id if item != null else &"")
+	return out
+
+func _in_slot(slots: PlaceSlots, index: int) -> ItemNode:
+	for child: Node in slots.get_children():
+		var item := child as ItemNode
+		if item != null and slots.slot_of(item) == index:
+			return item
+	return null
+
+func _remove_save() -> void:
+	var dir := DirAccess.open("user://")
+	for path: String in [SaveManager.main_path(), SaveManager.backup_path(), SaveManager.temp_path()]:
+		if dir.file_exists(path.get_file()):
+			dir.remove(path.get_file())
+	SaveManager.basename_override = ""
 
 # --- Driving the player ----------------------------------------------------------------------
 
 ## Stands the player a stride from a point and looks at it. The body is teleported rather than
 ## walked, because how it got there is `WalkProbe`'s question, not this one.
 func _stand_looking_at(target: Vector3) -> void:
-	var room := _plan.find_room(&"kitchen")
+	var room := _plan.room_at(target, ProgressSave.ROOM_SLACK)
+	assert(room != null, "InteractProbe: %s is in no room" % target)
 	var floor_y := room.floor_y(_plan.storey_of(room.id).base_y)
-	# South of the target, which is the side of the run the kitchen is on.
-	_player.teleport(Vector3(target.x, floor_y + 0.05, target.z + STAND_OFF))
+	# South first, which is the side of the run the kitchen is on; otherwise the first side that
+	# is still inside the target's room, so a spoon against a wall is not aimed at through it.
+	var stand := Vector2(target.x, target.z + STAND_OFF)
+	for side: Vector2 in STAND_SIDES:
+		var at := Vector2(target.x, target.z) + side * STAND_OFF
+		if room.contains(at + side * STAND_CLEARANCE):
+			stand = at
+			break
+	_player.teleport(Vector3(stand.x, floor_y + 0.05, stand.y))
 	# Until the body has stopped moving, not for a fixed two frames. Stood a stride south of a
 	# spoon at the west end of the run, the capsule starts inside the kitchen's west wall and is
 	# pushed 14 cm out of it; aimed while that was still happening, the ray missed the spoon in
@@ -330,9 +665,16 @@ func _frames(n: int) -> void:
 func _slots() -> PlaceSlots:
 	for node: Node in get_tree().get_nodes_in_group(PlaceSlots.GROUP):
 		var s := node as PlaceSlots
-		if s != null and s.group.id == FurnitureBuilder.CUTLERY_GROUP:
+		if s != null and s.group.id == _defs[0].home:
 			return s
 	return null
+
+## The container the authored clutter starts in: the first start that names one.
+func _clutter_container() -> StringName:
+	for def: ItemDef in _defs:
+		if def.start != null and def.start.container != &"":
+			return def.start.container
+	return &""
 
 func _container(id: StringName) -> ContainerComponent:
 	return WorldBuilder.find_container(self, id)

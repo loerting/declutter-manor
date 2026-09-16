@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_xfy4e"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_am6bj"]
+
+[sub_resource type="Resource" id="Resource_qeoxc"]
+script = ExtResource("2_am6bj")
+room = &"garage"
+xform = Transform3D(4.0701938e-08, 0.9311518, 0.36463174, 1, -4.371139e-08, 0, 1.5938559e-08, 0.36463174, -0.9311518, 22.548895, 0.1404, 10.581249)
+
+[resource]
+script = ExtResource("1_xfy4e")
+id = &"school_book_03"
+name_key = "item.school_book"
+slot_cost = 2
+set_id = &"school_book"
+generator = &"school_book"
+params = {
+"tint": Color(0.62, 0.14, 0.14, 1),
+"width": 0.04
+}
+home = &"school_book_home"
+start = SubResource("Resource_qeoxc")

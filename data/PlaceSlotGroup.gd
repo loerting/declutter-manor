@@ -17,14 +17,23 @@ enum FillOrder { SEQUENTIAL, PAIRED, NEAREST }
 ## stack is filled from the top and nothing can be slid into the middle of it, so a STACK is
 ## only ever SEQUENTIAL — `is_consistent()` is where that is enforced.
 enum Layout { STACK, ROW, GRID, FREE }
+## How an item sits at a slot. ON puts its lowest point on the slot, centred over it: a spoon in a
+## drawer, a book on a shelf. HANG puts its highest point there: keys on a hook, a coat on a peg.
+## AS_BUILT puts its own origin there, for a family whose generator already says where it rests.
+## Measured from each item's own mesh (`ItemFactory.rest`), so a slot is a point on a surface and
+## never a guess at how tall the thing on it is.
+enum Rest { ON, HANG, AS_BUILT }
 
 @export var id: StringName
+## What the player is told the home is ("cutlery drawer"), shown after its room's name. Empty on a
+## group that is no set's home — a fruit bowl that only ever holds an absurd start.
+@export var name_key := ""
 ## Item families (`ItemDef.generator`) or explicit item ids. Either matches.
 @export var accepts: Array[StringName] = []
 @export var capacity := 1
 @export var fill_order: FillOrder = FillOrder.SEQUENTIAL
 @export var layout: Layout = Layout.STACK
-## Slot 0, in the local space of the node that owns the group.
+## Slot 0, in the anchor's space: a point on the surface, not where an item's origin goes (`rest`).
 @export var base_xform := Transform3D.IDENTITY
 ## Offset per index for STACK and ROW, and along a GRID's rows.
 @export var step := Vector3.ZERO
@@ -33,6 +42,11 @@ enum Layout { STACK, ROW, GRID, FREE }
 @export var row_step := Vector3.ZERO
 ## Offered only while the owning container is open past `Balance.CONTAINER_OPEN_THRESHOLD`.
 @export var requires_open := false
+@export var rest: Rest = Rest.ON
+## The named place on the furniture this group hangs from (`FurnitureNode.anchor`): a drawer's
+## floor, a shelf, a hook rail. `base_xform` is in that anchor's space, and if the anchor is on a
+## moving part, the container that moves it is the one `requires_open` asks.
+@export var anchor: StringName = &""
 
 ## The transform of one slot, in the owner's local space. Generated, never stored: this is the
 ## whole point of the group.

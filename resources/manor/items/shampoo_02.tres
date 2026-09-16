@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_x6l0d"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_bl7e5"]
+
+[sub_resource type="Resource" id="Resource_8rpw5"]
+script = ExtResource("2_bl7e5")
+room = &"kids_room"
+xform = Transform3D(1.4264262e-08, 0.32632828, 0.94525653, 1, -4.371139e-08, 0, 4.1318476e-08, 0.94525653, -0.32632828, 6.7343316, 3.5389, 6.3686476)
+
+[resource]
+script = ExtResource("1_x6l0d")
+id = &"shampoo_02"
+name_key = "item.shampoo"
+set_id = &"shampoo"
+generator = &"shampoo"
+params = {
+"cap": Color(0.18, 0.22, 0.4, 1),
+"height": 0.22,
+"tint": Color(0.93, 0.9, 0.84, 1),
+"width": 1.08
+}
+home = &"shampoo_home"
+start = SubResource("Resource_8rpw5")

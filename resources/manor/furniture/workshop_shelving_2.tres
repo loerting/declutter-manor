@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+
+[resource]
+script = ExtResource("1_fd")
+id = &"workshop_shelving_2"
+generator = &"steel_shelving"
+params = {
+"boxes": "2,3,4",
+"tint": Color(0.1, 0.1, 0.11, 1)
+}
+room = &"workshop"
+wall = 3
+align = 2
+along = 0.3

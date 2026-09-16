@@ -1,0 +1,118 @@
+[gd_resource type="Theme" load_steps=8 format=3]
+
+[sub_resource type="FontVariation" id="Bold"]
+variation_embolden = 0.6
+
+[sub_resource type="StyleBoxFlat" id="Glass"]
+bg_color = Color(0.078, 0.071, 0.059, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.34, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Tape"]
+bg_color = Color(0.906, 0.835, 0.608, 1)
+content_margin_left = 16.0
+content_margin_top = 5.0
+content_margin_right = 16.0
+content_margin_bottom = 5.0
+shadow_color = Color(0, 0, 0, 0.25)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="Key"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.961, 0.937, 0.894, 0.45)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 6.0
+content_margin_top = 1.0
+content_margin_right = 6.0
+content_margin_bottom = 1.0
+
+[sub_resource type="StyleBoxFlat" id="Chip"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.961, 0.937, 0.894, 0.35)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 9.0
+content_margin_top = 1.0
+content_margin_right = 9.0
+content_margin_bottom = 1.0
+
+[sub_resource type="StyleBoxFlat" id="MeterBack"]
+bg_color = Color(0.961, 0.937, 0.894, 0.2)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_top = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="MeterFill"]
+bg_color = Color(0.961, 0.937, 0.894, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[resource]
+default_font_size = 17
+Big/base_type = &"Label"
+Big/font_sizes/font_size = 30
+Big/fonts/font = SubResource("Bold")
+Chip/base_type = &"PanelContainer"
+Chip/styles/panel = SubResource("Chip")
+Dim/base_type = &"Label"
+Dim/colors/font_color = Color(0.961, 0.937, 0.894, 0.62)
+Key/base_type = &"PanelContainer"
+Key/styles/panel = SubResource("Key")
+KeyLabel/base_type = &"Label"
+KeyLabel/font_sizes/font_size = 13
+KeyLabel/fonts/font = SubResource("Bold")
+Label/colors/font_color = Color(0.961, 0.937, 0.894, 1)
+Label/colors/font_outline_color = Color(0, 0, 0, 0.55)
+Label/constants/line_spacing = 0
+Meter/base_type = &"ProgressBar"
+Meter/styles/background = SubResource("MeterBack")
+Meter/styles/fill = SubResource("MeterFill")
+OverWorld/base_type = &"Label"
+OverWorld/constants/outline_size = 5
+OverWorld/fonts/font = SubResource("Bold")
+PanelContainer/styles/panel = SubResource("Glass")
+Strong/base_type = &"Label"
+Strong/fonts/font = SubResource("Bold")
+Tape/base_type = &"PanelContainer"
+Tape/styles/panel = SubResource("Tape")
+TapeInk/base_type = &"Label"
+TapeInk/colors/font_color = Color(0.165, 0.141, 0.094, 1)
+TapeInk/fonts/font = SubResource("Bold")
+Title/base_type = &"Label"
+Title/font_sizes/font_size = 21
+Title/fonts/font = SubResource("Bold")
+Warning/base_type = &"Label"
+Warning/colors/font_color = Color(1, 0.62, 0.45, 1)
+Warning/fonts/font = SubResource("Bold")
+VBoxContainer/constants/separation = 6
+HBoxContainer/constants/separation = 8

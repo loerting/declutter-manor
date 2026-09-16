@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_iqepa"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_ayu6f"]
+
+[sub_resource type="Resource" id="Resource_4yr8f"]
+script = ExtResource("2_ayu6f")
+room = &"attic"
+xform = Transform3D(-0.0068026693, 0, 0.9999769, 0, 1, 0, -0.9999769, 0, -0.0068026693, 14.134967, 6.450007, 10.844937)
+
+[resource]
+script = ExtResource("1_iqepa")
+id = &"grill_tool_01"
+name_key = "item.grill_tool"
+slot_cost = 2
+set_id = &"grill_tool"
+generator = &"grill_tool"
+params = {
+"kind": "tongs"
+}
+home = &"grill_tool_home"
+start = SubResource("Resource_4yr8f")

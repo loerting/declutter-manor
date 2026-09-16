@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_i1ubl"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_ehn1p"]
+
+[sub_resource type="Resource" id="Resource_yp73n"]
+script = ExtResource("2_ehn1p")
+room = &"side_garden"
+xform = Transform3D(0.30524433, 0, -0.9522741, 0, 1, 0, 0.9522741, 0, 0.30524433, 3.656692, -1.1920929e-07, 7.1506834)
+
+[resource]
+script = ExtResource("1_i1ubl")
+id = &"dinner_plate_07"
+name_key = "item.dinner_plate"
+slot_cost = 2
+set_id = &"dinner_plate"
+generator = &"dinner_plate"
+home = &"dinner_plate_home"
+start = SubResource("Resource_yp73n")

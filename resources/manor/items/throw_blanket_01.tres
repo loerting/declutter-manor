@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_gda1v"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_tnamu"]
+
+[sub_resource type="Resource" id="Resource_5oigq"]
+script = ExtResource("2_tnamu")
+room = &"office"
+xform = Transform3D(4.1812275e-08, 0.95655334, -0.2915575, 1, -4.371139e-08, 0, -1.2744382e-08, -0.2915575, -0.95655334, 5.725323, 0.5523, 8.162394)
+
+[resource]
+script = ExtResource("1_gda1v")
+id = &"throw_blanket_01"
+name_key = "item.throw_blanket"
+slot_cost = 2
+set_id = &"throw_blanket"
+generator = &"throw_blanket"
+home = &"throw_blanket_home"
+start = SubResource("Resource_5oigq")

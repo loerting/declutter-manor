@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_sbpn8"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_gfvd8"]
+
+[sub_resource type="Resource" id="Resource_nlbwt"]
+script = ExtResource("2_gfvd8")
+room = &"mudroom"
+xform = Transform3D(-0.82863283, 0.5597925, 2.4469308e-08, 0, -4.371139e-08, 1, 0.5597925, 0.82863283, 3.622069e-08, 16.14348, 0.50716954, 11.363781)
+
+[resource]
+script = ExtResource("1_sbpn8")
+id = &"picture_frame_02"
+name_key = "item.picture_frame"
+set_id = &"picture_frame"
+generator = &"picture_frame"
+params = {
+"finish": "oak",
+"height": 0.15,
+"photo": 0,
+"rail": 0.022,
+"width": 0.2
+}
+home = &"picture_frame_home"
+start = SubResource("Resource_nlbwt")

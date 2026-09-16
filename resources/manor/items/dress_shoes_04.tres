@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_kyja2"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_mbsl3"]
+
+[sub_resource type="Resource" id="Resource_k0y0a"]
+script = ExtResource("2_mbsl3")
+room = &"pool_area"
+xform = Transform3D(0.601291, 0, 0.7990301, 0, 1, 0, -0.7990301, 0, 0.601291, 14.007914, 0.059985287, 17.03567)
+
+[resource]
+script = ExtResource("1_kyja2")
+id = &"dress_shoes_04"
+name_key = "item.dress_shoes"
+slot_cost = 2
+set_id = &"dress_shoes"
+generator = &"dress_shoes"
+params = {
+"length": 0.25,
+"style": 2,
+"tint": Color(0.1, 0.13, 0.24, 1)
+}
+home = &"dress_shoes_home"
+start = SubResource("Resource_k0y0a")

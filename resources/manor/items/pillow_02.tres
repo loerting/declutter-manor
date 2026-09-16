@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_4d7ye"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_epi0c"]
+
+[sub_resource type="Resource" id="Resource_heq0k"]
+script = ExtResource("2_epi0c")
+room = &"driveway"
+xform = Transform3D(0.34100437, 0, 0.9400617, 0, 1, 0, -0.9400617, 0, 0.34100437, 16.93651, -2.4586916e-07, 1.4894457)
+
+[resource]
+script = ExtResource("1_4d7ye")
+id = &"pillow_02"
+name_key = "item.pillow"
+slot_cost = 2
+set_id = &"pillow"
+generator = &"pillow"
+params = {
+"tint": Color(0.96, 0.96, 0.95, 1)
+}
+home = &"pillow_home"
+start = SubResource("Resource_heq0k")

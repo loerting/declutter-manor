@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_iijbj"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_3mbyg"]
+
+[sub_resource type="Resource" id="Resource_2651i"]
+script = ExtResource("2_3mbyg")
+room = &"entry_hall"
+xform = Transform3D(-0.9327099, 0, 0.36062765, 0, 1, 0, -0.36062765, 0, -0.9327099, 9.426292, 0.45002246, 13.122885)
+
+[resource]
+script = ExtResource("1_iijbj")
+id = &"dress_shoes_01"
+name_key = "item.dress_shoes"
+slot_cost = 2
+set_id = &"dress_shoes"
+generator = &"dress_shoes"
+params = {
+"length": 0.3,
+"style": 0,
+"tint": Color(0.05, 0.05, 0.055, 1)
+}
+home = &"dress_shoes_home"
+start = SubResource("Resource_2651i")

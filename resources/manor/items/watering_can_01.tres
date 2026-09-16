@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_pw3fo"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_88mk8"]
+
+[sub_resource type="Resource" id="Resource_ys62i"]
+script = ExtResource("2_88mk8")
+room = &"master_bed"
+xform = Transform3D(-0.5859411, 0, -0.81035364, 0, 1, 0, 0.81035364, 0, -0.5859411, 16.07405, 3.5, 13.696239)
+
+[resource]
+script = ExtResource("1_pw3fo")
+id = &"watering_can_01"
+name_key = "item.watering_can"
+slot_cost = 4
+set_id = &"watering_can"
+generator = &"watering_can"
+home = &"watering_can_home"
+start = SubResource("Resource_ys62i")

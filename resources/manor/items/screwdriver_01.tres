@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_e2h55"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_8knat"]
+
+[sub_resource type="Resource" id="Resource_e2h55"]
+script = ExtResource("2_8knat")
+room = &"dining"
+xform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0.31050014, 0.19260001, 0.1949997)
+container = &"dining_sideboard_door_2"
+
+[resource]
+script = ExtResource("1_e2h55")
+id = &"screwdriver_01"
+name_key = "item.screwdriver"
+set_id = &"screwdriver"
+generator = &"screwdriver"
+params = {
+"cross": false,
+"shaft": 0.075
+}
+home = &"screwdriver_home"
+start = SubResource("Resource_e2h55")

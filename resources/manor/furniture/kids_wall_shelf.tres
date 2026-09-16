@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_kids_wall_shelf_0"]
+script = ExtResource("2_psg")
+id = &"school_book_home"
+name_key = "home.school_book_home"
+accepts = Array[StringName]([&"school_book"])
+capacity = 5
+fill_order = 2
+layout = 1
+base_xform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -0.1, 0, 0)
+step = Vector3(0.05, 0, 0)
+anchor = &"top"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"kids_wall_shelf"
+generator = &"wall_shelf"
+params = {
+"width": 0.9,
+"depth": 0.26,
+"height": 1.35,
+"finish": "pine"
+}
+room = &"kids_room"
+wall = 1
+along = 0.7
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_kids_wall_shelf_0")])

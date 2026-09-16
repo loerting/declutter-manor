@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_l36jn"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_0uhmj"]
+
+[sub_resource type="Resource" id="Resource_heeko"]
+script = ExtResource("2_0uhmj")
+room = &"workshop"
+xform = Transform3D(0.679016, -0.73412347, -3.2089556e-08, 0, -4.371139e-08, 1, -0.73412347, -0.679016, -2.9680733e-08, 12.36664, -2.2967002, 8.49684)
+
+[resource]
+script = ExtResource("1_l36jn")
+id = &"hanger_15"
+name_key = "item.hanger"
+set_id = &"hanger"
+generator = &"hanger"
+params = {
+"tint": Color(1, 0.86, 0.66, 1)
+}
+home = &"hanger_home"
+start = SubResource("Resource_heeko")

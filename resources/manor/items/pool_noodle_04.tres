@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_2obfk"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_6kcl1"]
+
+[sub_resource type="Resource" id="Resource_6wlr1"]
+script = ExtResource("2_6kcl1")
+room = &"master_bed"
+xform = Transform3D(-0.39939833, 0.9167775, -4.0073616e-08, 0, -4.371139e-08, -1, -0.9167775, -0.39939833, 1.7458255e-08, 12.138356, 3.5342, 12.067442)
+
+[resource]
+script = ExtResource("1_2obfk")
+id = &"pool_noodle_04"
+name_key = "item.pool_noodle"
+slot_cost = 4
+set_id = &"pool_noodle"
+generator = &"pool_noodle"
+params = {
+"tint": Color(0.2, 0.56, 0.9, 1)
+}
+home = &"pool_noodle_home"
+start = SubResource("Resource_6wlr1")

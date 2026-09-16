@@ -7,6 +7,10 @@ extends StaticBody3D
 ## game: an item the player no longer wants goes back exactly where it was
 ## (`docs/ARCHITECTURE.md`, "Placement").
 
+## Every item in the world, whatever it hangs under — a drawer, a cupboard, the player's hands.
+## The save and the room counts find items by it rather than by walking a path into furniture.
+const GROUP := &"items"
+
 var def: ItemDef
 ## Where it stood before it was picked up: the node it hung under, and its transform in that
 ## node's space, so a spoon taken out of a drawer goes back into the drawer and not to where
@@ -19,10 +23,12 @@ var origin_slots: PlaceSlots
 var origin_index := -1
 
 var _visual: Node3D
+var _carried := false
 
 func initialize(item: ItemDef, visual: Node3D) -> void:
 	def = item
 	name = String(item.id)
+	add_to_group(GROUP)
 	_visual = visual
 	add_child(visual)
 	collision_layer = Layers.bit(Layers.ITEM)
@@ -35,6 +41,10 @@ func initialize(item: ItemDef, visual: Node3D) -> void:
 	# the node it hangs from, and a shape at the origin is a target beside the item.
 	shape.position = box.get_center()
 	add_child(shape)
+
+## The item's meshes' bounds, in its own space.
+func extent() -> AABB:
+	return _extent(_visual)
 
 static func _extent(visual: Node3D) -> AABB:
 	var box := AABB()
@@ -65,8 +75,12 @@ func remember_origin(slots: PlaceSlots = null, index := -1) -> void:
 ## Carried: out of sight and out of the ray's way. The node stays in the tree the whole time —
 ## under the carry component instead of under the world — so nothing is ever an orphan.
 func set_carried(on: bool) -> void:
+	_carried = on
 	visible = not on
 	collision_layer = 0 if on else Layers.bit(Layers.ITEM)
+
+func is_carried() -> bool:
+	return _carried
 
 ## The mesh the ghost preview is drawn from.
 func visual() -> Node3D:

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_ygy8h"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_j0e3x"]
+
+[sub_resource type="Resource" id="Resource_jftph"]
+script = ExtResource("2_j0e3x")
+room = &"attic"
+xform = Transform3D(0.95892936, 0, -0.2836451, 0, 1, 0, 0.2836451, 0, 0.95892936, 5.7792044, 6.45, 10.395388)
+
+[resource]
+script = ExtResource("1_ygy8h")
+id = &"paint_can_01"
+name_key = "item.paint_can"
+slot_cost = 4
+set_id = &"paint_can"
+generator = &"paint_can"
+params = {
+"label": Color(0.9, 0.46, 0.12, 1),
+"paint": Color(0.55, 0.62, 0.5, 1)
+}
+home = &"paint_can_home"
+start = SubResource("Resource_jftph")

@@ -49,7 +49,9 @@ const ATTIC := Rect2(4.3, 9.5, 12.4, 2.5)
 ## it, and the lap pool cut into the paving east of it. Both are structures, not paving, and
 ## `ExteriorBuilder` builds them; the zones themselves are ordinary rooms.
 const DECK := Rect2(6, 15.5, 6, 3)
-const POOL_AREA := Rect2(12, 15.5, 11, 3.3)
+## Carried 2 m past the pool's deep end: at 11 m the paving beyond the coping was 1.7 m either end,
+## and a diving board and a pair of loungers, which a pool area has, fitted at neither (2026-09-15).
+const POOL_AREA := Rect2(12, 15.5, 13, 3.3)
 ## Set 1.05 m off the house wall and 0.6 m off the paving's south edge: the first cut left
 ## half a metre of walkway between the coping and the siding, which read as a moat.
 const POOL := Rect2(14.2, 16.55, 6.6, 1.65)
@@ -166,14 +168,15 @@ static func _deck() -> RoomDef:
 
 ## The driveway with the front walk as part of it: an L from the street side of the garage to
 ## the front door, and the stoop under the front steps. One zone, because a path is not a
-## place items live; a polygon, because only walls need rectangles and paving has none.
+## place items live; a polygon, because only walls need rectangles and paving has none. The
+## strip between the walk and the house is in it too: the front flower bed stands there, and a
+## bed on the lawn stood on grass 2 cm under the zone's floor (2026-09-15).
 static func _driveway() -> RoomDef:
 	var r := RoomDef.new()
 	r.id = &"driveway"
 	r.name_key = "room.driveway"
 	r.polygon = PackedVector2Array([Vector2(15.5, 0.5), Vector2(23.5, 0.5), Vector2(23.5, 6),
-			Vector2(15.5, 6), Vector2(15.5, 5), Vector2(10, 5), Vector2(10, 6), Vector2(9, 6),
-			Vector2(9, 4), Vector2(15.5, 4)])
+			Vector2(9, 6), Vector2(9, 4), Vector2(15.5, 4)])
 	r.floor_slot = "concrete"
 	_outside(r, "concrete")
 	return r

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_n7285"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_fgej1"]
+
+[sub_resource type="Resource" id="Resource_e8ody"]
+script = ExtResource("2_fgej1")
+room = &"guest_room"
+xform = Transform3D(0.33661824, 0, -0.9416412, 0, 1, 0, 0.9416412, 0, 0.33661824, 4.239428, 3.5, 14.509624)
+
+[resource]
+script = ExtResource("1_n7285")
+id = &"garden_gnome_03"
+name_key = "item.garden_gnome"
+slot_cost = 4
+set_id = &"garden_gnome"
+generator = &"garden_gnome"
+params = {
+"carries": "lantern",
+"coat": Color(0.78, 0.6, 0.22, 1),
+"hat": Color(0.24, 0.5, 0.26, 1)
+}
+home = &"garden_gnome_home"
+start = SubResource("Resource_e8ody")

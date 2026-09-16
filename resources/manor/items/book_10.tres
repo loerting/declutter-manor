@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_rdw4c"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_vrxk8"]
+
+[sub_resource type="Resource" id="Resource_rsn6y"]
+script = ExtResource("2_vrxk8")
+room = &"laundry"
+xform = Transform3D(-8.401583e-09, -0.19220583, 0.98135465, 1, -4.371139e-08, 0, 4.2896374e-08, 0.98135465, 0.19220583, 5.1225123, -2.2776, 14.83035)
+
+[resource]
+script = ExtResource("1_rdw4c")
+id = &"book_10"
+name_key = "item.book"
+set_id = &"book"
+generator = &"book"
+params = {
+"bands": 1,
+"height": 0.245,
+"tint": Color(0.08, 0.08, 0.09, 1),
+"width": 0.044
+}
+home = &"book_home"
+start = SubResource("Resource_rsn6y")

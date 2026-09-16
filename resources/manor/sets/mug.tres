@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SetDef" format=3]
+
+[ext_resource type="Script" path="res://data/SetDef.gd" id="1_q0l0c"]
+
+[resource]
+script = ExtResource("1_q0l0c")
+id = &"mug"
+name_key = "set.mug"

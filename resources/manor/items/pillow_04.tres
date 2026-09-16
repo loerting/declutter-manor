@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_q4v6s"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_lajco"]
+
+[sub_resource type="Resource" id="Resource_wy5mx"]
+script = ExtResource("2_lajco")
+room = &"utility"
+xform = Transform3D(-0.9999997, 0, 0.0007700045, 0, 1, 0, -0.0007700045, 0, -0.9999997, 8.104484, -2.3, 13.078102)
+
+[resource]
+script = ExtResource("1_q4v6s")
+id = &"pillow_04"
+name_key = "item.pillow"
+slot_cost = 2
+set_id = &"pillow"
+generator = &"pillow"
+params = {
+"tint": Color(0.78, 0.84, 0.9, 1)
+}
+home = &"pillow_home"
+start = SubResource("Resource_wy5mx")

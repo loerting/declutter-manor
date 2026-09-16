@@ -1,0 +1,29 @@
+{
+"version": 2,
+"slots": 2,
+"play_time": 1812.0,
+"plan_hash": "phase3-fixture",
+"settings_rev": 0,
+"sets": {
+&"cutlery": [&"spoon_01", &"spoon_02"]
+},
+"granted": [&"cutlery"],
+"items": {
+&"spoon_01": {
+"room": &"kitchen",
+"xform": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0),
+"container": &"",
+"group": &"kitchen_cutlery",
+"index": 0,
+"at_home": true
+},
+&"spoon_03": {
+"room": &"kitchen",
+"xform": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.12, 0.27, 0.1),
+"container": &"kitchen_door_e",
+"group": &"",
+"index": -1,
+"at_home": false
+}
+}
+}

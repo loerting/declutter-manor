@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_77k6f"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_ycjac"]
+
+[sub_resource type="Resource" id="Resource_h3bd5"]
+script = ExtResource("2_ycjac")
+room = &"master_bed"
+xform = Transform3D(0.56071657, -0.8280078, -3.619337e-08, 0, -4.371139e-08, 1, -0.8280078, -0.56071657, -2.45097e-08, 15.706717, 3.614, 12.545147)
+
+[resource]
+script = ExtResource("1_77k6f")
+id = &"suitcase_02"
+name_key = "item.suitcase"
+slot_cost = 8
+set_id = &"suitcase"
+generator = &"suitcase"
+params = {
+"depth": 0.22,
+"height": 0.5,
+"tint": Color(0.62, 0.12, 0.1, 1),
+"width": 0.38
+}
+home = &"suitcase_home"
+start = SubResource("Resource_h3bd5")

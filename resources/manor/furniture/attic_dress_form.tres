@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+
+[resource]
+script = ExtResource("1_fd")
+id = &"attic_dress_form"
+generator = &"dress_form"
+room = &"attic"
+wall = 2
+along = 1.6

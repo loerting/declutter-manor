@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_attic_trunk_0"]
+script = ExtResource("2_psg")
+id = &"photo_album_home"
+name_key = "home.photo_album_home"
+accepts = Array[StringName]([&"photo_album"])
+capacity = 4
+layout = 2
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0, 0)
+step = Vector3(0, 0.06, 0)
+row_length = 2
+row_step = Vector3(0.4, 0, 0)
+requires_open = true
+anchor = &"inside"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"attic_trunk"
+generator = &"trunk"
+room = &"attic"
+along = 0.5
+out = 0.15
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_attic_trunk_0")])

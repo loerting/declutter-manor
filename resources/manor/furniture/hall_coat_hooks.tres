@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_834om"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_564at"]
+
+[sub_resource type="Resource" id="Resource_xr4kl"]
+script = ExtResource("2_564at")
+id = &"winter_coat_home"
+name_key = "home.winter_coat_home"
+accepts = Array[StringName]([&"winter_coat"])
+capacity = 4
+layout = 1
+step = Vector3(0.42, 0, 0)
+rest = 1
+anchor = &"hooks"
+
+[resource]
+script = ExtResource("1_834om")
+id = &"hall_coat_hooks"
+generator = &"coat_hooks"
+room = &"entry_hall"
+wall = 3
+align = 0
+along = 2.4
+slots = Array[ExtResource("2_564at")]([SubResource("Resource_xr4kl")])

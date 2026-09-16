@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_6yklk"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_if0iw"]
+
+[sub_resource type="Resource" id="Resource_a47nw"]
+script = ExtResource("2_if0iw")
+room = &"entry_hall"
+xform = Transform3D(-0.93851924, 0, -0.34522685, 0, 1, 0, 0.34522685, 0, -0.93851924, 8.215211, 0.44999993, 10.5041485)
+
+[resource]
+script = ExtResource("1_6yklk")
+id = &"dog_toy_01"
+name_key = "item.dog_toy"
+set_id = &"dog_toy"
+generator = &"dog_toy"
+params = {
+"kind": "ball"
+}
+home = &"dog_toy_home"
+start = SubResource("Resource_a47nw")

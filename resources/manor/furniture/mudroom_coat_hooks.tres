@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_mudroom_coat_hooks_0"]
+script = ExtResource("2_psg")
+id = &"backpack_home"
+name_key = "home.backpack_home"
+accepts = Array[StringName]([&"backpack"])
+capacity = 2
+layout = 1
+step = Vector3(0.42, 0, 0)
+rest = 1
+anchor = &"hooks"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"mudroom_coat_hooks"
+generator = &"coat_hooks"
+room = &"mudroom"
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_mudroom_coat_hooks_0")])

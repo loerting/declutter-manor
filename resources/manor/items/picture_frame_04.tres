@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_nb4gu"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_5l5x8"]
+
+[sub_resource type="Resource" id="Resource_pa28d"]
+script = ExtResource("2_5l5x8")
+room = &"office"
+xform = Transform3D(0.99824417, -0.05923349, -2.5891782e-09, 0, -4.371139e-08, 1, -0.05923349, -0.99824417, -4.363464e-08, 4.789203, 0.52083534, 9.261147)
+
+[resource]
+script = ExtResource("1_nb4gu")
+id = &"picture_frame_04"
+name_key = "item.picture_frame"
+set_id = &"picture_frame"
+generator = &"picture_frame"
+params = {
+"finish": "white",
+"height": 0.2,
+"photo": 3,
+"rail": 0.025,
+"width": 0.15
+}
+home = &"picture_frame_home"
+start = SubResource("Resource_pa28d")

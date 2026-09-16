@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_fxot2"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_m53x3"]
+
+[sub_resource type="Resource" id="Resource_ohild"]
+script = ExtResource("2_m53x3")
+room = &"attic"
+xform = Transform3D(-0.20686498, -0.9783695, -4.2765887e-08, 0, -4.371139e-08, 1, -0.9783695, 0.20686498, 9.042355e-09, 10.829377, 6.4533, 10.593684)
+
+[resource]
+script = ExtResource("1_fxot2")
+id = &"hanger_02"
+name_key = "item.hanger"
+set_id = &"hanger"
+generator = &"hanger"
+params = {
+"tint": Color(1, 0.86, 0.66, 1)
+}
+home = &"hanger_home"
+start = SubResource("Resource_ohild")

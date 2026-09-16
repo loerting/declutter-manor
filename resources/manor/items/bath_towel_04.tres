@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_fk4bb"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_c4pi0"]
+
+[sub_resource type="Resource" id="Resource_qtngk"]
+script = ExtResource("2_c4pi0")
+room = &"living"
+xform = Transform3D(0.25567457, 0, -0.9667629, 0, 1, 0, 0.9667629, 0, 0.25567457, 4.61148, 0.45000005, 12.849477)
+
+[resource]
+script = ExtResource("1_fk4bb")
+id = &"bath_towel_04"
+name_key = "item.bath_towel"
+slot_cost = 2
+set_id = &"bath_towel"
+generator = &"bath_towel"
+params = {
+"tint": Color(0.62, 0.72, 0.62, 1)
+}
+home = &"bath_towel_home"
+start = SubResource("Resource_qtngk")

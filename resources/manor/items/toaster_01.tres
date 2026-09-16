@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_5udwy"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_rx1k6"]
+
+[sub_resource type="Resource" id="Resource_5udwy"]
+script = ExtResource("2_rx1k6")
+room = &"attic"
+xform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0.010000229, 0, 0)
+anchor = &"attic_trunk_lid"
+
+[resource]
+script = ExtResource("1_5udwy")
+id = &"toaster_01"
+name_key = "item.toaster"
+slot_cost = 2
+set_id = &"toaster"
+generator = &"toaster"
+home = &"toaster_home"
+start = SubResource("Resource_5udwy")

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+
+[resource]
+script = ExtResource("1_fd")
+id = &"kitchen_sink_run"
+generator = &"base_run"
+params = {
+"bays": 3,
+"sink": 2
+}
+room = &"kitchen"
+wall = 2

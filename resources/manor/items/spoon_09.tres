@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_5o5y8"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_ssv7t"]
+
+[sub_resource type="Resource" id="Resource_5o5y8"]
+script = ExtResource("2_ssv7t")
+room = &"rec_room"
+xform = Transform3D(0.9961947, 0, 0.08715574, 0, 1, 0, -0.08715574, 0, 0.9961947, 5.070422, -2.3000998, 11.523213)
+
+[resource]
+script = ExtResource("1_5o5y8")
+id = &"spoon_09"
+name_key = "item.spoon"
+set_id = &"cutlery"
+generator = &"spoon"
+home = &"kitchen_cutlery"
+start = SubResource("Resource_5o5y8")

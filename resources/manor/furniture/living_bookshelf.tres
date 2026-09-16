@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_grlg7"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_u1dwr"]
+
+[sub_resource type="Resource" id="Resource_vjdqd"]
+script = ExtResource("2_u1dwr")
+id = &"book_home"
+name_key = "home.book_home"
+accepts = Array[StringName]([&"book"])
+capacity = 15
+fill_order = 2
+layout = 2
+base_xform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+step = Vector3(0.05, 0, 0)
+row_length = 8
+row_step = Vector3(0, 0.36, 0)
+anchor = &"shelves"
+
+[resource]
+script = ExtResource("1_grlg7")
+id = &"living_bookshelf"
+generator = &"bookshelf"
+room = &"living"
+wall = 1
+align = 0
+along = 0.1
+slots = Array[ExtResource("2_u1dwr")]([SubResource("Resource_vjdqd")])

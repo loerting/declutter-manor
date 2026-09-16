@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_8bco2"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_qfmo2"]
+
+[sub_resource type="Resource" id="Resource_8bco2"]
+script = ExtResource("2_qfmo2")
+room = &"utility"
+xform = Transform3D(0.9972025, -0.07474708, -3.2672987e-09, 0, -4.371139e-08, 1, -0.07474708, -0.9972025, -4.3589107e-08, 8.486441, -2.2967, 13.71628)
+
+[resource]
+script = ExtResource("1_8bco2")
+id = &"hanger_14"
+name_key = "item.hanger"
+set_id = &"hanger"
+generator = &"hanger"
+params = {
+"tint": Color(0.2, 0.14, 0.1, 1)
+}
+home = &"hanger_home"
+start = SubResource("Resource_8bco2")

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_0js6b"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_sxl8e"]
+
+[sub_resource type="Resource" id="Resource_0js6b"]
+script = ExtResource("2_sxl8e")
+room = &"hall_bath"
+xform = Transform3D(-4.1075268e-08, -0.9396926, 0.34202012, 1, -4.371139e-08, 0, 1.4950174e-08, 0.34202012, 0.9396926, 0.1310873, 0.018000126, -0.04805374)
+anchor = &"hall_bath_toilet_cistern"
+
+[resource]
+script = ExtResource("1_0js6b")
+id = &"school_book_01"
+name_key = "item.school_book"
+slot_cost = 2
+set_id = &"school_book"
+generator = &"school_book"
+params = {
+"tint": Color(0.16, 0.34, 0.66, 1),
+"width": 0.034
+}
+home = &"school_book_home"
+start = SubResource("Resource_0js6b")

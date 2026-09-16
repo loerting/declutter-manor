@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_6dxpk"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_vw6vt"]
+
+[sub_resource type="Resource" id="Resource_3xcj7"]
+script = ExtResource("2_vw6vt")
+room = &"office"
+xform = Transform3D(-0.1501893, 0, 0.98865724, 0, 1, 0, -0.98865724, 0, -0.1501893, 6.469267, 1.2008, 9.05029)
+
+[resource]
+script = ExtResource("1_6dxpk")
+id = &"grill_tool_03"
+name_key = "item.grill_tool"
+slot_cost = 2
+set_id = &"grill_tool"
+generator = &"grill_tool"
+params = {
+"kind": "brush"
+}
+home = &"grill_tool_home"
+start = SubResource("Resource_3xcj7")

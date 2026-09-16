@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_bce08"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_7pofo"]
+
+[sub_resource type="Resource" id="Resource_bce08"]
+script = ExtResource("2_7pofo")
+room = &"powder"
+xform = Transform3D(4.2641453e-08, 0.9755227, -0.21989883, 1, -4.371139e-08, 0, -9.612084e-09, -0.21989883, -0.9755227, 14.636771, 0.48740005, 14.616423)
+
+[resource]
+script = ExtResource("1_bce08")
+id = &"umbrella_03"
+name_key = "item.umbrella"
+slot_cost = 2
+set_id = &"umbrella"
+generator = &"umbrella"
+params = {
+"canopy": Color(0.42, 0.08, 0.09, 1),
+"handle": Color(0.62, 0.42, 0.28, 1),
+"wood": true
+}
+home = &"umbrella_home"
+start = SubResource("Resource_bce08")

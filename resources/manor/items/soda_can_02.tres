@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_tldsk"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_pw8od"]
+
+[sub_resource type="Resource" id="Resource_3odnj"]
+script = ExtResource("2_pw8od")
+room = &"closet"
+xform = Transform3D(-3.9307924e-08, -0.89926046, -0.43741354, 1, -4.371139e-08, 0, -1.9119954e-08, -0.43741354, 0.89926046, 12.368182, 3.533, 8.273478)
+
+[resource]
+script = ExtResource("1_tldsk")
+id = &"soda_can_02"
+name_key = "item.soda_can"
+set_id = &"soda_can"
+generator = &"soda_can"
+params = {
+"tint": Color(0.15, 0.5, 0.2, 1)
+}
+home = &"soda_can_home"
+start = SubResource("Resource_3odnj")

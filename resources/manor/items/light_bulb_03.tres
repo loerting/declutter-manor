@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_ptyiw"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_bmjnb"]
+
+[sub_resource type="Resource" id="Resource_ul1n1"]
+script = ExtResource("2_bmjnb")
+room = &"driveway"
+xform = Transform3D(-0.976737, 0, -0.21444067, 0, 1, 0, 0.21444067, 0, -0.976737, 19.229378, 0.057810664, 5.381756)
+
+[resource]
+script = ExtResource("1_ptyiw")
+id = &"light_bulb_03"
+name_key = "item.light_bulb"
+set_id = &"light_bulb"
+generator = &"light_bulb"
+params = {
+"tint": Color(0.9, 0.45, 0.1, 1)
+}
+home = &"light_bulb_home"
+start = SubResource("Resource_ul1n1")

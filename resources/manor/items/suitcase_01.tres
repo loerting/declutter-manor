@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_inngl"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_rq65m"]
+
+[sub_resource type="Resource" id="Resource_inngl"]
+script = ExtResource("2_rq65m")
+room = &"driveway"
+xform = Transform3D(-0.9396926, 0, -0.34202015, 0, 1, 0, 0.34202015, 0, -0.9396926, 22.6, 0, 0.95)
+
+[resource]
+script = ExtResource("1_inngl")
+id = &"suitcase_01"
+name_key = "item.suitcase"
+slot_cost = 8
+set_id = &"suitcase"
+generator = &"suitcase"
+params = {
+"depth": 0.28,
+"height": 0.66,
+"tint": Color(0.13, 0.19, 0.34, 1),
+"width": 0.48
+}
+home = &"suitcase_home"
+start = SubResource("Resource_inngl")

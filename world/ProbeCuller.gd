@@ -16,6 +16,9 @@ extends Node
 ## Wire it with `initialize(plan, probes, camera)`; it takes the plan because adjacency is a fact
 ## about the floor plan, and it takes the probes because it does not know how to find them
 ## (rule 5).
+##
+## It is also the one place that knows which room the eye is in, so it announces a change of room
+## (`EventBus.zone_entered`); the HUD shows that room's count.
 
 ## How often the eye's room is looked up again. The player walks 2.8 m/s, so this is 7 cm.
 const INTERVAL := 0.025
@@ -27,17 +30,20 @@ var _probes: Array[RoomProbe] = []
 var _camera: Camera3D
 ## room id -> Array[StringName]: the rooms whose probes stay on when the eye is in this one.
 var _neighbours: Dictionary = {}
-## room id -> Array: [RoomDef, StoreyDef], for placing the eye.
-var _rooms: Dictionary = {}
+var _plan: FloorPlan
 var _clock := 0.0
 var _current: StringName = &""
 ## False until the eye has been placed in a room once, which is what tells "outdoors, and the
 ## house behind me" apart from "the very first frame".
 var _placed := false
+## The room last announced. Announced from `_process`, so whatever is added to the tree after this
+## in the same frame hears the first room too.
+var _announced: StringName = &""
 
 func initialize(plan: FloorPlan, probes: Array[RoomProbe], camera: Camera3D) -> void:
 	_probes = probes
 	_camera = camera
+	_plan = plan
 	_index(plan)
 	_apply(_room_at(camera.global_position))
 
@@ -50,16 +56,20 @@ func _process(delta: float) -> void:
 		return
 	_clock = 0.0
 	var here := _room_at(_camera.global_position)
-	if here == _current and _placed:
+	if here != _current or not _placed:
+		_apply(here)
+	if _current == _announced:
 		return
-	_apply(here)
+	if _announced != &"":
+		EventBus.zone_exited.emit(_announced)
+	_announced = _current
+	EventBus.zone_entered.emit(_current)
 
 ## Which rooms each room opens onto: everything it shares a wall with, plus everything a flight
 ## connects it to, plus itself. Derived, so a plan change cannot leave a stale list behind.
 func _index(plan: FloorPlan) -> void:
 	for storey: StoreyDef in plan.storeys:
 		for room: RoomDef in storey.rooms:
-			_rooms[room.id] = [room, storey]
 			_neighbours[room.id] = [room.id] as Array[StringName]
 		for wall: WallSegment in storey.walls:
 			if wall.room_a == &"" or wall.room_b == &"":
@@ -77,16 +87,8 @@ func _link(a: StringName, b: StringName) -> void:
 
 ## The room the eye is in, or `&""` when it is outdoors or in a stairwell between two.
 func _room_at(eye: Vector3) -> StringName:
-	var plan_point := Vector2(eye.x, eye.z)
-	for id: StringName in _rooms:
-		var room: RoomDef = _rooms[id][0]
-		var storey: StoreyDef = _rooms[id][1]
-		if not room.contains(plan_point):
-			continue
-		var base := room.floor_y(storey.base_y)
-		if eye.y >= base - STOREY_SLACK and eye.y <= storey.ceiling_y() + STOREY_SLACK:
-			return id
-	return &""
+	var room := _plan.room_at(eye, STOREY_SLACK)
+	return room.id if room != null else &""
 
 func _apply(here: StringName) -> void:
 	if here == &"":

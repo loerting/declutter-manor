@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_mk1oe"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_h3r2y"]
+
+[sub_resource type="Resource" id="Resource_i8ebo"]
+script = ExtResource("2_h3r2y")
+room = &"mudroom"
+xform = Transform3D(0.9891019, 0, 0.14723277, 0, 1, 0, -0.14723277, 0, 0.9891019, 16.535568, 0.45030004, 11.444346)
+
+[resource]
+script = ExtResource("1_mk1oe")
+id = &"grill_tool_02"
+name_key = "item.grill_tool"
+slot_cost = 2
+set_id = &"grill_tool"
+generator = &"grill_tool"
+params = {
+"kind": "spatula"
+}
+home = &"grill_tool_home"
+start = SubResource("Resource_i8ebo")

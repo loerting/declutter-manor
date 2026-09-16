@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+
+[resource]
+script = ExtResource("1_fd")
+id = &"rec_sofa"
+generator = &"sofa"
+params = {
+"tint": Color(0.42, 0.36, 0.3, 1)
+}
+room = &"rec_room"
+along = -0.5

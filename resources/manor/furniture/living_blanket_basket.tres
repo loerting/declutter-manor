@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_svu8f"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_n6plk"]
+
+[sub_resource type="Resource" id="Resource_q482m"]
+script = ExtResource("2_n6plk")
+id = &"throw_blanket_home"
+name_key = "home.throw_blanket_home"
+accepts = Array[StringName]([&"throw_blanket"])
+layout = 3
+base_xform = Transform3D(0.9876883, -0.1564345, 0, 0.1564345, 0.9876883, 0, 0, 0, 1, 0, 0, 0)
+anchor = &"inside"
+
+[resource]
+script = ExtResource("1_svu8f")
+id = &"living_blanket_basket"
+generator = &"blanket_basket"
+room = &"living"
+wall = 2
+align = 0
+along = 0.2
+out = 1.75
+slots = Array[ExtResource("2_n6plk")]([SubResource("Resource_q482m")])

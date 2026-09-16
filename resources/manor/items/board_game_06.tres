@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_rev37"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_4c1pr"]
+
+[sub_resource type="Resource" id="Resource_acyjg"]
+script = ExtResource("2_4c1pr")
+room = &"powder"
+xform = Transform3D(0.1775247, 0, -0.9841164, 0, 1, 0, 0.9841164, 0, 0.1775247, 15.084352, 0.45000005, 14.905258)
+
+[resource]
+script = ExtResource("1_rev37")
+id = &"board_game_06"
+name_key = "item.board_game"
+slot_cost = 2
+set_id = &"board_game"
+generator = &"board_game"
+params = {
+"band": Color(0.2, 0.16, 0.14, 1),
+"depth": 0.19,
+"tint": Color(0.92, 0.5, 0.12, 1),
+"width": 0.26
+}
+home = &"board_game_home"
+start = SubResource("Resource_acyjg")

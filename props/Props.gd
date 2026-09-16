@@ -9,12 +9,26 @@ class_name Props
 ##  * sheet goods (lampshades, cabinet doors) get real thickness instead of a
 ##    zero-thickness surface with backface culling turned off.
 
+## How far a label, a painted line, a band of tape or a printed panel stands off the surface it lies on.
+## Two faces that close, facing the same way, never lost the depth test at any distance or angle measured
+## (`dev/SeamProbe.gd`, GAP): 0.2 mm did at 30 m. Sub-millimetre values here were 278 seams on the paint cans alone.
+const PROUD := 0.001
+
 # ---------- materials ----------
 static func mat(color: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
 	m.roughness = rough
 	m.metallic = metal
+	return m
+
+## Real glass is mostly a mirror of the sky from outside and mostly invisible from inside; the Fresnel
+## term does both if the surface is smooth and not metallic. `tint`'s alpha is how much of the glass
+## itself shows. The first window glass was metallic 0.3 and rough, which made every window a dark
+## grey plate.
+static func glass(tint: Color, rough := 0.03) -> StandardMaterial3D:
+	var m := mat(tint, rough)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return m
 
 static func mi(mesh: Mesh, material: Material, pos := Vector3.ZERO, rot := Vector3.ZERO) -> MeshInstance3D:
@@ -80,9 +94,9 @@ static func slab_poly(pts: PackedVector3Array, thickness: float, up_hint := Vect
 		var b := pts[(i + 1) % pts.size()]
 		_quad(rim, a, b, b - off, a - off, (b - a).cross(n).normalized())
 	if not split:
-		return with_tangents(top.commit())
-	return merge_surfaces([with_tangents(top.commit()), with_tangents(bot.commit()),
-			with_tangents(rim.commit())])
+		return finish(top)
+	return merge_surfaces([finish(top), finish(bot),
+			finish(rim)])
 
 static func slab_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, thickness: float,
 		up_hint := Vector3.UP) -> ArrayMesh:
@@ -129,7 +143,7 @@ static func extrude(polygon: PackedVector2Array, origin: Vector3, u: Vector3, v:
 			n2 = -n2
 		var n3: Vector3 = (u * n2.x + v * n2.y).normalized()
 		_quad(st, at.call(a, w0), at.call(b, w0), at.call(b, w1), at.call(a, w1), n3)
-	return with_tangents(st.commit())
+	return finish(st)
 
 ## A rectangular ground slab whose top face is subdivided into `cell`-metre quads so it can
 ## carry a colour that varies across the lot. One tiled texture stretched over a hundred metres
@@ -166,7 +180,7 @@ static func ground_slab(rect: Rect2, y_bottom: float, y_top: float, cell: float,
 		_quad_tinted(st, Vector3(p.x, y_bottom, p.y), Vector3(q.x, y_bottom, q.y),
 				Vector3(q.x, y_top, q.y), Vector3(p.x, y_top, p.y), out,
 				[edge, edge, tint.call(q.x, q.y), tint.call(p.x, p.y)])
-	return with_tangents(st.commit())
+	return finish(st)
 
 ## `_quad` with a colour per corner. Every vertex carries one, because a surface where some
 ## vertices have a colour and some do not is a format mismatch, not a default.
@@ -242,7 +256,7 @@ static func loft(rings: Array, cap_start := true, cap_end := true) -> ArrayMesh:
 			else:
 				st.add_index(ci); st.add_index(base + j); st.add_index(base + j2)
 	st.generate_normals()
-	return with_tangents(st.commit())
+	return finish(st)
 
 ## Adds a UV layout and tangents to a finished mesh.
 ##
@@ -255,11 +269,26 @@ static func loft(rings: Array, cap_start := true, cap_end := true) -> ArrayMesh:
 static func with_tangents(mesh: ArrayMesh) -> ArrayMesh:
 	if mesh == null or mesh.get_surface_count() == 0:
 		return mesh
-	var arrays := mesh.surface_get_arrays(0)
+	return _tangent_mesh(mesh.surface_get_arrays(0))
+
+## `st`'s triangles as a finished mesh, with the UVs and tangents `with_tangents` gives it.
+##
+## Straight from the tool's arrays: a committed mesh lives in the rendering server, and reading it
+## back waits on the GPU and on the main thread. `finish(st)` sent every mesh there
+## three times and read it back twice, which was a quarter of generating the house's furniture
+## (2026-09-15), and on worker threads it was all of it (`Generation`).
+static func finish(st: SurfaceTool) -> ArrayMesh:
+	return _tangent_mesh(st.commit_to_arrays())
+
+static func _tangent_mesh(arrays: Array) -> ArrayMesh:
+	if arrays[Mesh.ARRAY_VERTEX] == null:
+		return ArrayMesh.new()
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	if arrays[Mesh.ARRAY_NORMAL] == null or (arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array).is_empty():
+		var bare := ArrayMesh.new()
+		bare.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		return bare
 	var norms: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-	if norms.is_empty():
-		return mesh
 	var uvs := PackedVector2Array()
 	uvs.resize(verts.size())
 	for i in range(verts.size()):
@@ -275,10 +304,8 @@ static func with_tangents(mesh: ArrayMesh) -> ArrayMesh:
 		else:
 			uvs[i] = Vector2(v.x, v.z)
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	var rebuilt := ArrayMesh.new()
-	rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	var st := SurfaceTool.new()
-	st.create_from(rebuilt, 0)
+	st.create_from_arrays(arrays)
 	st.generate_tangents()
 	return st.commit()
 
@@ -445,7 +472,7 @@ static func dished(outline: PackedVector2Array, secs: Array) -> ArrayMesh:
 		var nr := (bot[k2] - top[k]).cross(top[k2] - top[k]).normalized()
 		for v in [top[k], top[k2], bot[k2], top[k], bot[k2], bot[k]]:
 			st.set_normal(nr); st.add_vertex(v)
-	return with_tangents(st.commit())
+	return finish(st)
 
 static func _tine_hw(x: float, x0: float, x1: float, w0: float, w1: float) -> float:
 	return lerpf(w0, w1, clampf((x - x0) / maxf(x1 - x0, 1e-6), 0.0, 1.0))
@@ -552,8 +579,8 @@ static func holed_slab(size: Vector3, holes: Array, split := false, gable_rise :
 		_quad(rim, Vector3(a.x, -hy, a.y), Vector3(a.x, -hy, b.y), Vector3(a.x, hy, b.y), Vector3(a.x, hy, a.y), Vector3(1, 0, 0))
 		_quad(rim, Vector3(b.x, -hy, a.y), Vector3(b.x, -hy, b.y), Vector3(b.x, hy, b.y), Vector3(b.x, hy, a.y), Vector3(-1, 0, 0))
 	if not split:
-		return with_tangents(top.commit())
-	return merge_surfaces([with_tangents(top.commit()), with_tangents(bot.commit()), with_tangents(rim.commit())])
+		return finish(top)
+	return merge_surfaces([finish(top), finish(bot), finish(rim)])
 
 ## One mesh carrying each input's surface 0 in order, so a single object can wear several
 ## materials without becoming several objects. Empty inputs are kept as empty surfaces so
@@ -582,9 +609,38 @@ static func union(parts: Array) -> ArrayMesh:
 			st.append_from(mesh, s, xf)
 	return st.commit()
 
+## Every mesh under `root`, however deeply nested, baked into one mesh per material under a new
+## node, and `root` freed. For scenery built from many small props that never move apart: a shelf
+## of a hundred books is nine draw calls instead of four hundred.
+static func bake_node(root: Node3D) -> Node3D:
+	var by_material: Dictionary[Material, Array] = {}
+	_gather(root, Transform3D.IDENTITY, by_material)
+	root.free()
+	var out := Node3D.new()
+	for material: Material in by_material:
+		out.add_child(mi(bake(by_material[material]), material))
+	return out
+
+static func _gather(node: Node, xform: Transform3D, out: Dictionary[Material, Array]) -> void:
+	var here := xform
+	var spatial := node as Node3D
+	if spatial != null:
+		here = xform * spatial.transform
+	var instance := node as MeshInstance3D
+	if instance != null and instance.mesh != null:
+		if not out.has(instance.material_override):
+			out[instance.material_override] = []
+		out[instance.material_override].append([instance.mesh, here])
+	for child: Node in node.get_children():
+		_gather(child, here, out)
+
 ## `[box, transform]` part for `union`: a box of `size` centred at `pos`, optionally rotated.
 static func part(size: Vector3, pos: Vector3, basis := Basis.IDENTITY) -> Array:
 	return [box(size), Transform3D(basis, pos)]
+
+## What `cavity` names its meshes: a well is seen from inside, so the volume it bounds is negative
+## on purpose, and `FurnitureProbe` does not read its sign as a winding.
+const CAVITY := "cavity"
 
 ## Open-topped box seen from the inside: the four walls and the floor of a real hollow.
 ## The opening sits at local y = 0 and the cavity extends downward by size.y.
@@ -599,7 +655,9 @@ static func cavity(size: Vector3) -> ArrayMesh:
 	_quad(st, Vector3(-x, d, z), Vector3(x, d, z), Vector3(x, 0, z), Vector3(-x, 0, z), Vector3(0, 0, -1))
 	_quad(st, Vector3(-x, d, -z), Vector3(-x, d, z), Vector3(-x, 0, z), Vector3(-x, 0, -z), Vector3(1, 0, 0))
 	_quad(st, Vector3(x, d, -z), Vector3(x, d, z), Vector3(x, 0, z), Vector3(x, 0, -z), Vector3(-1, 0, 0))
-	return with_tangents(st.commit())
+	var mesh := finish(st)
+	mesh.resource_name = CAVITY
+	return mesh
 
 static func _catmull(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: float) -> Vector3:
 	var t2 := t * t
@@ -634,28 +692,459 @@ static func aim_x(dir: Vector3, up := Vector3.UP) -> Basis:
 	z = z.normalized()
 	return Basis(x, z.cross(x), z)
 
+# ---------- upholstery ----------
+## Loft resolution for upholstered parts: points per quarter-round corner, the longest straight step
+## along a side, and the rings of a band and of a rolled edge.
+const UPHOLSTERY_CORNER_STEPS := 6
+const UPHOLSTERY_RUN := 0.05
+const UPHOLSTERY_BAND_STEPS := 6
+const UPHOLSTERY_ROLL_STEPS := 5
+## Rings of a face, from its middle out, as fractions of the face's half extent.
+const UPHOLSTERY_FACE_RINGS: Array[float] = [0.12, 0.3, 0.5, 0.68, 0.82, 0.92, 0.97, 1.0]
+## A welt is the piped cord round a box cushion's edge; this share of it sits inside the outline.
+const WELT := 0.0055
+const WELT_SET := 0.35
+const CUSHION_CORNER := 0.04
+const CUSHION_PUFF := 0.0025
+const PILLOW_CROWN_EXP := 0.8
+
+## An upholstered frame part: flat underneath, every edge rolled over, the sides puffed out most at
+## their middles and the top crowned. `size` is its box with the origin at the middle of its back
+## edge on its underside, front to +Z. `corners` are plan radii (+x+z, -x+z, -x-z, +x-z) and `puff`
+## how far each side (+x, -x, +z, -z) bows out. `rake` moves the front face back by that much per
+## metre of height above `rake_from`, which is how the back leans.
+static func upholstered_block(size: Vector3, corners: Vector4, under: float, top: float, puff: Vector4,
+		crown: float, rake := 0.0, rake_from := 0.0) -> ArrayMesh:
+	var runs := Vector2i(maxi(2, ceili(size.x / UPHOLSTERY_RUN)), maxi(2, ceili(size.z / UPHOLSTERY_RUN)))
+	var rings: Array[PackedVector3Array] = []
+	var groups := PackedInt32Array()
+	var hx := size.x * 0.5
+	var depth_at := func(y: float) -> float: return size.z - maxf(0.0, y - rake_from) * rake
+	var no_puff := Vector4.ZERO
+	var flat := Vector2.ONE
+	for t: float in UPHOLSTERY_FACE_RINGS:
+		var d: float = depth_at.call(0.0)
+		_grow_ring(rings, groups, _upholstery_ring(Vector2(0, d * 0.5), Vector2(hx - under, d * 0.5 - under) * t,
+				_inset_corners(corners, under) * t, runs, 0.0, no_puff, 0.0, flat), 0)
+	for k in range(1, UPHOLSTERY_ROLL_STEPS + 1):
+		var a := -PI * 0.5 + PI * 0.5 * float(k) / float(UPHOLSTERY_ROLL_STEPS)
+		var y := under * (1.0 + sin(a))
+		var inset := under * (1.0 - cos(a))
+		var d: float = depth_at.call(y)
+		_grow_ring(rings, groups, _upholstery_ring(Vector2(0, d * 0.5), Vector2(hx - inset, d * 0.5 - inset),
+				_inset_corners(corners, inset), runs, y, no_puff, 0.0, flat), 0)
+	for k in range(1, UPHOLSTERY_BAND_STEPS):
+		var s := float(k) / float(UPHOLSTERY_BAND_STEPS)
+		var y := lerpf(under, size.y - top, s)
+		var d: float = depth_at.call(y)
+		_grow_ring(rings, groups, _upholstery_ring(Vector2(0, d * 0.5), Vector2(hx, d * 0.5), corners, runs, y,
+				puff * sin(PI * s), 0.0, flat), 0)
+	for k in range(UPHOLSTERY_ROLL_STEPS + 1):
+		var a := PI * 0.5 * float(k) / float(UPHOLSTERY_ROLL_STEPS)
+		var y := size.y - top + top * sin(a)
+		var inset := top * (1.0 - cos(a))
+		var d: float = depth_at.call(y)
+		_grow_ring(rings, groups, _upholstery_ring(Vector2(0, d * 0.5), Vector2(hx - inset, d * 0.5 - inset),
+				_inset_corners(corners, inset), runs, y, no_puff, 0.0, flat), 0)
+	var d_top: float = depth_at.call(size.y)
+	var face := Vector2(hx - top, d_top * 0.5 - top)
+	for i in range(UPHOLSTERY_FACE_RINGS.size() - 2, -1, -1):
+		var t := UPHOLSTERY_FACE_RINGS[i]
+		_grow_ring(rings, groups, _upholstery_ring(Vector2(0, d_top * 0.5), face * t, _inset_corners(corners, top) * t, runs,
+				size.y, no_puff, crown, face), 0)
+	return _skin_rings(rings, groups)
+
+## A welted box cushion lying on its bottom panel: `half` is its outline in plan, centred on the
+## origin, and the bottom panel is at y = 0. Top panel crowned by `crown`; the band between the two
+## welts bows out a little. Panels, welts and band are separate smooth groups, so every seam creases.
+static func box_cushion(half: Vector2, thick: float, crown: float) -> ArrayMesh:
+	var runs := Vector2i(maxi(2, ceili(half.x * 2.0 / UPHOLSTERY_RUN)),
+			maxi(2, ceili(half.y * 2.0 / UPHOLSTERY_RUN)))
+	var corners := Vector4.ONE * CUSHION_CORNER
+	var set_in := WELT * WELT_SET
+	var rings: Array[PackedVector3Array] = []
+	var groups := PackedInt32Array()
+	var none := Vector4.ZERO
+	var panel := half - Vector2.ONE * set_in
+	var panel_corners := _inset_corners(corners, set_in)
+	for t: float in UPHOLSTERY_FACE_RINGS:
+		_grow_ring(rings, groups, _upholstery_ring(Vector2.ZERO, panel * t, panel_corners * t, runs, 0.0, none, 0.0,
+				Vector2.ONE), 0)
+	# the bottom welt, from under the cord round to where the band is sewn on
+	for deg: float in [-60.0, -30.0, 0.0, 30.0, 60.0]:
+		var a := deg_to_rad(deg)
+		var inset := set_in - WELT * cos(a)
+		_grow_ring(rings, groups, _upholstery_ring(Vector2.ZERO, half - Vector2.ONE * inset, _inset_corners(corners, inset),
+				runs, WELT * (1.0 + sin(a)), none, 0.0, Vector2.ONE), 1)
+	var band_in := set_in - WELT * 0.5
+	var band_low := WELT * (1.0 + sin(deg_to_rad(60.0)))
+	for k in range(1, UPHOLSTERY_BAND_STEPS + 1):
+		var s := float(k) / float(UPHOLSTERY_BAND_STEPS)
+		_grow_ring(rings, groups, _upholstery_ring(Vector2.ZERO, half - Vector2.ONE * band_in,
+				_inset_corners(corners, band_in), runs, lerpf(band_low, thick - band_low, s),
+				Vector4.ONE * CUSHION_PUFF * sin(PI * s), 0.0, Vector2.ONE), 2)
+	for deg: float in [-30.0, 0.0, 30.0, 60.0, 90.0]:
+		var a := deg_to_rad(deg)
+		var inset := set_in - WELT * cos(a)
+		_grow_ring(rings, groups, _upholstery_ring(Vector2.ZERO, half - Vector2.ONE * inset, _inset_corners(corners, inset),
+				runs, thick - WELT + WELT * sin(a), none, 0.0, Vector2.ONE), 3)
+	for i in range(UPHOLSTERY_FACE_RINGS.size() - 2, -1, -1):
+		var t := UPHOLSTERY_FACE_RINGS[i]
+		_grow_ring(rings, groups, _upholstery_ring(Vector2.ZERO, panel * t, panel_corners * t, runs, thick, none,
+				crown, panel), 4)
+	return _skin_rings(rings, groups)
+
+static func _inset_corners(corners: Vector4, by: float) -> Vector4:
+	const SHARPEST := 0.002
+	return (corners - Vector4.ONE * by).max(Vector4.ONE * SHARPEST)
+
+## The pillow profile: 1 in the middle of a face, falling to 0 at its edges, smooth everywhere.
+## A product of the two directions, so the corners are the flattest part, as on a real cushion.
+static func pillow_profile(u: float, v: float, exponent: float) -> float:
+	return pow(maxf(0.0, 1.0 - u * u), exponent) * pow(maxf(0.0, 1.0 - v * v), exponent)
+
+## Appends a ring, with the smooth group of the strip that joins it to the ring before.
+static func _grow_ring(rings: Array[PackedVector3Array], groups: PackedInt32Array,
+		ring: PackedVector3Array, group: int) -> void:
+	if not rings.is_empty():
+		groups.append(group)
+	rings.append(ring)
+
+## One closed ring at height `y`: a rounded rectangle centred on `centre` (x, z) with half extents
+## `half` and a radius per corner (+x+z, -x+z, -x-z, +x-z). Each side (+x, -x, +z, -z) is pushed
+## out by `puff`, most at its middle and not at all at the corners, and every point is raised by
+## `crown` times the pillow profile over `crown_half`. The points run from +X toward +Z, the order
+## `ring_rounded_rect` uses, so rings stacked upward skin front-side out.
+static func _upholstery_ring(centre: Vector2, half: Vector2, corners: Vector4, runs: Vector2i, y: float,
+		puff: Vector4, crown: float, crown_half: Vector2) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var h := half.max(Vector2.ONE * 0.001)
+	for c in range(4):
+		var r := minf(corners[c], minf(h.x, h.y))
+		var sx := 1.0 if c == 0 or c == 3 else -1.0
+		var sz := 1.0 if c < 2 else -1.0
+		var arc := Vector2(sx * (h.x - r), sz * (h.y - r))
+		for k in range(UPHOLSTERY_CORNER_STEPS + 1):
+			var a := PI * 0.5 * (float(c) + float(k) / float(UPHOLSTERY_CORNER_STEPS))
+			var n := Vector2(cos(a), sin(a))
+			out.append(_upholstery_point(centre, h, arc + n * r, n, y, puff, crown, crown_half))
+		# the straight run to the next corner, whose end points belong to the corners
+		var c2 := (c + 1) % 4
+		var r2 := minf(corners[c2], minf(h.x, h.y))
+		var sx2 := 1.0 if c2 == 0 or c2 == 3 else -1.0
+		var sz2 := 1.0 if c2 < 2 else -1.0
+		var a_end := PI * 0.5 * float(c + 1)
+		var n_run := Vector2(cos(a_end), sin(a_end)).round()
+		var from := arc + n_run * r
+		var to := Vector2(sx2 * (h.x - r2), sz2 * (h.y - r2)) + n_run * r2
+		var steps := runs.x if absf(n_run.y) > 0.5 else runs.y
+		for k in range(1, steps):
+			out.append(_upholstery_point(centre, h, from.lerp(to, float(k) / float(steps)), n_run, y, puff,
+					crown, crown_half))
+	return out
+
+static func _upholstery_point(centre: Vector2, half: Vector2, p: Vector2, n: Vector2, y: float, puff: Vector4,
+		crown: float, crown_half: Vector2) -> Vector3:
+	var along_z := p.y / half.y
+	var along_x := p.x / half.x
+	var fx := sqrt(maxf(0.0, 1.0 - pow(along_z, 4.0)))
+	var fz := sqrt(maxf(0.0, 1.0 - pow(along_x, 4.0)))
+	var push := Vector2(n.x * (puff.x if n.x > 0.0 else puff.y) * fx,
+			n.y * (puff.z if n.y > 0.0 else puff.w) * fz)
+	var q := p + push
+	var lift := crown * pillow_profile(p.x / crown_half.x, p.y / crown_half.y, PILLOW_CROWN_EXP)
+	return Vector3(centre.x + q.x, y + lift, centre.y + q.y)
+
+## Closes a stack of rings into one solid: a strip between each two rings in the smooth group
+## `groups[i]`, so a change of group is a crease, and a fan over the first and the last ring.
+## Winding follows `loft`.
+static func _skin_rings(rings: Array[PackedVector3Array], groups: PackedInt32Array) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(rings.size() - 1):
+		st.set_smooth_group(groups[i])
+		var a := rings[i]
+		var b := rings[i + 1]
+		var n := a.size()
+		for j in range(n):
+			var j2 := (j + 1) % n
+			_tri_flat(st, a[j], a[j2], b[j])
+			_tri_flat(st, a[j2], b[j2], b[j])
+	var last := rings.size() - 1
+	var first_centre := _ring_centre(rings[0])
+	var last_centre := _ring_centre(rings[last])
+	var n := rings[0].size()
+	for j in range(n):
+		var j2 := (j + 1) % n
+		st.set_smooth_group(groups[0])
+		_tri_flat(st, first_centre, rings[0][j2], rings[0][j])
+		st.set_smooth_group(groups[groups.size() - 1])
+		_tri_flat(st, last_centre, rings[last][j], rings[last][j2])
+	st.generate_normals()
+	st.index()
+	return finish(st)
+
+static func _tri_flat(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
+	st.add_vertex(a)
+	st.add_vertex(b)
+	st.add_vertex(c)
+
+static func _ring_centre(ring: PackedVector3Array) -> Vector3:
+	var sum := Vector3.ZERO
+	for p: Vector3 in ring:
+		sum += p
+	return sum / float(ring.size())
+
+# ---------- mouldings ----------
+## A joint in a moulding profile gentler than this shades smooth; a sharper one keeps its edge.
+const CREASE_DEG := 38.0
+
+## Points of an elliptical arc from angle `from` to `to` (0 along +out, PI/2 along +up), without its
+## first point, which the outline it continues already ends on.
+static func arc(centre: Vector2, radius: Vector2, from: float, to: float, steps: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(1, steps + 1):
+		var a := lerpf(from, to, float(i) / float(steps))
+		pts.append(centre + Vector2(cos(a) * radius.x, sin(a) * radius.y))
+	return pts
+
+## The four rails of a frame round a sight opening of half-size `sight` centred on the origin, each a
+## `moulding` of `profile`, as [mesh, transform] pairs: depth runs +Z from z = 0.
+static func frame_rails(sight: Vector2, profile: PackedVector2Array) -> Array:
+	var across := moulding(sight.x, profile)
+	var up := moulding(sight.y, profile)
+	return [
+		[across, Transform3D(Basis.IDENTITY, Vector3(0, sight.y, 0))],
+		[across, Transform3D(Basis(Vector3.BACK, PI), Vector3(0, -sight.y, 0))],
+		[up, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(-sight.x, 0, 0))],
+		[up, Transform3D(Basis(Vector3.BACK, -PI * 0.5), Vector3(sight.x, 0, 0))],
+	]
+
+## A straight length of moulding along X. `profile` is its closed cross-section in (out, depth):
+## `out` runs +Y away from the sight line at y = 0 and depth runs +Z. Both ends are mitred about the
+## corners (±half_len, 0), so four of them meet exactly round an opening.
+static func moulding(half_len: float, profile: PackedVector2Array) -> ArrayMesh:
+	var pts := _ccw(_clean_outline(profile, true))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var bands := _band_normals(pts, true)
+	var starts: PackedVector2Array = bands[0]
+	var ends: PackedVector2Array = bands[1]
+	var n := pts.size()
+	for k in range(n):
+		var p0 := pts[k]
+		var p1 := pts[(k + 1) % n]
+		var e0 := half_len + p0.x
+		var e1 := half_len + p1.x
+		var na := Vector3(0.0, starts[k].x, starts[k].y)
+		var nd := Vector3(0.0, ends[k].x, ends[k].y)
+		_quad_normals(st, Vector3(-e0, p0.x, p0.y), Vector3(e0, p0.x, p0.y), Vector3(e1, p1.x, p1.y),
+				Vector3(-e1, p1.x, p1.y), na, na, nd, nd)
+	var tris := Geometry2D.triangulate_polygon(pts)
+	for side: float in [-1.0, 1.0]:
+		var cap := Vector3(side, -1.0, 0.0).normalized()
+		for t in range(0, tris.size(), 3):
+			var a := pts[tris[t]]
+			var b := pts[tris[t + 1]]
+			var c := pts[tris[t + 2]]
+			_tri_normals(st, Vector3(side * (half_len + a.x), a.x, a.y), Vector3(side * (half_len + b.x), b.x, b.y),
+					Vector3(side * (half_len + c.x), c.x, c.y), cap, cap, cap)
+	return finish(st)
+
+## A block against the wall with one profile run round its front and both sides and a flat back at
+## z = 0: a shelf's moulded edge, a crown, a capital, a plinth block. Row k is the rectangle
+## x in ±(half_width + out), z in [0, depth + out] at height y, so the front corners come out mitred.
+static func moulded_block(half_width: float, depth: float, rows_in: PackedVector2Array) -> ArrayMesh:
+	var rows := _clean_outline(rows_in, false)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var bands := _band_normals(rows, false)
+	var starts: PackedVector2Array = bands[0]
+	var ends: PackedVector2Array = bands[1]
+	for k in range(rows.size() - 1):
+		var p0 := rows[k]
+		var p1 := rows[k + 1]
+		var x0 := half_width + p0.x
+		var x1 := half_width + p1.x
+		var z0 := depth + p0.x
+		var z1 := depth + p1.x
+		var s := starts[k]
+		var e := ends[k]
+		_quad_normals(st, Vector3(-x0, p0.y, z0), Vector3(x0, p0.y, z0), Vector3(x1, p1.y, z1), Vector3(-x1, p1.y, z1),
+				Vector3(0, s.y, s.x), Vector3(0, s.y, s.x), Vector3(0, e.y, e.x), Vector3(0, e.y, e.x))
+		for side: float in [-1.0, 1.0]:
+			var ns := Vector3(side * s.x, s.y, 0)
+			var ne := Vector3(side * e.x, e.y, 0)
+			_quad_normals(st, Vector3(side * x0, p0.y, 0), Vector3(side * x0, p0.y, z0),
+					Vector3(side * x1, p1.y, z1), Vector3(side * x1, p1.y, 0), ns, ns, ne, ne)
+		_quad_normals(st, Vector3(-x0, p0.y, 0), Vector3(x0, p0.y, 0), Vector3(x1, p1.y, 0), Vector3(-x1, p1.y, 0),
+				Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD)
+	for cap: int in [0, rows.size() - 1]:
+		var p := rows[cap]
+		var hx := half_width + p.x
+		var z := depth + p.x
+		var up := Vector3.DOWN if cap == 0 else Vector3.UP
+		_quad_normals(st, Vector3(-hx, p.y, 0), Vector3(hx, p.y, 0), Vector3(hx, p.y, z), Vector3(-hx, p.y, z),
+				up, up, up, up)
+	return finish(st)
+
+## The normal each band of a profile starts and ends with, in the profile's own plane: smooth over a
+## joint gentler than CREASE_DEG, split at a sharper one, so a round shades round and a fillet keeps
+## its edge. For a profile running with its solid side on the left, (e.y, -e.x) points out of it.
+static func _band_normals(pts: PackedVector2Array, closed: bool) -> Array:
+	var n := pts.size()
+	var count := n if closed else n - 1
+	var seg := PackedVector2Array()
+	for k in range(count):
+		var e := pts[(k + 1) % n] - pts[k]
+		seg.append(Vector2(e.y, -e.x).normalized())
+	var starts := seg.duplicate()
+	var ends := seg.duplicate()
+	var limit := cos(deg_to_rad(CREASE_DEG))
+	var joints := count if closed else count - 1
+	for k in range(joints):
+		var k2 := (k + 1) % count
+		if seg[k].dot(seg[k2]) > limit:
+			var smooth := (seg[k] + seg[k2]).normalized()
+			ends[k] = smooth
+			starts[k2] = smooth
+	return [starts, ends]
+
+## Consecutive duplicate points removed: a zero-length band has no normal.
+static func _clean_outline(pts: PackedVector2Array, closed: bool) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p: Vector2 in pts:
+		if out.is_empty() or out[out.size() - 1].distance_to(p) > 1e-6:
+			out.append(p)
+	if closed and out.size() > 1 and out[0].distance_to(out[out.size() - 1]) <= 1e-6:
+		out.remove_at(out.size() - 1)
+	return out
+
+## The outline wound counter-clockwise in (out, depth), so (e.y, -e.x) of every edge points out of it.
+static func _ccw(pts: PackedVector2Array) -> PackedVector2Array:
+	var area := 0.0
+	for i in range(pts.size()):
+		var a := pts[i]
+		var b := pts[(i + 1) % pts.size()]
+		area += a.x * b.y - b.x * a.y
+	if area >= 0.0:
+		return pts
+	var out := PackedVector2Array()
+	for i in range(pts.size() - 1, -1, -1):
+		out.append(pts[i])
+	return out
+
+## A triangle with its own vertex normals, wound so its cross product points into the solid, which
+## is what Godot draws as the front (`CLAUDE.md`, the four traps). The average normal says which way
+## is out; a degenerate triangle is dropped.
+static func _tri_normals(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, na: Vector3, nb: Vector3,
+		nc: Vector3) -> void:
+	var face := (b - a).cross(c - a)
+	if face.length_squared() < 1e-16:
+		return
+	if face.dot(na + nb + nc) > 0.0:
+		var t := b
+		b = c
+		c = t
+		var tn := nb
+		nb = nc
+		nc = tn
+	st.set_normal(na)
+	st.add_vertex(a)
+	st.set_normal(nb)
+	st.add_vertex(b)
+	st.set_normal(nc)
+	st.add_vertex(c)
+
+static func _quad_normals(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, na: Vector3,
+		nb: Vector3, nc: Vector3, nd: Vector3) -> void:
+	_tri_normals(st, a, b, c, na, nb, nc)
+	_tri_normals(st, a, c, d, na, nc, nd)
+
+## Several [mesh, transform] parts baked into one surface of one material. Unlike `union` it
+## de-indexes every part first, so indexed primitives and the unindexed meshes built here can mix.
+##
+## Each distinct mesh is read back once, however many parts use it: a flower bed is hundreds of
+## parts over five meshes. The parts' UVs and tangents are not carried, because they are made anew.
+static func bake(parts: Array) -> ArrayMesh:
+	var flat: Dictionary[Mesh, Array] = {}
+	var verts := PackedVector3Array()
+	var norms := PackedVector3Array()
+	for part: Array in parts:
+		var mesh := part[0] as Mesh
+		if not flat.has(mesh):
+			flat[mesh] = _deindexed(mesh)
+		var src: Array = flat[mesh]
+		var xform := part[1] as Transform3D
+		verts.append_array(xform * (src[Mesh.ARRAY_VERTEX] as PackedVector3Array))
+		# Normals turned by the basis itself, as `SurfaceTool.append_from` turned them; only a part
+		# that is scaled needs them made unit length again.
+		var turned := Transform3D(xform.basis, Vector3.ZERO) * (src[Mesh.ARRAY_NORMAL] as PackedVector3Array)
+		if not xform.basis.orthonormalized().is_equal_approx(xform.basis):
+			for i in range(turned.size()):
+				turned[i] = turned[i].normalized()
+		norms.append_array(turned)
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	if verts.is_empty():
+		return ArrayMesh.new()
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = norms
+	return _tangent_mesh(arrays)
+
+## Surface 0 of `mesh` as unindexed arrays.
+static func _deindexed(mesh: Mesh) -> Array:
+	var arrays := mesh.surface_get_arrays(0)
+	if arrays[Mesh.ARRAY_INDEX] == null:
+		return arrays
+	var st := SurfaceTool.new()
+	st.create_from_arrays(arrays)
+	st.deindex()
+	return st.commit_to_arrays()
+
 # ---------- mesh generators ----------
 ## Box with rounded edges (Minkowski sum of box and sphere). Sphere-based, so edges are smooth.
+##
+## Every flat face is bounded by rows whose normals are a hair off the face's own, one each side of
+## the octant seam: a flat face spanned straight from an edge row tilted by a whole ring step
+## shades as a fan of wedges, which is the diagonal seam a worktop showed.
 static func rounded_box(size: Vector3, radius: float, rings := 10, radial := 24) -> ArrayMesh:
+	const SEAM := 0.0005
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var inner := (size * 0.5 - Vector3(radius, radius, radius)).max(Vector3.ZERO)
-	for i in range(rings + 1):
-		var theta := PI * float(i) / rings
-		for j in range(radial + 1):
-			var phi := TAU * (float(j) + 0.5) / radial
-			var n := Vector3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi))
-			var p := Vector3(sign(n.x) * inner.x, sign(n.y) * inner.y, sign(n.z) * inner.z) + n * radius
+	var half_rings := maxi(1, rings / 2)
+	var thetas := PackedFloat32Array([0.0])
+	for k in range(half_rings + 1):
+		thetas.append(lerpf(SEAM, PI * 0.5 - SEAM, float(k) / half_rings))
+	for k in range(half_rings + 1):
+		thetas.append(lerpf(PI * 0.5 + SEAM, PI - SEAM, float(k) / half_rings))
+	thetas.append(PI)
+	var quarter := maxi(1, radial / 4)
+	var phis := PackedFloat32Array()
+	for q in range(4):
+		for k in range(quarter + 1):
+			phis.append(PI * 0.5 * q + lerpf(SEAM, PI * 0.5 - SEAM, float(k) / quarter))
+	phis.append(phis[0] + TAU)
+	var rows := thetas.size()
+	var cols := phis.size()
+	for i in range(rows):
+		for j in range(cols):
+			var n := Vector3(sin(thetas[i]) * cos(phis[j]), cos(thetas[i]), sin(thetas[i]) * sin(phis[j]))
+			# sin(PI) is not quite 0, and a pole that is not at the face's middle leaves the face open.
+			if i == 0 or i == rows - 1:
+				n = Vector3(0, signf(n.y), 0)
+			var p := Vector3(signf(n.x) * inner.x, signf(n.y) * inner.y, signf(n.z) * inner.z) + n * radius
 			st.set_normal(n)
-			st.set_uv(Vector2(float(j) / radial, float(i) / rings))
+			st.set_uv(Vector2(float(j) / (cols - 1), float(i) / (rows - 1)))
 			st.add_vertex(p)
-	for i in range(rings):
-		for j in range(radial):
-			var a := i * (radial + 1) + j
-			var b := a + radial + 1
+	for i in range(rows - 1):
+		for j in range(cols - 1):
+			var a := i * cols + j
+			var b := a + cols
 			st.add_index(a); st.add_index(b); st.add_index(a + 1)
 			st.add_index(a + 1); st.add_index(b); st.add_index(b + 1)
-	return with_tangents(st.commit())
+	return finish(st)
 
 ## Surface of revolution. profile = list of (radius, height) from bottom to top.
 ## `closed` treats the profile as a loop (outer wall up, inner wall back down) and skips
@@ -680,10 +1169,14 @@ static func lathe(profile: PackedVector2Array, segments := 32, closed := false) 
 			st.add_index(a); st.add_index(a + 1); st.add_index(b)
 			st.add_index(a + 1); st.add_index(b + 1); st.add_index(b)
 	if not closed:
+		# Each cap's centre is the next vertex added, so a profile that starts on the axis and ends off
+		# it has one centre, not a second one's index pointing past the end.
+		var next := rows * (segments + 1)
 		for cap: int in [0, rows - 1]:
 			if prof[cap].x > 0.001:
 				var base := cap * (segments + 1)
-				var center_idx := rows * (segments + 1) + (0 if cap == 0 else 1)
+				var center_idx := next
+				next += 1
 				st.set_uv(Vector2(0.5, 0.5))
 				st.add_vertex(Vector3(0, prof[cap].y, 0))
 				for j in range(segments):
@@ -692,7 +1185,7 @@ static func lathe(profile: PackedVector2Array, segments := 32, closed := false) 
 					else:
 						st.add_index(center_idx); st.add_index(base + j); st.add_index(base + j + 1)
 	st.generate_normals()
-	return with_tangents(st.commit())
+	return finish(st)
 
 static func box(size: Vector3) -> BoxMesh:
 	var b := BoxMesh.new(); b.size = size; return b
@@ -710,6 +1203,59 @@ static func torus(tube_r: float, ring: float) -> TorusMesh:
 static func sphere(r: float) -> SphereMesh:
 	var s := SphereMesh.new(); s.radius = r; s.height = r * 2; return s
 
+## A closed ellipsoid of half extents `radii`, centred on the origin: rings from its bottom to its top,
+## each at the height its angle gives, so the poles are as fine as the equator. Built at its size, so
+## nothing has to scale it on a transform.
+static func ellipsoid(radii: Vector3, rings := 12, segs := 24) -> ArrayMesh:
+	var stack: Array = []
+	for i in range(rings):
+		var phi := PI * (float(i) + 0.5) / float(rings)
+		var ring := PackedVector3Array()
+		for j in range(segs):
+			var a := TAU * float(j) / float(segs)
+			ring.append(Vector3(radii.x * sin(phi) * cos(a), -radii.y * cos(phi), radii.z * sin(phi) * sin(a)))
+		stack.append(ring)
+	return loft(stack)
+
+## Closed ring tracing a regular polygon of `sides` in the XZ plane with its corners rounded to
+## `corner`: `apothem` is the distance from the middle to a flat, and the first flat faces +X. The flats
+## are subdivided for the same reason `ring_rounded_rect`'s are.
+static func ring_rounded_ngon(sides: int, apothem: float, corner: float, y := 0.0, corner_steps := 3,
+		side_steps := 4) -> PackedVector3Array:
+	var half := PI / float(sides)
+	var reach := (apothem - corner) / cos(half)
+	var out := PackedVector3Array()
+	for k in range(sides):
+		var vertex := TAU * float(k) / float(sides) + half
+		var centre := Vector2(cos(vertex), sin(vertex)) * reach
+		for s in range(corner_steps + 1):
+			var a := vertex - half + 2.0 * half * float(s) / float(corner_steps)
+			out.append(Vector3(centre.x + cos(a) * corner, y, centre.y + sin(a) * corner))
+		var next := vertex + TAU / float(sides)
+		var p0 := centre + Vector2(cos(vertex + half), sin(vertex + half)) * corner
+		var p1 := Vector2(cos(next), sin(next)) * reach + Vector2(cos(next - half), sin(next - half)) * corner
+		for s in range(1, side_steps):
+			var q := p0.lerp(p1, float(s) / float(side_steps))
+			out.append(Vector3(q.x, y, q.y))
+	return out
+
+## A bar of rounded-rectangle section bent along `path`, a path lying in the plane whose normal is
+## `normal`: a wooden hanger's arm. `half` holds the section's half size at every path point, across
+## that plane and in it, so a bar can taper; `radius` rounds its four long edges.
+static func sweep_bar(path: PackedVector3Array, normal: Vector3, half: PackedVector2Array, radius: float,
+		corner_steps := 3) -> ArrayMesh:
+	var rings: Array = []
+	var n := path.size()
+	var u := normal.normalized()
+	for i in range(n):
+		var t := (path[mini(i + 1, n - 1)] - path[maxi(i - 1, 0)]).normalized()
+		var v := u.cross(t)
+		var ring := PackedVector3Array()
+		for p: Vector3 in ring_rounded_rect(half[i].x * 2.0, half[i].y * 2.0, radius, 0.0, corner_steps, 2):
+			ring.append(path[i] + u * p.x + v * p.z)
+		rings.append(ring)
+	return loft(rings)
+
 # ---------- palette ----------
 const OAK := Color(0.62, 0.45, 0.29)
 const WALNUT := Color(0.38, 0.25, 0.16)
@@ -718,6 +1264,12 @@ const SAGE := Color(0.55, 0.64, 0.50)
 const MUSTARD := Color(0.86, 0.66, 0.25)
 const TERRACOTTA := Color(0.72, 0.40, 0.28)
 const CHARCOAL := Color(0.18, 0.18, 0.20)
+## Book cloth and paper cover colours: the shelf's scenery books and the loose ones are one library.
+const BOOK_CLOTH: Array[Color] = [
+	Color(0.48, 0.16, 0.14), Color(0.16, 0.22, 0.36), Color(0.22, 0.34, 0.24), Color(0.86, 0.82, 0.7),
+	Color(0.08, 0.08, 0.09), Color(0.82, 0.66, 0.22), Color(0.55, 0.36, 0.26), Color(0.36, 0.42, 0.5),
+	Color(0.62, 0.5, 0.42), Color(0.3, 0.18, 0.28),
+]
 const STEEL := Color(0.75, 0.76, 0.78)
 const LEAF := Color(0.32, 0.52, 0.30)
 const BRASS := Color(0.78, 0.62, 0.32)
@@ -744,6 +1296,86 @@ static func sofa() -> Node3D:
 	root.add_child(pillow(MUSTARD, Vector3(-0.62, 0.74, -0.14), Vector3(-16, 8, 6)))
 	root.add_child(pillow(TERRACOTTA, Vector3(0.66, 0.74, -0.12), Vector3(-14, -14, -4)))
 	return root
+
+## A stuffed cover: two panels sewn together round a rectangle, full in the middle and closing to
+## the seam, the sides drawn in by the stuffing so the corners stand out as ears. Faces to ±Z,
+## centred on the origin, `half` its half size at the corners and `thick` its full depth. One
+## closed mesh; the grid is packed toward the seam, where the surface turns fastest.
+static func cushion(half: Vector2, thick: float, pinch := 0.07, fullness := 0.38, steps := 18) -> ArrayMesh:
+	var n := steps + 1
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var ids := PackedInt32Array()
+	ids.resize(n * n * 2)
+	var count := 0
+	for side in range(2):
+		var sz := 1.0 if side == 0 else -1.0
+		for j in range(n):
+			for i in range(n):
+				var seam := i == 0 or j == 0 or i == steps or j == steps
+				if side == 1 and seam:
+					ids[n * n + j * n + i] = ids[j * n + i]
+					continue
+				var u := sin((-1.0 + 2.0 * float(i) / float(steps)) * PI * 0.5)
+				var v := sin((-1.0 + 2.0 * float(j) / float(steps)) * PI * 0.5)
+				var full := pow(maxf(0.0, (1.0 - u * u) * (1.0 - v * v)), fullness)
+				st.set_uv(Vector2(u, v))
+				st.add_vertex(Vector3(u * half.x * (1.0 - pinch * (1.0 - v * v)),
+						v * half.y * (1.0 - pinch * (1.0 - u * u)), sz * thick * 0.5 * full))
+				ids[side * n * n + j * n + i] = count
+				count += 1
+	for side in range(2):
+		for j in range(steps):
+			for i in range(steps):
+				var a := ids[side * n * n + j * n + i]
+				var b := ids[side * n * n + j * n + i + 1]
+				var c := ids[side * n * n + (j + 1) * n + i]
+				var d := ids[side * n * n + (j + 1) * n + i + 1]
+				# Two corner cells have a triangle wholly on the seam; both panels would lay it, face
+				# to face, so neither does.
+				var low_corner := i == 0 and j == 0
+				var high_corner := i == steps - 1 and j == steps - 1
+				# Wound so the cross product points into the stuffing on both panels.
+				if side == 0:
+					if not low_corner:
+						st.add_index(a); st.add_index(c); st.add_index(b)
+					if not high_corner:
+						st.add_index(b); st.add_index(c); st.add_index(d)
+				else:
+					if not low_corner:
+						st.add_index(a); st.add_index(b); st.add_index(c)
+					if not high_corner:
+						st.add_index(b); st.add_index(d); st.add_index(c)
+	st.generate_normals()
+	return finish(st)
+
+## A moulded solid, the way a plastic shell is: an outline in plan, and at every point of it a
+## floor and a top height, with the edge rolled over between them. `radius_at(theta)` is the
+## outline's distance from the origin at an angle from +X toward +Z, so the outline must be
+## star-shaped about the origin; `bottom_at(p)` and `top_at(p)` take a plan point (x, z). `edge`
+## is the superellipse exponent of the roll: 2 is a pebble, higher is a flatter top with a
+## tighter edge. `aspect` (x, z) spaces the outline's points the way an ellipse of that shape
+## spaces them, so a long outline is not coarse at its ends.
+static func moulded(radius_at: Callable, bottom_at: Callable, top_at: Callable, edge := 4.0,
+		aspect := Vector2.ONE, sides := 72, layers := 16) -> ArrayMesh:
+	var rings: Array = []
+	for k in range(1, layers):
+		var t := -1.0 + 2.0 * float(k) / float(layers)
+		var s := pow(1.0 - pow(absf(t), edge), 1.0 / edge)
+		var ring := PackedVector3Array()
+		for j in range(sides):
+			var phi := TAU * float(j) / float(sides)
+			var theta := atan2(sin(phi) * aspect.y, cos(phi) * aspect.x)
+			var p := Vector2(cos(theta), sin(theta)) * float(radius_at.call(theta)) * s
+			var y := lerpf(float(bottom_at.call(p)), float(top_at.call(p)), (t + 1.0) * 0.5)
+			ring.append(Vector3(p.x, y, p.y))
+		rings.append(ring)
+	return loft(rings)
+
+## The distance from the middle of a superellipse with half extents `half` (x, z) to its edge at
+## an angle from +X toward +Z. `n` 2 is an ellipse; higher tends to a rectangle with round corners.
+static func superellipse(theta: float, half: Vector2, n: float) -> float:
+	return pow(pow(absf(cos(theta)) / half.x, n) + pow(absf(sin(theta)) / half.y, n), -1.0 / n)
 
 static func pillow(color: Color, pos: Vector3, rot: Vector3) -> Node3D:
 	var p := mi(rounded_box(Vector3(0.40, 0.40, 0.13), 0.06), Mats.of("pillow_fabric", color, 0.95), pos, rot)
@@ -794,13 +1426,15 @@ static func bookshelf(rng: RandomNumberGenerator) -> Node3D:
 ## A book standing on its bottom edge, origin at the middle of that edge.
 ## Spine at -Z, fore-edge at +Z. The covers wrap the page block in a U, and the pages are
 ## inset from the boards on all three open sides — the way a real hardback is put together.
-static func book(color: Color, bw: float, bh: float, pos: Vector3, rot := Vector3.ZERO) -> Node3D:
+## `bd` is its depth from spine to fore-edge; `cover` replaces the cloth, and `color` is then unused.
+static func book(color: Color, bw: float, bh: float, pos: Vector3, rot := Vector3.ZERO, bd := 0.20,
+		cover: Material = null) -> Node3D:
 	var root := Node3D.new(); root.name = "Book"
 	root.position = pos
 	root.rotation_degrees = rot
-	var bd := 0.20
 	var ct := minf(0.0035, bw * 0.16)
-	var cover := Mats.of("book_cloth", color, 0.8)
+	if cover == null:
+		cover = Mats.of("book_cloth", color, 0.8)
 	var spine_r := bw * 0.5
 	var z_hinge := -bd * 0.5 + spine_r
 	var boards_d := bd * 0.5 - z_hinge
@@ -808,8 +1442,9 @@ static func book(color: Color, bw: float, bh: float, pos: Vector3, rot := Vector
 	for sx: float in [-1.0, 1.0]:
 		root.add_child(mi(box(Vector3(ct, bh, boards_d)), cover,
 			Vector3(sx * (bw * 0.5 - ct * 0.5), bh * 0.5, z_hinge + boards_d * 0.5)))
-	# rounded spine joining them
-	root.add_child(mi(cyl(spine_r, spine_r, bh, 12), cover, Vector3(0, bh * 0.5, z_hinge)))
+	# rounded spine joining them, `PROUD` short of the boards at head and tail: to their height, its end
+	# caps lay in the plane of the boards' edges
+	root.add_child(mi(cyl(spine_r, spine_r, bh - PROUD * 2.0, 12), cover, Vector3(0, bh * 0.5, z_hinge)))
 	# page block, inset from the boards at head, tail and fore-edge
 	var pd := boards_d - 0.004
 	root.add_child(mi(box(Vector3(bw - 2.0 * ct, bh - 0.007, pd)), Mats.of("paper", Color(0.97, 0.95, 0.90), 0.95),
@@ -1150,6 +1785,19 @@ const PLINTH_SETBACK := 0.05
 const WORKTOP_THICK := 0.04
 const WORKTOP_NOSE := 0.03
 const UPSTAND_HEIGHT := 0.10
+## The painted fronts of every kitchen unit: drawer faces, doors and the sink's fixed front.
+const FRONT_WHITE := Color(0.96, 0.97, 0.93)
+## An inset sink: the basin's inside, its wall, its corner radius, how far the worktop's hole stands
+## back from the basin's inside so the steel shows as a lip, and the basin's middle forward of the
+## worktop's. The tap stands behind the basin and is low enough to go under a window over the sink.
+const SINK_INNER := Vector3(0.46, 0.19, 0.38)
+const SINK_WALL := 0.004
+const SINK_RADIUS := 0.03
+const SINK_LIP := 0.004
+const SINK_Z := 0.03
+const TAP_HEIGHT := 0.2
+const TAP_BEHIND := 0.07
+const SINK_RAIL := 0.04
 
 ## A bar pull: two standoffs and a rod, never a flat tab. `at` is on the face it is screwed to
 ## and `along` is the rod's axis; the pull stands off in +Z, which is the way a front faces.
@@ -1166,10 +1814,12 @@ static func bar_pull(length: float, at: Vector3, along: Vector3) -> Array:
 ## sides, a back and an inner front — five real panels, because a drawer is looked down into
 ## and a shell with no outside would show its inside-out back the moment it is pulled open.
 ##
-## Local origin is the centre of the front panel's outer face; the box extends into -Z.
-static func drawer(front: Vector2, depth: float) -> Node3D:
+## Local origin is the centre of the front panel's outer face; the box extends into -Z. `face` is the
+## front's material, painted white when null.
+static func drawer(front: Vector2, depth: float, face: Material = null) -> Node3D:
 	var root := Node3D.new(); root.name = "Drawer"
-	var face := Mats.of("painted_wood", Color(0.96, 0.97, 0.93), 0.65)
+	if face == null:
+		face = Mats.of("painted_wood", FRONT_WHITE, 0.65)
 	var ply := Mats.of("oak", Color(0.86, 0.80, 0.70), 0.85)
 	var metal := Mats.of("metal_brushed", BRASS, 0.35)
 	root.add_child(mi(rounded_box(Vector3(front.x, front.y, FRONT_PANEL), 0.004), face,
@@ -1199,24 +1849,66 @@ static func drawer_floor(front: Vector2, depth: float) -> Vector3:
 
 ## A hinged door. The local origin is the hinge axis and the outer face is at z = 0, so a
 ## container opens it by rotating this node and nothing has to know where the panel is.
-## `hinge_left` puts the hinge at the door's -X edge.
-static func cabinet_door(size: Vector2, hinge_left: bool) -> Node3D:
+## `hinge_left` puts the hinge at the door's -X edge. `face` is the door's material, painted white
+## when null; `pull` is the bar pull's length, and 0 sizes it to the door; `pull_y` moves the pull up
+## from the door's middle, and a wall unit's is near its bottom edge.
+static func cabinet_door(size: Vector2, hinge_left: bool, face: Material = null, pull := 0.0,
+		pull_y := 0.0) -> Node3D:
 	var root := Node3D.new(); root.name = "Door"
-	var face := Mats.of("painted_wood", Color(0.96, 0.97, 0.93), 0.65)
+	if face == null:
+		face = Mats.of("painted_wood", FRONT_WHITE, 0.65)
 	var metal := Mats.of("metal_brushed", BRASS, 0.35)
 	var sx := 1.0 if hinge_left else -1.0
 	var cx := sx * size.x * 0.5
-	root.add_child(mi(rounded_box(Vector3(size.x, size.y, FRONT_PANEL), 0.004), face,
+	root.add_child(mi(rounded_box(Vector3(size.x, size.y, FRONT_PANEL), 0.004, 4, 20), face,
 			Vector3(cx, 0, -FRONT_PANEL * 0.5)))
 	# The pull sits at the opening edge, which is the end away from the hinge.
-	root.add_child(mi(union(bar_pull(minf(size.y - 0.12, 0.19),
-			Vector3(sx * (size.x - 0.05), 0, 0), Vector3.UP)), metal))
+	var length := pull if pull > 0.0 else minf(size.y - 0.12, 0.19)
+	root.add_child(mi(union(bar_pull(length, Vector3(sx * (size.x - 0.05), pull_y, 0), Vector3.UP)), metal))
+	return root
+
+## An inset sink's basin, sized by its inside (`inner` x, depth, z) with walls `wall` thick and
+## corners `radius` round in plan: one closed solid, rim at y = 0, a strainer standing on its floor.
+## Its rim sits under a worktop's hole; its outside is what a cupboard door opens on.
+static func basin(inner: Vector3, wall: float, radius: float) -> Node3D:
+	var root := Node3D.new(); root.name = "Basin"
+	const STEPS := 4
+	var outer := Vector2(inner.x, inner.z) + Vector2.ONE * wall * 2.0
+	var bottom := -(inner.y + wall)
+	var pin := 0.002
+	var rim_out := ring_rounded_rect(outer.x, outer.y, radius + wall, 0.0, STEPS, STEPS)
+	var rim_in := ring_rounded_rect(inner.x, inner.z, radius, 0.0, STEPS, STEPS)
+	var foot := ring_rounded_rect(outer.x, outer.y, radius + wall, bottom, STEPS, STEPS)
+	var floor_in := ring_rounded_rect(inner.x, inner.z, radius, -inner.y, STEPS, STEPS)
+	# Each ring is laid twice where the surface turns a corner, so the corner shades as an edge.
+	var rings: Array = [rim_out, rim_in, rim_in, floor_in, floor_in,
+			ring_rounded_rect(pin, pin, pin * 0.5, -inner.y, STEPS, STEPS),
+			ring_rounded_rect(pin, pin, pin * 0.5, bottom, STEPS, STEPS), foot, foot, rim_out, rim_out]
+	var steel := Mats.of("metal_brushed", STEEL, 0.3)
+	root.add_child(mi(loft(rings, false, false), steel))
+	root.add_child(mi(cyl(0.036, 0.04, 0.005, 24), steel, Vector3(0, -inner.y + 0.0025, 0)))
+	return root
+
+## A low-arc swivel tap: a round base on the worktop, a column, a spout arching forward to `reach`,
+## and a lever on top. Its base is at the origin; the spout points +Z.
+static func tap(height: float, reach: float) -> Node3D:
+	var root := Node3D.new(); root.name = "Tap"
+	var chrome := Mats.of("metal_brushed", Color(0.9, 0.91, 0.93), 0.15)
+	var parts: Array = [[lathe(PackedVector2Array([Vector2(0.028, 0.0), Vector2(0.028, 0.008), Vector2(0.02, 0.014),
+			Vector2(0.018, height * 0.55), Vector2(0.0, height * 0.55)]), 24), Transform3D.IDENTITY]]
+	var spout := smooth_path(PackedVector3Array([Vector3(0, height * 0.4, 0), Vector3(0, height * 0.85, 0.0),
+			Vector3(0, height, reach * 0.35), Vector3(0, height * 0.9, reach * 0.8), Vector3(0, height * 0.72, reach)]), 5)
+	parts.append([tube(spout, 0.011, 14), Transform3D.IDENTITY])
+	parts.append([tube(PackedVector3Array([Vector3(0, height * 0.55, 0), Vector3(0, height * 0.62, -0.015),
+			Vector3(0, height * 0.72, -0.055)]), 0.006, 10), Transform3D.IDENTITY])
+	root.add_child(mi(bake(parts), chrome))
 	return root
 
 ## The static half of a run of base units: plinth, carcass with a divider per bay, worktop and
 ## upstand. The fronts are separate nodes because they move; this is everything that does not.
-## Local origin is the centre of the run at floor level, fronts facing +Z.
-static func base_carcass(width: float, bays: int, height := 0.72, depth := 0.58) -> Node3D:
+## Local origin is the centre of the run at floor level, fronts facing +Z. `sink_bay` (from 1, 0 for
+## none) cuts a hole in the worktop over that bay and hangs a basin in it, with a tap behind.
+static func base_carcass(width: float, bays: int, height := 0.72, depth := 0.58, sink_bay := 0) -> Node3D:
 	var root := Node3D.new(); root.name = "Carcass"
 	var box_mat := Mats.of("painted_wood", Color(0.90, 0.91, 0.87), 0.7)
 	var stone := Mats.of("worktop_stone", Color(0.93, 0.93, 0.95), 0.35)
@@ -1225,9 +1917,23 @@ static func base_carcass(width: float, bays: int, height := 0.72, depth := 0.58)
 	var p := CARCASS_PANEL
 	var parts: Array = [
 		part(Vector3(width - 2.0 * p, p, depth), Vector3(0, y0 + p * 0.5, 0)),
-		part(Vector3(width - 2.0 * p, p, depth), Vector3(0, y1 - p * 0.5, 0)),
 		part(Vector3(width, height, p), Vector3(0, (y0 + y1) * 0.5, -(depth - p) * 0.5)),
 	]
+	if sink_bay <= 0:
+		parts.append(part(Vector3(width - 2.0 * p, p, depth), Vector3(0, y1 - p * 0.5, 0)))
+	else:
+		# Over a sink the top is two rails, front and back, with the basin hanging between them.
+		var bay_l := -width * 0.5 + width * float(sink_bay - 1) / float(bays)
+		var bay_r := bay_l + width / float(bays)
+		var inner_l := -width * 0.5 + p
+		var inner_r := width * 0.5 - p
+		if bay_l > inner_l:
+			parts.append(part(Vector3(bay_l - inner_l, p, depth), Vector3((inner_l + bay_l) * 0.5, y1 - p * 0.5, 0)))
+		if bay_r < inner_r:
+			parts.append(part(Vector3(inner_r - bay_r, p, depth), Vector3((inner_r + bay_r) * 0.5, y1 - p * 0.5, 0)))
+		for sz: float in [-1.0, 1.0]:
+			parts.append(part(Vector3(bay_r - bay_l, p, SINK_RAIL), Vector3((bay_l + bay_r) * 0.5, y1 - p * 0.5,
+					sz * (depth - SINK_RAIL) * 0.5)))
 	# One panel at each end and one on every bay division: a 1.2 m run is two boxes, not one
 	# box with a line drawn down it, and the divider is what a drawer runs against.
 	for i in range(bays + 1):
@@ -1243,8 +1949,21 @@ static func base_carcass(width: float, bays: int, height := 0.72, depth := 0.58)
 	# without the stone disappearing into the plaster.
 	var top_depth := depth + WORKTOP_NOSE
 	var top_z := WORKTOP_NOSE * 0.5
-	root.add_child(mi(rounded_box(Vector3(width + 0.02, WORKTOP_THICK, top_depth), 0.008),
-			stone, Vector3(0, y1 + WORKTOP_THICK * 0.5, top_z)))
+	var top_size := Vector3(width + 0.02, WORKTOP_THICK, top_depth)
+	var top_at := Vector3(0, y1 + WORKTOP_THICK * 0.5, top_z)
+	if sink_bay <= 0:
+		root.add_child(mi(rounded_box(top_size, 0.008), stone, top_at))
+	else:
+		var cx := -width * 0.5 + width * (float(sink_bay) - 0.5) / float(bays)
+		var hole := Rect2(cx - SINK_INNER.x * 0.5 - SINK_LIP, SINK_Z - SINK_INNER.z * 0.5 - SINK_LIP,
+				SINK_INNER.x + SINK_LIP * 2.0, SINK_INNER.z + SINK_LIP * 2.0)
+		root.add_child(mi(holed_slab(top_size, [hole]), stone, top_at))
+		var basin_node := basin(SINK_INNER, SINK_WALL, SINK_RADIUS)
+		basin_node.position = Vector3(cx, y1, top_z + SINK_Z)
+		root.add_child(basin_node)
+		var tap_node := tap(TAP_HEIGHT, SINK_INNER.z * 0.5 + TAP_BEHIND)
+		tap_node.position = Vector3(cx, y1 + WORKTOP_THICK, top_z + SINK_Z - SINK_INNER.z * 0.5 - TAP_BEHIND)
+		root.add_child(tap_node)
 	root.add_child(mi(box(Vector3(width + 0.02, UPSTAND_HEIGHT, 0.02)), stone,
 			Vector3(0, y1 + WORKTOP_THICK + UPSTAND_HEIGHT * 0.5, top_z - top_depth * 0.5 + 0.01)))
 	return root
@@ -1252,3 +1971,75 @@ static func base_carcass(width: float, bays: int, height := 0.72, depth := 0.58)
 ## The top of a run's worktop, in the run's local space: what stands on it stands here.
 static func worktop_y(height := 0.72) -> float:
 	return PLINTH_HEIGHT + height + WORKTOP_THICK
+
+# --- Chairs -----------------------------------------------------------------------------------------
+
+const CHAIR_SEAT := Vector3(0.44, 0.024, 0.42)
+const CHAIR_SEAT_HEIGHT := 0.46
+const CHAIR_BACK_HEIGHT := 0.88
+## How far the tops of the back posts lean behind their feet.
+const CHAIR_RAKE := 0.07
+## Legs stand in from the seat's edges by this much.
+const CHAIR_LEG_INSET := 0.035
+const CHAIR_LEG_RADII := Vector2(0.018, 0.013)
+const CHAIR_POST_RADIUS := 0.016
+const CHAIR_APRON := Vector2(0.06, 0.02)
+const CHAIR_STRETCHER_Y := 0.16
+const CHAIR_STRETCHER_RADIUS := 0.009
+const CHAIR_RAIL_RADIUS := 0.013
+const CHAIR_RAIL_DROP := 0.035
+const CHAIR_RAIL_BOW := 0.025
+const CHAIR_SPINDLE_X: Array[float] = [-0.09, 0.0, 0.09]
+const CHAIR_SPINDLE_RADIUS := 0.007
+const CHAIR_EASE := 0.008
+## How far behind the seat's middle the back posts reach at the top: what a table or desk leaves room
+## for when a chair is pushed up to it.
+const CHAIR_BACK_REACH := CHAIR_SEAT.z * 0.5 - CHAIR_LEG_INSET + CHAIR_RAKE + CHAIR_RAIL_BOW + CHAIR_RAIL_RADIUS
+
+## A wooden side chair as `[mesh, transform]` parts in its own space, for a family to place and bake
+## with the rest of its wood: turned front legs, back legs that rise into raked posts, an apron under a
+## seat with eased edges, H stretchers, and three spindles under a bowed top rail. Origin on the floor
+## under the middle of the seat, front +Z.
+static func side_chair() -> Array:
+	var parts: Array = []
+	var lx := CHAIR_SEAT.x * 0.5 - CHAIR_LEG_INSET
+	var zf := CHAIR_SEAT.z * 0.5 - CHAIR_LEG_INSET
+	var under := CHAIR_SEAT_HEIGHT - CHAIR_SEAT.y
+	parts.append([rounded_box(CHAIR_SEAT, CHAIR_EASE, 6, 16), Transform3D(Basis.IDENTITY,
+			Vector3(0, CHAIR_SEAT_HEIGHT - CHAIR_SEAT.y * 0.5, 0))])
+	var leg := lathe(PackedVector2Array([Vector2(CHAIR_LEG_RADII.y - 0.001, 0), Vector2(CHAIR_LEG_RADII.y, 0.004),
+			Vector2(CHAIR_LEG_RADII.x, under - 0.12), Vector2(CHAIR_LEG_RADII.x * 0.85, under - 0.1),
+			Vector2(CHAIR_LEG_RADII.x, under - 0.08), Vector2(CHAIR_LEG_RADII.x, under), Vector2(0, under)]), 12)
+	var post_path := PackedVector3Array([Vector3(0, 0, 0), Vector3(0, under, 0)])
+	for k in range(1, 7):
+		var y := lerpf(under, CHAIR_BACK_HEIGHT, float(k) / 6.0)
+		post_path.append(Vector3(0, y, -_chair_post_lean(y)))
+	var post := tube(post_path, CHAIR_POST_RADIUS, 10)
+	for sx: float in [-1.0, 1.0]:
+		parts.append([leg, Transform3D(Basis.IDENTITY, Vector3(sx * lx, 0, zf))])
+		parts.append([post, Transform3D(Basis.IDENTITY, Vector3(sx * lx, 0, -zf))])
+		parts.append(part(Vector3(CHAIR_APRON.y, CHAIR_APRON.x, zf * 2.0), Vector3(sx * lx, under - CHAIR_APRON.x * 0.5, 0)))
+		parts.append([cyl(CHAIR_STRETCHER_RADIUS, CHAIR_STRETCHER_RADIUS, zf * 2.0, 8),
+				Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(sx * lx, CHAIR_STRETCHER_Y, 0))])
+	for sz: float in [-1.0, 1.0]:
+		parts.append(part(Vector3(lx * 2.0, CHAIR_APRON.x, CHAIR_APRON.y), Vector3(0, under - CHAIR_APRON.x * 0.5, sz * zf)))
+	parts.append([cyl(CHAIR_STRETCHER_RADIUS, CHAIR_STRETCHER_RADIUS, lx * 2.0, 8),
+			Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0, CHAIR_STRETCHER_Y, 0))])
+	var rail_y := CHAIR_BACK_HEIGHT - CHAIR_RAIL_DROP
+	var rail_z := -zf - _chair_post_lean(rail_y)
+	var rail := PackedVector3Array()
+	for k in range(9):
+		var x := lerpf(-lx, lx, float(k) / 8.0)
+		rail.append(Vector3(x, rail_y, rail_z - CHAIR_RAIL_BOW * (1.0 - pow(x / lx, 2.0))))
+	parts.append([tube(rail, CHAIR_RAIL_RADIUS, 10), Transform3D.IDENTITY])
+	for x: float in CHAIR_SPINDLE_X:
+		var top := Vector3(x, rail_y, rail_z - CHAIR_RAIL_BOW * (1.0 - pow(x / lx, 2.0)))
+		parts.append([tube(PackedVector3Array([Vector3(x, CHAIR_SEAT_HEIGHT - 0.004, -zf + 0.01), top]),
+				CHAIR_SPINDLE_RADIUS, 8), Transform3D.IDENTITY])
+	return parts
+
+## How far a back post has leaned back at height `y`, from where it leaves the seat.
+static func _chair_post_lean(y: float) -> float:
+	var under := CHAIR_SEAT_HEIGHT - CHAIR_SEAT.y
+	var t := clampf((y - under) / (CHAIR_BACK_HEIGHT - under), 0.0, 1.0)
+	return CHAIR_RAKE * pow(t, 1.4)

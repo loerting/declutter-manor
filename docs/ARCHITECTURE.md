@@ -9,7 +9,7 @@ value appears there, it must never be re-typed anywhere else.
     data/       Resource definitions (ItemDef, SetDef, FloorPlan, RoomDef, ContainerDef)
     resources/  .tres instances of the above — the content itself
     world/      floor plan -> geometry: HouseBuilder, WallDeriver, ExteriorBuilder, TerrainBuilder
-    props/      Props.gd (mesh toolkit) and the item family generators
+    props/      Props.gd (mesh toolkit), Mats.gd, and one file per family: props/items/, props/furniture/
     items/      ItemNode and the ItemFactory that turns an ItemDef into one
     player/     first-person controller and its components
     ui/         HUD, set tracker, room panel, menus
@@ -22,16 +22,27 @@ value appears there, it must never be re-typed anywhere else.
 | Need | Use this, never reinvent |
 |---|---|
 | Any tuning number the player feels | `core/Balance.gd` — no inline multipliers anywhere |
-| Any material or colour | `Mats.of(slot, ...)` and the palette consts in `Props.gd` — no bare `Color(...)` on a prop |
+| Any material or colour | `Mats.of(slot, ...)` and the palette consts in `Props.gd` — no bare `Color(...)` on a prop; a family's own colours are named consts at the top of its file, and a palette two families share lives in `Props.gd` (`BOOK_CLOTH`) |
 | Any mesh primitive or sweep | `props/Props.gd` — extend it, never write a local `SurfaceTool` block |
 | Anything about an item type | its `ItemDef` resource — slot cost, set, generator, params, home |
 | Anything about a set | its `SetDef` resource |
 | Room extents, walls, openings, storey heights | the `FloorPlan` resource — interior AND exterior read it |
 | Where an item belongs | the `PlaceSlotGroup` named by `ItemDef.home` — slot transforms are generated, never authored one by one |
 | Where an item starts out | `ItemDef.start` — authored and fixed, identical for every player |
+| Where a piece of furniture stands | its `FurnitureDef`: a wall of a room and a distance along it, never a position |
+| What floor must stay clear | `dev/Clearance.gd` — doorways, stair landings, windows; the probe and the importer both read it |
+| The item list, counts, slot costs, start zones | `tools/content_model.py`, exported to `dev/content_plan.json` and imported by `dev/ContentImport.tscn` |
 | Any sound | the zone bed from the floor plan, or an `AudioStreamPlayer3D` on the prop that makes it |
 | Current capacity and what is carried | `Inventory` autoload |
 | Set progress and slot rewards | `SetTracker` autoload |
+| A location's items and sets | its `Catalogue`, `resources/<plan id>/catalogue.tres`, from `WorldBuilder.catalogue(plan)` |
+| Where content is written, and in what form | `dev/HomeAuthor.gd` — never hand-type an item transform |
+| Which room a point is in | `FloorPlan.room_at` |
+| The walking route between two rooms | `world/RoomGraph.gd` — `PacingProbe` and the HUD read the same graph |
+| What a home is called on screen | `HomeName.of(group, content, plan)` — the piece's room and `PlaceSlotGroup.name_key` |
+| The key an action is bound to, in a hint | `core/util/InputNames.gd` — never a key written into a string |
+| The HUD's look | `ui/HudTheme.tres` and `ui/glass.tres`; the two drawn parts, `SetDots` and `CarryCells`, carry their colours as exports |
+| What the save holds and how it is put back | `world/ProgressSave.gd` |
 | Cross-system communication | `EventBus` autoload, typed signals only |
 | Phase / game flow | `GameState` autoload (`request_phase` -> `commit_phase`) |
 | Any number shown to the player | `core/util/NumberFormatter.gd` — never `str(x)` |
@@ -276,18 +287,94 @@ probe that reaches past the ray is a probe that can pass while the game does not
 |---|---|
 | `content.*` | an item naming a family that does not exist, a home no group answers to, an off-ladder slot cost, an item that starts nowhere |
 | `slots.arith` | generated slot transforms that drift, a stack taller than the drawer it is in |
+| `start.reachable` | an item no ray can reach: with every container open, no eye at standing height within reach sees it before something solid. A piece whose body is one box hides everything inside it, which is what `Layers.BULK` and `FurnitureNode.add_hollow` exist for |
 | `slots.closed` | a container's slots offered while it is shut — a ghost inside a carcass |
 | `container.fsm` | a container that does not open, does not shut, or does not start closed. Every container in the house, not just the kitchen's |
 | `reach.take` | the ray, the reach and the prompt: looking at a spoon from a stride away must say `Take` |
 | `carry.full` | a second item taken into a one-slot inventory, and a full inventory that does not say so |
 | `carry.return` | an item put back anywhere but exactly where it was picked up |
 | `place.stack` | the twelve-spoon gate: each spoon at the slot the group generated, in order, and a full drawer that stops offering |
+| `place.rests` | the bottom spoon more than 3 mm off the drawer floor: a slot rest measured wrong, or a generator whose origin moved |
 | `place.travel` | slots hung off the carcass instead of the drawer, so what is in a drawer stays behind when it shuts |
+| `census.*` | room counts that do not start at every misplaced item, or still count a kitchen whose spoons are home |
+| `set.complete` / `.slot` / `.once` | a full drawer that does not complete its set, grant its slot, or say so exactly once |
+| `save.*` | the house torn down, rebuilt and loaded: the drawer must hold the same spoons in the same slots, the set still complete, the slot still granted and not granted again |
+| `author.start` | an item at its authored start that the authoring tool would read back as a different start — pressing F6 on an untouched item must write nothing new |
+| `author.rests` | a free-standing start more than 3 mm off the surface under it: the check that fails when the furniture moves and the content does not |
+| `author.write` / `.read` / `.id` | the tool's writer round-tripped through real files: a catalogue that embeds its items instead of referring to them, a field lost on the way, a next id that is not one past the highest |
+| `author.home` | in the drawer, a spoon whose group does not read back as its home, or one that could be written as a start |
+| `change.*` | the same save loaded after a thirteenth spoon is added to the set: twelve back in the drawer, the new one at its authored start, the set reopened at 12 of 13, capacity unchanged |
 
 Three failure modes have been shown red: with the slot step removed the group was rejected as
 inconsistent; with the slots hung off the carcass the ghost never appeared and nothing travelled
 with the drawer; and with `requires_open` cleared, a shut drawer swallowed a spoon the player
-should have been told they had no room for.
+should have been told they had no room for. The Phase 3 checks were shown red the same way: with
+`ProgressSave.apply` not putting items back into their slots the drawer reloaded empty and the set
+incomplete, and with the census counting items that are home the finished kitchen still counted
+twelve. The authoring checks were shown red four ways: a spoon's start raised 2 cm in its file,
+container starts written in world space, the writer without its path takeover (the catalogue then
+embeds every item), and `home_of` reading nothing.
+
+`place.rests` was shown red with `Rest.ON` measuring the item's top instead of its bottom (the spoon
+sank 8.6 mm). It could not be shown red by removing the rest altogether, because the spoon's own
+lowest point is 0.1 mm from its origin — which is exactly why the check measures a surface and not
+an offset.
+
+### What `dev/PacingProbe.tscn` proves
+
+`docs/PACING.md`'s model, run over the house that exists: every item at its authored start, every home
+where the furniture puts it, and every metre between them walked through the doorways and flights of the
+real plan (a room graph, Dijkstra between rooms, straight lines inside one). The player is the greedy one
+the model describes — the lowest scatter tier first, then the lightest set that can be carried in one trip,
+gathering the nearest member each time. Measured 2026-09-16: **178 minutes against the 180-minute target,
+longest set the hangers at 10.0 minutes**, 56 slots at the end.
+
+What is measured and what is assumed matters here: the distances, the slot costs, the capacity ladder and
+the order come off the content; the 30 seconds of searching and 5 of handling per item are `PACING.md`'s
+assumptions, and only a play test can measure them. Shown red by putting searching at 45 s: the run goes to
+240 minutes, 33% out, and both fifteen-member sets break the twelve-minute rule — which is exactly the
+sensitivity `PACING.md` names.
+
+### What `dev/FurnitureProbe.tscn` proves
+
+Every piece the catalogue lists, built where its def says, and every item and furniture family:
+
+| Check | Catches |
+|---|---|
+| `family.back` / `.footprint` / `.floor` | a generator not in the shared local space: built centred on its depth (half of it in the wall), meshes beyond its footprint, lifted off its floor |
+| `family.bottom` | an item family whose lowest point is not its origin |
+| `mesh.winding` | a surface inside out: the signed volume against Godot's own box |
+| `mesh.normals` | triangles whose normals point against their winding |
+| `piece.inside` / `.floor` / `.mounted` | a corner outside its room, a piece off the floor, a wall piece standing out from its wall |
+| `piece.doorway` / `.stairs` / `.window` | a piece in the 0.9 m in front of a door or arch, at either end of a flight, or taller than a sill in front of a window (`dev/Clearance.gd`) |
+| `piece.overlap` | two pieces standing in each other |
+| `piece.front` | another piece on the 0.75 m of floor in front of a drawer, door or lid (`Clearance.front`), so a home cannot be boxed in |
+| `group.anchor` / `.open` / `.on_piece` / `.consistent` / `.capacity` | a group on an anchor its family does not have, requiring an open container on a static anchor, a slot in the air off its piece, more items calling it home than it holds |
+| `home.group` / `home.accepts` | an item whose home no piece carries, or a group that does not take it |
+| `id.*` / `start.container` | two pieces, groups or containers with one id; a start inside a container no piece has |
+| `start.clear` | an item out in the open whose start is inside a piece's body — a start scattered before the piece it now stands in was built (`Clearance.buried`, the same test the import turns a start down by) |
+
+`--family=<name>` runs the family checks on one family alone, which is the loop while a generator is
+being written. Shown red (2026-09-15): an inside-out box, a box with flipped normals, the kitchen
+run built centred and lifted 1 cm, slid into the dining arch, stood under the living room's west
+window and in the hall at the stair foot, pushed past the kitchen's east wall, its group on a
+missing anchor, and the whole piece listed twice. `piece.front` was added when batch 3 exposed the
+kitchen's west-wall run and range standing in front of the spoon drawer since batch 2: six
+violations on that layout, none anywhere else, none after the run was moved. None of it proves a piece looks right: that is
+`dev/PropView.tscn -- --piece=<id> --fill --open` and a room render.
+
+### Content import
+
+Items are not typed one by one. `tools/content_model.py --json` writes `dev/content_plan.json` —
+every set with its count, slot cost, home zone and the zone each copy starts in — and
+`dev/ContentImport.tscn -- --rooms=<zones>` writes the sets whose home is in those zones: the set, an
+item per copy (`<set>_NN`, family `<set>`, home `<set>_home`, parameters from the family's
+`variant`), and each copy's start, dropped once onto the real house and furniture in its zone, out of
+doorways and landings, not inside anything and not on another start, then frozen into its file. A
+set that already has items is skipped, so an import cannot overwrite authored work. The absurd spots
+are not placed by it: that copy starts on the floor of the right zone until its fixture exists.
+The drop ray starts just over the highest surface a start may be on, not at the ceiling: in the
+attic a ray from storey height starts above the roof and every drop lands on it.
 
 Occluder generation from the same walk is planned for the end of Phase 1, once `PerfProbe` says
 whether the draw-call budget needs it. It is not built yet.
@@ -320,7 +407,12 @@ An `ItemDef` is data, never code:
     generator     StringName   which family in props/ builds it
     params        Dictionary   the family's parameters (size, colour slot, variant seed)
     home          StringName   the PlaceSlotGroup that accepts it
-    start         ItemPlacement authored wrong-place: room, transform, optional container
+    start         ItemPlacement authored wrong-place: room, transform, optional container or anchor
+
+A start names where it hangs as well as where it is: out in the open it is a plan transform, inside a
+container it is in that container's space, and on a piece's anchor it is in the anchor's space — so the
+rubber duck in the fridge's door bin swings with the door and the book in the freezer slides with the
+drawer, which a start on the static half beside them would not (`ContentImport`, `ABSURD_SPOTS`).
 
 Both `home` and `start` are **authored and fixed**. Every player gets the same house and the same
 hiding places; there is no seeded variation and no randomisation anywhere in item placement.
@@ -329,24 +421,149 @@ hiding places; there is no seeded variation and no randomisation anywhere in ite
 makes six bottles. A bespoke generator is the exception, reserved for hero items, and needs a
 stated reason. Content volume is the largest risk in this project and this is the mitigation.
 
-**Mesh caching.** `Props.get_cached(generator, params)` keys an `ArrayMesh` by generator plus
-normalized params. Twelve forks are twelve `MeshInstance3D`s sharing one mesh and one material.
+**One file per family.** A family is a script under `props/items/` extending `ItemGenerator`,
+registered in `ItemFactory.FAMILIES`. It builds from `ItemDef.params` (read with `Params`), and it
+answers two questions content import asks: `variant(n)`, the parameters of the n-th copy (fifteen
+books are fifteen colours, chosen once and written into each item's file), and `lying()`, how the
+item lies when it is put down somewhere that is not its home (a coat modelled hanging lies on its
+back). An item's origin is the bottom of the item as modelled; `FurnitureProbe` checks it.
+
+**Mesh caching.** `ItemFactory` generates each distinct family and parameter set once
+(`Params.key`) and keeps the meshes, materials and transforms; every later item with that key is new
+`MeshInstance3D`s over the same meshes. Twelve spoons are twelve instances of one mesh.
+Bounds are measured on the vertices after a turn (`ItemFactory.bounds`), not by turning a box: a
+cushion leaning back 15° on its turned box would float 2 cm over the seat.
+
+**Generation is paid at every boot, and it is paid on every core.** Measured through Phase 4 as the
+content landed: the entry hall and living room (ten pieces, 49 items) cost 1.7 s of mesh generation and
+a world ready in 2.26 s against 0.93 s empty; the ground floor 3.1 s and 4.2-4.3 s; the upper floor
+4.6 s and 6.2-6.4 s; the basement 5.5 s and 7.4-8.1 s; the attic and the exterior — 78 pieces and all
+250 items — **6.7 s of generation and a world ready in 10.0-10.5 s**, against the 4 s cold start in
+`docs/PACING.md`. Individual offenders were cut along the way (four hanging coats 455 ms, eight pairs of
+sneakers 416 ms, stuffed animals 520 -> 258 ms, toy cars 467 -> 245 ms, two flower beds 400 -> 240 ms once
+their tufts were built once and baked many times), but the total is the content, not any one piece of it.
+
+Two changes took that boot to **1.8-2.2 s** (2026-09-16), and neither of them caches anything to disk:
+the meshes are still generated at runtime, which is the point of rule 10.
+
+- **The rendering server was doing a quarter of the work.** `Props` committed every intermediate mesh to
+  the server and read it back: `with_tangents(st.commit())` sent one mesh there three times and read it
+  back twice, and `bake` read every part back once per part. Both work on arrays now (`Props.finish`),
+  and building every piece and every item in order went from **8.5 s to 6.1 s** (windowed, materials cold)
+  with the meshes unchanged: vertex positions exact, normals the same to the last bit the rendering server
+  keeps. The tangents differ on the vertices whose normal ties between two axes, where the old path broke
+  the tie by the quantization of a readback; two renders of the worst-affected pieces differ by at most 1
+  of 255.
+- **`world/Generation.gd` builds every piece and every distinct item on the `WorkerThreadPool`**, which is
+  where the rest went: 81 pieces and 180 distinct items in **1.0-1.2 s** instead of 6.2 s. Two things make
+  that safe and both are load-bearing. Generators share no state but `Mats`' cache, which locks. And a
+  generator still reads its meshes back from the rendering server, and a call from a worker waits for the
+  main thread to serve it — so the main thread never blocks on the pool; it serves the server until the
+  pool is done. Blocked, the first attempt deadlocked. Headless swaps in a renderer whose mesh storage is
+  not thread-safe (it crashed), so with no renderer everything is generated in order; the probes run
+  headless and cover that path, and `dev/GenerationProbe.tscn` proves the two build the same meshes.
+
+## Sets, progress and the save
+
+**Membership is written on the item and nowhere else.** `SetDef` is an id and a name; the members
+of a set are the items whose `set_id` names it, derived by `Catalogue.members`. A `Catalogue` is
+one location's items and sets together, looked up by plan (`WorldBuilder.catalogue`), and the
+world, `SetTracker` and the save all read that one object.
+
+**Content is files, written by walking the house.** `resources/manor/catalogue.tres` refers to one
+file per item (`items/<id>.tres`) and per set (`sets/<id>.tres`). They are written by
+`dev/Author.tscn`, which runs the game's own world on a save it never loads: carry an item, put it
+down (F5), nudge or turn it, and F6 writes where it stands as its start; put it in a place-slot
+group and F7 writes that group as its home; F8 adds a new item like the one under the crosshair with
+the next id. It is an in-game mode rather than an editor plugin because the house exists only at
+runtime. A start is stored in plan space, or in its container's space, and not relative to the
+furniture it lies on — so moving furniture means re-authoring what stands on it, and
+`InteractProbe`'s `author.rests` is what says so. A start inside a container cannot be put down with
+F5 (a carcass is one collision box with no shelf in it); it is authored by nudging or copying an
+item already inside, and is verified by a render, not a probe.
+
+**`SetTracker` is told nothing directly.** It listens for `item_placed` and `item_picked_up`, so a
+placement by the player, a put-back and a save being applied are counted by the same code. An item
+is at home when the group it was put in is the group its `home` names — put away in another group
+that takes its family is put away, and not home. Completion is re-derived from what is home, so
+taking a spoon back out of a finished drawer reopens the set; **the slot a set grants is granted
+once, ever**, and `granted` is what remembers it and is saved. That is also what makes a content
+change safe: a set that gains a member under an old save reopens, and finishing it again pays
+nothing twice.
+
+**`ClutterCensus`** counts, per room, the items that belong to a set and are not home, in the room
+they stand in (`FloorPlan.room_at`, which `ProbeCuller` uses too). A carried item is in no room.
+The HUD lists every set with its count and every room that still holds anything — never which item
+and never where (`docs/VISION.md`).
+
+**The HUD** (`ui/Hud.tscn`, the plan of 2026-09-16, tranche U1) answers one question per moment, and
+each answer is a component:
+
+- **Room tag** (`%RoomTag`): the room the player stands in, on a strip of tape, and how many misplaced
+  items it still holds, or "Tidy". The room comes from `EventBus.zone_entered`, which `ProbeCuller`
+  emits because it already tracks the eye's room.
+- **Item card** (`ui/ItemCard.tscn`): shown while the crosshair is on an item a click would take
+  (`Interactor.aim_changed` carries the prompt and the item). Name, slot cost — with how many slots are
+  free when it does not fit — the home as "room · piece", and the set's progress as pips. The home's
+  wording is `HomeName.of`: the room of the `FurnitureDef` carrying the group, and the group's
+  `PlaceSlotGroup.name_key`, whose English text is the home column of `docs/CONTENT.md`. The card only
+  describes an item already found, so it gives nothing of the search away.
+- **Carry bar** (`ui/CarryBar.tscn`, `CarryCells`): slots used of capacity and free, one cell per slot,
+  each carried item a block as wide as its cost, the last one taken outlined and named with the key
+  that puts it back. Past what fits in `CarryCells.max_width` the cells narrow into segments.
+- **Tracker** (`%Tracker`): sets complete of the total, slots, set members put away of all of them
+  (`SetTracker.home_count`), and the sets under way — some members home or in hand, not all — at most
+  `Hud.active_rows`, the last one changed first, each with its pips (`SetDots`: a filled disc at home, a
+  bright ring in hand, a faint ring still out; shape as well as colour).
+- **Held `show_tracker`** (Tab) shows `%Overview` in place of the tracker: every set and every room with a
+  count, in four-column grids of fixed-width rows (`Hud.row_width`); a name that does not fit ends in an
+  ellipsis. Sets keep content order and a completed set stays in place, dimmed. Tranche U4 replaces it
+  with the ledger.
+
+The look is one theme, `ui/HudTheme.tres`, and one material, `ui/glass.tres`: panels blur and tint the
+room behind them so text reads the same over a white wall and inside a cupboard. The window scales the
+HUD from its 1600x900 design size (`display/window/stretch`: canvas items, expand); the 3D view keeps
+its native resolution. Every key named on screen comes from `InputNames.of(action)`, never a literal.
+Labels under `Screen` do not auto-translate: the code translates, and translating twice is wrong.
+
+`dev/HudProbe.tscn` builds the HUD with the 55 sets of `docs/CONTENT.md`, every room counted, the
+finale's 56 slots nearly full and an item under the crosshair, at 1280x720, 1280x800, 1920x1080 and
+2560x1440, each laid out at the size the window's stretch gives it, and then again with Godot's
+pseudolocalization making every string 40% longer: `hud.fits`, `hud.clear` (room tag, tracker, card,
+carry bar, prompt and notice pairwise; overview vs notice, carry bar, room tag), `hud.rows`,
+`hud.short`, `hud.overview`, `hud.here`, `hud.card`, `hud.bar`. Each was shown red. `--screenshot=
+--backdrop= [--overview] [--long] [--size=]` renders it; legibility is only proven by looking.
+
+**`ProgressSave`** is the bridge between the house and the save file, and `Autosave` writes it
+whenever an item is put away or put back, and when the window closes. A carried item is saved where
+it was picked up from: the hands are not a place, and quitting mid-trip loses only the trip. On
+load, nothing trusts the save over the content — an item the save does not mention stays at its
+authored start, an item the content no longer has is ignored, and a slot, container or room that
+no longer exists sends its item back to its start. `GameWorld --fresh` (dev only) starts a new run
+without reading the save.
 
 ## Placement — the place-slot system
 
 Items are never dropped. They are put away into predefined slots, and this is the core verb, so it
 is specified rather than left to implementation.
 
-**`PlaceSlotGroup`** is a Resource attached to a surface, a container or a piece of furniture:
+**`PlaceSlotGroup`** is a Resource carried by a piece of furniture (`FurnitureDef.slots`):
 
-    id             StringName    stable; referenced by ItemDef.home
+    id             StringName    stable; referenced by ItemDef.home. A set's home is `<set id>_home`
     accepts        StringName    item family or explicit id list
     capacity       int           how many fit
     fill_order     enum          SEQUENTIAL | PAIRED | NEAREST
     layout         enum          STACK | ROW | GRID | FREE
-    base_xform     Transform3D   slot 0, in the owner's local space
+    base_xform     Transform3D   slot 0, a point on the surface in the anchor's space
     step           Vector3       offset applied per index for STACK and ROW
-    requires_open  bool          only offered while the owning container is OPEN
+    requires_open  bool          only offered while the anchor's container is OPEN
+    rest           enum          ON (lowest point on the slot) | HANG (highest point at it) | AS_BUILT
+    anchor         StringName    the named place on the piece it hangs from: a drawer floor, a shelf
+
+A slot is a point on a surface, not where an item's origin goes. Where the origin goes is measured
+from the item's own mesh after the slot's turn (`ItemFactory.rest`), so a key ring modelled lying
+flat hangs from a hook by its top, a cushion tilted against a sofa back sits on the seat, and a
+generator that changes shape cannot leave anything floating or sunk.
 
 Slot transforms are **generated from `base_xform` + `step * index`**, not hand-authored one by one.
 Twelve spoons in a tray are one group with a 4 mm vertical step, not twelve authored transforms.
@@ -396,18 +613,77 @@ and a placement asks the slot whether it will take the item before the item leav
 That ordering is the difference between "the click did nothing" and an item that has been
 silently teleported.
 
+### Furniture is data
+
+A **`FurnitureDef`** (`resources/<plan>/furniture/<id>.tres`, listed in the catalogue) names a
+family, its parameters, a room, the wall its back is against, which end of that wall it is measured
+from and how far along, how far out from the wall, and the place-slot groups it carries. Where it
+stands is derived from the plan, so a room that moves takes its furniture with it.
+
+A family is a script under `props/furniture/` extending `FurnitureGenerator`, registered in
+`FurnitureFactory.FAMILIES`, and it returns a **`FurnitureNode`** in one shared local space: origin
+on the floor at the middle of the piece's back, front facing +Z. On it the family declares its
+footprint (what placement aligns and what the probe keeps clear), whether it is wall-mounted, its
+collision boxes, its containers (`<piece id>_<part>` — a save key) and its anchors. A group names
+an anchor; an anchor on a moving part names the container that moves it, which is what a group's
+`requires_open` asks, and what a start on it rides.
+
+**A piece the player reaches into is hollow, in two layers.** The interaction ray is stopped by everything
+on `Layers.WORLD`, so a cupboard given one solid collision box hides everything inside it: the spoon that
+has started in the kitchen's cupboard since Phase 3 could never have been picked up, and nothing measured
+it until `InteractProbe`'s `start.reachable` (2026-09-16). `FurnitureNode.add_hollow` gives the piece two
+bodies instead: its whole volume on `Layers.BULK`, which only the player's capsule collides with, and its
+panels on `Layers.WORLD`, which stop the ray — with the faces it is open on left out. A closed door still
+stops the ray, because a container's handle box covers its front and swings away with it. The kitchen runs,
+the sideboard, the range, the washer, the grill, the recycling bin and the bathtub are built this way; the
+tub's walls are as thick as its own rims, because a rim is a surface the ducks stand on.
+
+### The toolkit a family builds from
+
+Every mesh a family makes comes from `Props`; a helper one family needs goes there, not into the
+family (`CLAUDE.md`, single sources). What exists beyond the primitives:
+
+    cushion             a stuffed cover: two panels sewn round a rectangle, full in the middle
+    upholstered_block   a frame part with rolled edges, puffed sides, a crowned top and a rake
+    box_cushion         a welted box cushion with a crowned top panel
+    moulded             a plastic shell: an outline, a floor and top height per point, a rolled edge
+    superellipse        the outline a moulded shell or a rounded plan usually wants
+    moulding            a straight length of a profile, mitred; frame_rails puts four round an opening
+    moulded_block       a profile run round the front and sides of a block against a wall
+    bake / bake_node    many parts, or a whole node tree, as one mesh per material
+    side_chair          a wooden chair as parts, for a desk or a table to place and bake with its wood
+    cabinet_door        a hinged overlay door; its face material, pull length and pull height are given
+    base_carcass        a run of base units, with a sink hung in a hole in the worktop over one bay
+    basin / tap         an inset sink's closed basin, and a low tap that clears a window sill
+    glass               the one transparent material: smooth, not metallic, alpha from the tint
+    cavity              a well seen from inside; its mesh is named `Props.CAVITY` (below)
+    ellipsoid           a closed ellipsoid built at its size, so nothing scales it on a transform
+    ring_rounded_ngon   a regular polygon with rounded corners, for a loft: a hex dumbbell's head
+    sweep_bar           a rounded-rectangle bar bent along a flat path, tapering: a hanger's arm
+    drawer / book       take a front material, and a depth and cover material, for oak and textbooks
+    ShoeLast            a shoe's shape as numbers (`props/ShoeLast.gd`); sneakers and dress shoes are two
+                        lasts, and a last with a heel arches its sole up onto a heel block
+
+A `cavity` faces inward on purpose, so the volume it bounds is negative. `FurnitureProbe` skips the
+winding sign for a mesh named `Props.CAVITY` and still checks its normals against its winding.
+
+`lathe` gave a profile that starts on the axis and ends off it an end cap whose centre index pointed
+past the last vertex; the engine dropped those triangles with a `deindex` error and nothing else
+noticed. Fixed 2026-09-15 (the soda can's foot was the first profile of that shape; no earlier log
+shows the error).
+
+`rounded_box` bounds every flat face with rows a hair off its own normal. Before 2026-09-15 a flat
+face was spanned from rows a whole ring step off, which shaded as a fan of diagonal wedges (the
+worktop seam), and `sin(PI)` is not quite 0, so its bottom pole sat at the corners and nothing
+fanned across the bottom face (read from the code; no render from below was made).
+
 ### The kitchen, which is the reference implementation
 
-`world/FurnitureBuilder.gd` builds a run of base units against the kitchen's north wall — two
-bays, each with a drawer over a cupboard, all four of which open. The west drawer is the home of
-twelve spoons; six of them start on the worktop and six shut in the east cupboard, so the first
-container the player opens both solves work and creates it. The run's position is derived from
-the room rectangle and the wall thickness, and the authored spoon positions are expressed
-against the run, so moving the kitchen moves all of it together.
-
-The spoons' base slot transform is **measured from the spoon's own mesh** at build time rather
-than typed, so the bottom one rests on the drawer floor whatever the generator does next
-(modelling rule 5). The stack step is 4 mm — one spoon thick.
+`kitchen_run` is a `base_run` of two bays against the kitchen's north wall, each bay a drawer over a
+cupboard, all four of which open. Drawer 1 is the home of twelve spoons (`kitchen_cutlery`, a STACK
+on the drawer's floor anchor with a 4 mm step — one spoon thick); one spoon starts shut in cupboard
+2, so the first container the player opens both solves work and creates it. `InteractProbe` carries
+this set, and only this set, through the whole of the core verb (`InteractProbe.REFERENCE_SET`).
 
 ## Audio
 
@@ -475,8 +751,16 @@ Written now, before there is anything to save, because retrofitting this is what
 
 - **Identity is a stable `StringName`, never a node path, never an array index.** An item's `id` is
   fixed at authoring time and never reused, even after the item is deleted.
-- The save is a dictionary: `version`, `slots`, `sets` (id -> placed member ids), `items`
-  (id -> `{room, xform, container, at_home}`), `plan_hash`, `play_time`, `settings_rev`.
+- The save is a dictionary: `version`, `slots`, `sets` (id -> placed member ids), `granted` (the
+  set ids that have paid their slot), `items` (id -> `{room, xform, container, anchor, group, index,
+  at_home}`), `plan_hash`, `play_time`, `settings_rev`. `group` and `index` are the place-slot an
+  item stands in, so a drawer reloads as the same stack in the same order; `xform` is in the
+  container's space when `container` is set and in the world's otherwise. Version 2 added
+  `granted`, `group` and `index` (`SaveManager._migrate_v1_to_v2`); version 3 added `anchor`, the place on
+  a piece of furniture an item rests on, in whose space its `xform` then is
+  (`SaveManager._migrate_v2_to_v3`). Every version has a fixture.
+- Probes that save from the command line cannot sandbox `XDG_DATA_HOME`, so they set
+  `SaveManager.basename_override` and delete what they wrote.
 - `plan_hash` records which floor plan the save was made against. A save whose plan hash differs
   is not discarded — it is migrated: items whose room still exists keep their position, the rest
   return to their authored scatter point.

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_puyjn"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_hmblg"]
+
+[sub_resource type="Resource" id="Resource_puyjn"]
+script = ExtResource("2_hmblg")
+room = &"guest_room"
+xform = Transform3D(-2.804703e-08, -0.64164126, -0.76700485, 1, -4.371139e-08, 0, -3.3526845e-08, -0.76700485, 0.64164126, 6.2181354, 3.983, 11.216843)
+
+[resource]
+script = ExtResource("1_puyjn")
+id = &"soda_can_05"
+name_key = "item.soda_can"
+set_id = &"soda_can"
+generator = &"soda_can"
+params = {
+"tint": Color(0.78, 0.78, 0.8, 1)
+}
+home = &"soda_can_home"
+start = SubResource("Resource_puyjn")

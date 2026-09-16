@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_1rhvk"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_kwvlm"]
+
+[sub_resource type="Resource" id="Resource_blna8"]
+script = ExtResource("2_kwvlm")
+room = &"attic"
+xform = Transform3D(2.5281665e-08, 0.57837707, -0.81576955, 1, -4.371139e-08, 0, -3.565842e-08, -0.81576955, -0.57837707, 14.781328, 6.4729, 11.822833)
+
+[resource]
+script = ExtResource("1_1rhvk")
+id = &"book_02"
+name_key = "item.book"
+set_id = &"book"
+generator = &"book"
+params = {
+"bands": 2,
+"height": 0.255,
+"tint": Color(0.86, 0.82, 0.7, 1),
+"width": 0.045
+}
+home = &"book_home"
+start = SubResource("Resource_blna8")

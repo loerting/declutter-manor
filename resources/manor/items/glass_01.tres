@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_i7ly1"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_32jvy"]
+
+[sub_resource type="Resource" id="Resource_i7ly1"]
+script = ExtResource("2_32jvy")
+room = &"landing"
+xform = Transform3D(-0.89627534, 0, -0.44349805, 0, 1, 0, 0.44349805, 0, -0.89627534, 9.387652, 3.5, 8.570026)
+
+[resource]
+script = ExtResource("1_i7ly1")
+id = &"glass_01"
+name_key = "item.glass"
+set_id = &"glass"
+generator = &"glass"
+home = &"glass_home"
+start = SubResource("Resource_i7ly1")

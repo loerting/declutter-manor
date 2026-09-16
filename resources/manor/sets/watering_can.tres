@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SetDef" format=3]
+
+[ext_resource type="Script" path="res://data/SetDef.gd" id="1_omxi3"]
+
+[resource]
+script = ExtResource("1_omxi3")
+id = &"watering_can"
+name_key = "set.watering_can"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_fgk4b"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_4eddc"]
+
+[sub_resource type="Resource" id="Resource_fgk4b"]
+script = ExtResource("2_4eddc")
+room = &"deck"
+xform = Transform3D(-1.16787655e-08, -0.267179, -0.9636469, 1, -4.371139e-08, 0, -4.2122345e-08, -0.9636469, 0.267179, 9.692422, 0.46499994, 16.619675)
+
+[resource]
+script = ExtResource("1_fgk4b")
+id = &"school_book_02"
+name_key = "item.school_book"
+slot_cost = 2
+set_id = &"school_book"
+generator = &"school_book"
+params = {
+"tint": Color(0.18, 0.5, 0.3, 1),
+"width": 0.028
+}
+home = &"school_book_home"
+start = SubResource("Resource_fgk4b")

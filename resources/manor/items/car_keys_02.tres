@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_nki6e"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_8gcnm"]
+
+[sub_resource type="Resource" id="Resource_w5ees"]
+script = ExtResource("2_8gcnm")
+room = &"living"
+xform = Transform3D(-0.81988174, 0, 0.5725329, 0, 1, 0, -0.5725329, 0, -0.81988174, 4.6660047, 0.45050004, 12.302148)
+
+[resource]
+script = ExtResource("1_nki6e")
+id = &"car_keys_02"
+name_key = "item.car_keys"
+set_id = &"car_keys"
+generator = &"car_keys"
+params = {
+"cap": Color(0.16, 0.34, 0.62, 1),
+"fob": Color(0.22, 0.23, 0.25, 1),
+"wide": true
+}
+home = &"car_keys_home"
+start = SubResource("Resource_w5ees")

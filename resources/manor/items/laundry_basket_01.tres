@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_uq1gi"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_q23cq"]
+
+[sub_resource type="Resource" id="Resource_uq1gi"]
+script = ExtResource("2_q23cq")
+room = &"pool_area"
+xform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 13.5, 0, 17.4)
+
+[resource]
+script = ExtResource("1_uq1gi")
+id = &"laundry_basket_01"
+name_key = "item.laundry_basket"
+slot_cost = 8
+set_id = &"laundry_basket"
+generator = &"laundry_basket"
+params = {
+"tint": Color(0.93, 0.93, 0.91, 1)
+}
+home = &"laundry_basket_home"
+start = SubResource("Resource_uq1gi")

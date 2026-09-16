@@ -31,6 +31,21 @@ const HIGH_AMBIENT := 1.0
 const SHADOW_ATLAS := {Tier.LOW: 4096, Tier.MEDIUM: 4096, Tier.HIGH: 8192}
 ## 16-bit depth over a 40 m cascade resolves to well under a millimetre and halves the atlas.
 const SHADOW_16_BITS := true
+## How many taps a shadow edge takes. The style test set Soft Ultra for every tier and recorded no
+## reason; on the high tier it cost 2.75 ms a frame over Soft Low (PerfProbe, 2026-09-16).
+const SHADOW_FILTER := {
+	Tier.LOW: RenderingServer.SHADOW_QUALITY_SOFT_LOW,
+	Tier.MEDIUM: RenderingServer.SHADOW_QUALITY_SOFT_LOW,
+	Tier.HIGH: RenderingServer.SHADOW_QUALITY_SOFT_LOW,
+}
+## SSIL at the engine's default quality cost the high tier 2.4 ms a frame; at low quality and half
+## size it measured within noise of having none (PerfProbe, 2026-09-16). The remaining arguments are
+## the engine's defaults.
+const SSIL_QUALITY := RenderingServer.ENV_SSIL_QUALITY_LOW
+const SSIL_HALF_SIZE := true
+const SSIL_ADAPTIVE_TARGET := 0.5
+const SSIL_BLUR_PASSES := 4
+const SSIL_FADE := Vector2(50.0, 300.0)
 
 ## Every room gets a reflection probe, on every tier. This is not polish: a metal in Godot has
 ## no diffuse response at all, so it renders nothing but what it reflects, and the manor's
@@ -109,6 +124,8 @@ static func apply(env: Environment, tier: Tier) -> void:
 	env.sdfgi_enabled = tier == Tier.HIGH
 	env.sdfgi_bounce_feedback = 1.0
 	env.ssil_enabled = tier == Tier.HIGH
+	RenderingServer.environment_set_ssil_quality(SSIL_QUALITY, SSIL_HALF_SIZE, SSIL_ADAPTIVE_TARGET,
+			SSIL_BLUR_PASSES, SSIL_FADE.x, SSIL_FADE.y)
 	env.ssao_enabled = tier != Tier.LOW
 	env.ssao_radius = 0.6
 	env.ssao_intensity = 1.4
@@ -135,6 +152,7 @@ static func make_sun(tier: Tier) -> DirectionalLight3D:
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	sun.directional_shadow_max_distance = 40.0 if tier != Tier.LOW else 25.0
 	RenderingServer.directional_shadow_atlas_set_size(SHADOW_ATLAS[tier], SHADOW_16_BITS)
+	RenderingServer.directional_soft_shadow_filter_set_quality(SHADOW_FILTER[tier])
 	return sun
 
 ## The medium tier's global illumination: one VoxelGI baked once, at load, over the house that

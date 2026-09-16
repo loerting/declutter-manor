@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_bso75"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_q76q2"]
+
+[sub_resource type="Resource" id="Resource_k54tu"]
+script = ExtResource("2_q76q2")
+room = &"workshop"
+xform = Transform3D(-0.16826138, 0, 0.9857424, 0, 1, 0, -0.9857424, 0, -0.16826138, 15.646656, -2.3000002, 8.505117)
+
+[resource]
+script = ExtResource("1_bso75")
+id = &"bike_helmet_04"
+name_key = "item.bike_helmet"
+slot_cost = 2
+set_id = &"bike_helmet"
+generator = &"bike_helmet"
+params = {
+"size": 0.23,
+"tint": Color(0.95, 0.75, 0.15, 1)
+}
+home = &"bike_helmet_home"
+start = SubResource("Resource_k54tu")

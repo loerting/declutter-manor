@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_office_desk_0"]
+script = ExtResource("2_psg")
+id = &"laptop_home"
+name_key = "home.laptop_home"
+accepts = Array[StringName]([&"laptop"])
+layout = 3
+anchor = &"top"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"office_desk"
+generator = &"desk"
+room = &"office"
+wall = 2
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_office_desk_0")])

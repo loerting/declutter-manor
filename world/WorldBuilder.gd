@@ -113,19 +113,34 @@ static func warm_materials(plan: FloorPlan) -> void:
 ## The furniture and the items that stand in it, added to `parent`. One call, so the game, the
 ## gate renders and the performance probe cannot end up showing three different houses.
 ##
-## Content is looked up by plan id. There is one plan, so this is a match on one name rather
-## than a registry; the registry arrives in Phase 3 with the second plan (the demo location).
-static func furnish(parent: Node3D, plan: FloorPlan) -> void:
-	parent.add_child(FurnitureBuilder.build(plan))
+## `content` is the plan's own catalogue unless one is handed in — which is how a probe builds
+## the house with an item added, to prove an old save survives a content change.
+##
+## Returns the node free-standing items hang under, which is where a loaded save puts them back.
+static func furnish(parent: Node3D, plan: FloorPlan, content: Catalogue = null) -> Node3D:
+	var source := content if content != null else catalogue(plan)
+	parent.add_child(FurnitureBuilder.build(plan, source, Generation.run(source)))
 	var items := Node3D.new()
 	items.name = "Items"
 	parent.add_child(items)
-	if plan.id == &"manor":
-		populate(items, ManorItems.build(plan))
+	populate(items, source.items)
+	return items
+
+## What a location contains: `resources/<plan id>/catalogue.tres`, written by `dev/HomeAuthor.gd`.
+## A plan with no content yet is an empty house, not an error. The loaded resource is shared by
+## everyone who loads it — `Catalogue.copy` before adding to it.
+static func catalogue(plan: FloorPlan) -> Catalogue:
+	var path := "res://resources/%s/catalogue.tres" % plan.id
+	if not ResourceLoader.exists(path):
+		return Catalogue.new()
+	var c := load(path) as Catalogue
+	assert(c != null, "WorldBuilder: '%s' is not a Catalogue" % path)
+	return c
 
 ## Puts the authored items into the house, each in the wrong place it starts in. An item whose
 ## placement names a container becomes a child of that container's static half — a spoon in a
-## cupboard is in the cupboard, not on the door.
+## cupboard is in the cupboard, not on the door — and one whose placement names an anchor becomes a
+## child of the anchor, on whatever part it is on.
 static func populate(parent: Node3D, defs: Array[ItemDef]) -> void:
 	for def: ItemDef in defs:
 		if def.start == null:
@@ -138,6 +153,12 @@ static func populate(parent: Node3D, defs: Array[ItemDef]) -> void:
 						% [def.id, def.start.container])
 				continue
 			host = container
+		elif def.start.anchor != &"":
+			var anchor := find_anchor(parent, def.start.anchor)
+			if anchor == null:
+				push_error("WorldBuilder: item '%s' names no anchor '%s'" % [def.id, def.start.anchor])
+				continue
+			host = anchor
 		var node := ItemFactory.build(def)
 		host.add_child(node)
 		node.transform = def.start.xform
@@ -150,6 +171,14 @@ static func find_container(parent: Node, id: StringName) -> ContainerComponent:
 		var c := node as ContainerComponent
 		if c != null and c.container_id == id:
 			return c
+	return null
+
+## The anchor with that id, or null. By group, for the same reason as `find_container`.
+static func find_anchor(parent: Node, id: StringName) -> Anchor:
+	for node: Node in parent.get_tree().get_nodes_in_group(Anchor.GROUP):
+		var a := node as Anchor
+		if a != null and a.anchor_id == id:
+			return a
 	return null
 
 ## Where the player starts, from the plan rather than from a node placed in a scene — the house

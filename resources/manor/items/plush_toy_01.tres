@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_jm2h6"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_c70od"]
+
+[sub_resource type="Resource" id="Resource_jm2h6"]
+script = ExtResource("2_c70od")
+room = &"workshop"
+xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.050799966, -0.026800156)
+anchor = &"workshop_bench_vise"
+
+[resource]
+script = ExtResource("1_jm2h6")
+id = &"plush_toy_01"
+name_key = "item.plush_toy"
+slot_cost = 2
+set_id = &"plush_toy"
+generator = &"plush_toy"
+params = {
+"kind": 0,
+"pad": Color(0.93, 0.87, 0.74, 1),
+"size": 1.0,
+"tint": Color(0.72, 0.5, 0.28, 1)
+}
+home = &"plush_toy_home"
+start = SubResource("Resource_jm2h6")

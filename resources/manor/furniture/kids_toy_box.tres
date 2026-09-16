@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_kids_toy_box_0"]
+script = ExtResource("2_psg")
+id = &"toy_car_home"
+name_key = "home.toy_car_home"
+accepts = Array[StringName]([&"toy_car"])
+capacity = 12
+fill_order = 2
+layout = 2
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.255, 0, 0.11)
+step = Vector3(0.17, 0, 0)
+row_length = 4
+row_step = Vector3(0, 0, -0.11)
+requires_open = true
+anchor = &"inside"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"kids_toy_box"
+generator = &"toy_box"
+room = &"kids_room"
+wall = 3
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_kids_toy_box_0")])

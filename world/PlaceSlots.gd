@@ -44,8 +44,17 @@ func free_count() -> int:
 func next_index(aim := Vector3.ZERO) -> int:
 	return group.next_index(_occupied, global_transform.affine_inverse() * aim)
 
-func slot_global(index: int) -> Transform3D:
-	return global_transform * group.slot_xform(index)
+## Where that item's origin goes in slot `index`, in this node's space: the slot, and the item
+## resting at it the way the group says (`PlaceSlotGroup.Rest`).
+func slot_local(index: int, def: ItemDef) -> Transform3D:
+	return ItemFactory.rest(def, group.rest, group.slot_xform(index))
+
+func slot_global(index: int, def: ItemDef) -> Transform3D:
+	return global_transform * slot_local(index, def)
+
+## The container this group is inside, or null for one out in the open.
+func container() -> ContainerComponent:
+	return _container
 
 ## Whether that slot is free and real. Asked before the item leaves the player's hands.
 func can_accept(index: int) -> bool:
@@ -59,7 +68,7 @@ func accept(item: ItemNode, index: int) -> bool:
 	if item.get_parent() != null:
 		item.get_parent().remove_child(item)
 	add_child(item)
-	item.transform = group.slot_xform(index)
+	item.transform = slot_local(index, item.def)
 	item.set_carried(false)
 	item.remember_origin(self, index)
 	_occupied[index] = true

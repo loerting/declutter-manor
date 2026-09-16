@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_fnty5"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_hcr7p"]
+
+[sub_resource type="Resource" id="Resource_fnty5"]
+script = ExtResource("2_hcr7p")
+room = &"deck"
+anchor = &"deck_grill_hood"
+
+[resource]
+script = ExtResource("1_fnty5")
+id = &"bath_towel_01"
+name_key = "item.bath_towel"
+slot_cost = 2
+set_id = &"bath_towel"
+generator = &"bath_towel"
+params = {
+"tint": Color(0.95, 0.94, 0.9, 1)
+}
+home = &"bath_towel_home"
+start = SubResource("Resource_fnty5")

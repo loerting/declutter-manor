@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_dhd4r"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_q2n2n"]
+
+[sub_resource type="Resource" id="Resource_t1pb1"]
+script = ExtResource("2_q2n2n")
+id = &"umbrella_home"
+name_key = "home.umbrella_home"
+accepts = Array[StringName]([&"umbrella"])
+capacity = 3
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 0.9961947, 0.0871557, 0, -0.0871557, 0.9961947, -0.06, 0, 0)
+step = Vector3(0.06, 0, 0)
+anchor = &"well"
+
+[resource]
+script = ExtResource("1_dhd4r")
+id = &"hall_umbrella_stand"
+generator = &"umbrella_stand"
+room = &"entry_hall"
+align = 0
+along = 0.05
+slots = Array[ExtResource("2_q2n2n")]([SubResource("Resource_t1pb1")])

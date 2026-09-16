@@ -55,6 +55,20 @@ func pools_in(room_id: StringName) -> Array[PoolDef]:
 			out.append(p)
 	return out
 
+## The room a point in the world is in, or null. `slack` is how far below a floor or above a
+## ceiling still counts: an eye on a stair nose wants some, an item wants almost none, because a
+## storey's ceiling and the floor above it are only a slab apart and a spoon on the landing is
+## not in the hall.
+func room_at(point: Vector3, slack: float) -> RoomDef:
+	var plan_point := Vector2(point.x, point.z)
+	for s: StoreyDef in storeys:
+		for r: RoomDef in s.rooms:
+			if not r.contains(plan_point):
+				continue
+			if point.y >= r.floor_y(s.base_y) - slack and point.y <= s.ceiling_y() + slack:
+				return r
+	return null
+
 func storey_of(room_id: StringName) -> StoreyDef:
 	for s: StoreyDef in storeys:
 		if s.room(room_id) != null:

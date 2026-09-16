@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_hgmhx"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_ihiem"]
+
+[sub_resource type="Resource" id="Resource_hgmhx"]
+script = ExtResource("2_ihiem")
+room = &"side_garden"
+xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.019000053, 0, 0)
+anchor = &"garden_potting_bench_pot"
+
+[resource]
+script = ExtResource("1_hgmhx")
+id = &"mug_01"
+name_key = "item.mug"
+set_id = &"mug"
+generator = &"mug"
+params = {
+"tint": Color(0.93, 0.88, 0.78, 1)
+}
+home = &"mug_home"
+start = SubResource("Resource_hgmhx")

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_rshvb"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_k1hb0"]
+
+[sub_resource type="Resource" id="Resource_y4kru"]
+script = ExtResource("2_k1hb0")
+room = &"dining"
+xform = Transform3D(0.5311284, 0, -0.84729135, 0, 1, 0, 0.84729135, 0, 0.5311284, 11.5405, 0.44999993, 7.6740313)
+
+[resource]
+script = ExtResource("1_rshvb")
+id = &"garden_gnome_02"
+name_key = "item.garden_gnome"
+slot_cost = 4
+set_id = &"garden_gnome"
+generator = &"garden_gnome"
+params = {
+"carries": "shovel",
+"coat": Color(0.68, 0.16, 0.12, 1),
+"hat": Color(0.2, 0.36, 0.66, 1)
+}
+home = &"garden_gnome_home"
+start = SubResource("Resource_y4kru")

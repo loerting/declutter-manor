@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SetDef" format=3]
+
+[ext_resource type="Script" path="res://data/SetDef.gd" id="1_il30b"]
+
+[resource]
+script = ExtResource("1_il30b")
+id = &"soda_can"
+name_key = "set.soda_can"

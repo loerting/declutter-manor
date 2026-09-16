@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_i4vna"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_553ex"]
+
+[sub_resource type="Resource" id="Resource_bu562"]
+script = ExtResource("2_553ex")
+room = &"master_bed"
+xform = Transform3D(-0.9194001, 0.39332363, 1.7192722e-08, 0, -4.371139e-08, 1, 0.39332363, 0.9194001, 4.0188255e-08, 12.344496, 3.5033, 13.906413)
+
+[resource]
+script = ExtResource("1_i4vna")
+id = &"hanger_08"
+name_key = "item.hanger"
+set_id = &"hanger"
+generator = &"hanger"
+params = {
+"tint": Color(1, 0.86, 0.66, 1)
+}
+home = &"hanger_home"
+start = SubResource("Resource_bu562")

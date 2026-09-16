@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SetDef" format=3]
+
+[ext_resource type="Script" path="res://data/SetDef.gd" id="1_64ic2"]
+
+[resource]
+script = ExtResource("1_64ic2")
+id = &"dress_shoes"
+name_key = "set.dress_shoes"

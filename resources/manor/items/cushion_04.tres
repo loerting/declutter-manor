@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_wb1un"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_enuhw"]
+
+[sub_resource type="Resource" id="Resource_5a2ic"]
+script = ExtResource("2_enuhw")
+room = &"living"
+xform = Transform3D(-0.7660552, 0.64277476, 2.8096578e-08, 0, -4.371139e-08, 1, 0.64277476, 0.7660552, 3.348534e-08, 6.3142414, 0.97499996, 12.902924)
+
+[resource]
+script = ExtResource("1_wb1un")
+id = &"cushion_04"
+name_key = "item.cushion"
+slot_cost = 2
+set_id = &"cushion"
+generator = &"cushion"
+params = {
+"tint": Color(0.86, 0.66, 0.25, 1)
+}
+home = &"cushion_home"
+start = SubResource("Resource_5a2ic")

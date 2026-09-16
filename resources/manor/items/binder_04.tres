@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_al40i"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_2bi4t"]
+
+[sub_resource type="Resource" id="Resource_gpsln"]
+script = ExtResource("2_2bi4t")
+room = &"rec_room"
+xform = Transform3D(3.0892867e-08, 0.7067464, 0.70746696, 1, -4.371139e-08, 0, 3.092436e-08, 0.70746696, -0.7067464, 4.450285, -2.2660003, 10.925)
+
+[resource]
+script = ExtResource("1_al40i")
+id = &"binder_04"
+name_key = "item.binder"
+slot_cost = 2
+set_id = &"binder"
+generator = &"binder"
+params = {
+"tint": Color(0.14, 0.38, 0.22, 1)
+}
+home = &"binder_home"
+start = SubResource("Resource_gpsln")

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_s3wh5"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_u88ps"]
+
+[sub_resource type="Resource" id="Resource_n228h"]
+script = ExtResource("2_u88ps")
+id = &"cushion_home"
+name_key = "home.cushion_home"
+accepts = Array[StringName]([&"cushion"])
+capacity = 4
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 0.9659258, 0.25881904, 0, -0.25881904, 0.9659258, 0, 0, 0)
+step = Vector3(0.445, 0, 0)
+anchor = &"seat"
+
+[resource]
+script = ExtResource("1_s3wh5")
+id = &"living_sofa"
+generator = &"sofa"
+room = &"living"
+wall = 2
+along = -0.1
+out = 1.5
+slots = Array[ExtResource("2_u88ps")]([SubResource("Resource_n228h")])

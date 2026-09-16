@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_1rs70"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_56yy3"]
+
+[sub_resource type="Resource" id="Resource_f3lqo"]
+script = ExtResource("2_56yy3")
+room = &"attic"
+xform = Transform3D(3.2332576e-08, 0.73968315, -0.67295533, 1, -4.371139e-08, 0, -2.9415812e-08, -0.67295533, -0.73968315, 12.41562, 6.4779997, 10.334137)
+
+[resource]
+script = ExtResource("1_1rs70")
+id = &"perfume_01"
+name_key = "item.perfume"
+set_id = &"perfume"
+generator = &"perfume"
+params = {
+"cap": Color(0.04, 0.04, 0.045, 1),
+"shape": 0,
+"tint": Color(0.86, 0.56, 0.2, 0.62)
+}
+home = &"perfume_home"
+start = SubResource("Resource_f3lqo")

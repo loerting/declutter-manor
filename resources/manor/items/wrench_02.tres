@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_vamu7"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_2vq2b"]
+
+[sub_resource type="Resource" id="Resource_vl5go"]
+script = ExtResource("2_2vq2b")
+room = &"landing"
+xform = Transform3D(0.7595908, 0, -0.65040123, 0, 1, 0, 0.65040123, 0, 0.7595908, 9.734028, 3.5, 6.322314)
+
+[resource]
+script = ExtResource("1_vamu7")
+id = &"wrench_02"
+name_key = "item.wrench"
+set_id = &"wrench"
+generator = &"wrench"
+params = {
+"size": 0.013
+}
+home = &"wrench_home"
+start = SubResource("Resource_vl5go")

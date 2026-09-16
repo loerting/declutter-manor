@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_5836j"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_c527n"]
+
+[sub_resource type="Resource" id="Resource_mqc3n"]
+script = ExtResource("2_c527n")
+room = &"storage"
+xform = Transform3D(0.18728146, 0, 0.9823063, 0, 1, 0, -0.9823063, 0, 0.18728146, 15.673466, -2.3, 14.528531)
+
+[resource]
+script = ExtResource("1_5836j")
+id = &"mug_07"
+name_key = "item.mug"
+set_id = &"mug"
+generator = &"mug"
+params = {
+"tint": Color(0.72, 0.4, 0.28, 1)
+}
+home = &"mug_home"
+start = SubResource("Resource_mqc3n")

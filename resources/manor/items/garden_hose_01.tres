@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_h4cpm"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_8irb0"]
+
+[sub_resource type="Resource" id="Resource_h4cpm"]
+script = ExtResource("2_8irb0")
+room = &"hall_bath"
+xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.035850525, 0.0011763573, -0.107403755)
+anchor = &"hall_bath_tub_well"
+
+[resource]
+script = ExtResource("1_h4cpm")
+id = &"garden_hose_01"
+name_key = "item.garden_hose"
+slot_cost = 8
+set_id = &"garden_hose"
+generator = &"garden_hose"
+home = &"garden_hose_home"
+start = SubResource("Resource_h4cpm")

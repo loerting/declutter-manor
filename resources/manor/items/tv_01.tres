@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_6ux6e"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_3n30k"]
+
+[sub_resource type="Resource" id="Resource_27lh2"]
+script = ExtResource("2_3n30k")
+room = &"master_bed"
+xform = Transform3D(-0.9796314, 0, -0.200804, 0, 1, 0, 0.200804, 0, -0.9796314, 13.654566, 3.5, 11.945147)
+
+[resource]
+script = ExtResource("1_6ux6e")
+id = &"tv_01"
+name_key = "item.tv"
+slot_cost = 8
+set_id = &"tv"
+generator = &"tv"
+home = &"tv_home"
+start = SubResource("Resource_27lh2")

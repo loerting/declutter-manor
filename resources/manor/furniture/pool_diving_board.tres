@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+
+[resource]
+script = ExtResource("1_fd")
+id = &"pool_diving_board"
+generator = &"diving_board"
+room = &"pool_area"
+wall = 1
+along = 0.225
+out = 2.075

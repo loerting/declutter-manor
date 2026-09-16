@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_xs4ri"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_oban6"]
+
+[sub_resource type="Resource" id="Resource_vdvvv"]
+script = ExtResource("2_oban6")
+room = &"mudroom"
+xform = Transform3D(-0.23006609, 0, 0.973175, 0, 1, 0, -0.973175, 0, -0.23006609, 15.784965, 0.45000005, 10.618273)
+
+[resource]
+script = ExtResource("1_xs4ri")
+id = &"wrench_03"
+name_key = "item.wrench"
+set_id = &"wrench"
+generator = &"wrench"
+params = {
+"size": 0.017
+}
+home = &"wrench_home"
+start = SubResource("Resource_vdvvv")

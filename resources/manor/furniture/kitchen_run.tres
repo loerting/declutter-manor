@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_kitchen_run_0"]
+script = ExtResource("2_psg")
+id = &"kitchen_cutlery"
+name_key = "home.kitchen_cutlery"
+accepts = Array[StringName]([&"spoon"])
+capacity = 12
+step = Vector3(0, 0.004, 0)
+requires_open = true
+anchor = &"drawer_1"
+
+[sub_resource type="Resource" id="Resource_kitchen_run_1"]
+script = ExtResource("2_psg")
+id = &"toaster_home"
+name_key = "home.toaster_home"
+accepts = Array[StringName]([&"toaster"])
+layout = 3
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0, -0.02)
+anchor = &"worktop"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"kitchen_run"
+generator = &"base_run"
+params = {
+"bays": 2
+}
+room = &"kitchen"
+align = 0
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_kitchen_run_0"), SubResource("Resource_kitchen_run_1")])

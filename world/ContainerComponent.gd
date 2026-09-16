@@ -14,6 +14,8 @@ enum State { CLOSED, OPENING, OPEN, CLOSING }
 var container_id: StringName
 
 var _mover: Node3D
+## The handle's box in the moving part's space.
+var _handle_box := AABB()
 var _shut := Transform3D.IDENTITY
 var _open := Transform3D.IDENTITY
 var _openness := 0.0
@@ -31,10 +33,20 @@ func initialize(id: StringName, mover: Node3D, open_xform: Transform3D) -> void:
 
 ## A handle on the moving part, so the ray target travels with the drawer front.
 func add_handle(size: Vector3, offset: Vector3) -> void:
+	_handle_box = AABB(offset - size * 0.5, size)
 	var handle := ContainerHandle.new()
 	handle.name = "Handle"
 	handle.initialize(self, size, offset)
 	_mover.add_child(handle)
+
+## The handle's box where the moving part is now, in world space: the front a player opens.
+func handle_bounds() -> AABB:
+	return _mover.global_transform * _handle_box
+
+## True when `node` is the moving part itself: what hangs on it travels with it, and what hangs on the
+## static half beside it does not (`FurnitureNode.add_anchor`).
+func carries(node: Node) -> bool:
+	return node == _mover
 
 func state() -> State:
 	return _state

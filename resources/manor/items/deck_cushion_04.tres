@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_j6d3e"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_rks5g"]
+
+[sub_resource type="Resource" id="Resource_fgugc"]
+script = ExtResource("2_rks5g")
+room = &"office"
+xform = Transform3D(0.9940028, 0, 0.1093543, 0, 1, 0, -0.1093543, 0, 0.9940028, 6.477888, 0.44999993, 6.4901543)
+
+[resource]
+script = ExtResource("1_j6d3e")
+id = &"deck_cushion_04"
+name_key = "item.deck_cushion"
+slot_cost = 4
+set_id = &"deck_cushion"
+generator = &"deck_cushion"
+home = &"deck_cushion_home"
+start = SubResource("Resource_fgugc")

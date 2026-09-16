@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_mudroom_leash_hooks_0"]
+script = ExtResource("2_psg")
+id = &"dog_leash_home"
+name_key = "home.dog_leash_home"
+accepts = Array[StringName]([&"dog_leash"])
+layout = 3
+rest = 1
+anchor = &"hooks"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"mudroom_leash_hooks"
+generator = &"key_hooks"
+room = &"mudroom"
+wall = 1
+align = 0
+along = 0.2
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_mudroom_leash_hooks_0")])

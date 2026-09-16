@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_lkhfw"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_l4w3b"]
+
+[sub_resource type="Resource" id="Resource_lkhfw"]
+script = ExtResource("2_l4w3b")
+room = &"hall_bath"
+xform = Transform3D(-0.6537103, -0.75674486, -3.307837e-08, 0, -4.371139e-08, 1, -0.75674486, 0.6537103, 2.8574584e-08, 10.520252, 4.13, 13.858875)
+
+[resource]
+script = ExtResource("1_lkhfw")
+id = &"winter_coat_02"
+name_key = "item.winter_coat"
+slot_cost = 2
+set_id = &"winter_coat"
+generator = &"winter_coat"
+params = {
+"buttons": Color(0.7, 0.7, 0.72, 1),
+"fabric": "sofa_fabric",
+"length": 0.94,
+"tint": Color(0.16, 0.2, 0.34, 1),
+"width": 1.0
+}
+home = &"winter_coat_home"
+start = SubResource("Resource_lkhfw")

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_gr724"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_7sxgj"]
+
+[sub_resource type="Resource" id="Resource_0no27"]
+script = ExtResource("2_7sxgj")
+room = &"storage"
+xform = Transform3D(-2.9677027e-08, -0.67893124, -0.73420185, 1, -4.371139e-08, 0, -3.209298e-08, -0.73420185, 0.67893124, 14.4244, -2.2863998, 12.693106)
+
+[resource]
+script = ExtResource("1_gr724")
+id = &"screwdriver_04"
+name_key = "item.screwdriver"
+set_id = &"screwdriver"
+generator = &"screwdriver"
+params = {
+"cross": true,
+"shaft": 0.075
+}
+home = &"screwdriver_home"
+start = SubResource("Resource_0no27")

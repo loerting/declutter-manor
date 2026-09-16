@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_storage_camping_shelf_0"]
+script = ExtResource("2_psg")
+id = &"sleeping_bag_home"
+name_key = "home.sleeping_bag_home"
+accepts = Array[StringName]([&"sleeping_bag"])
+capacity = 4
+fill_order = 2
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.375, 0, 0)
+step = Vector3(0.25, 0, 0)
+anchor = &"level_3"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"storage_camping_shelf"
+generator = &"steel_shelving"
+params = {
+"boxes": "1,2,4"
+}
+room = &"storage"
+wall = 1
+align = 0
+along = 0.3
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_storage_camping_shelf_0")])

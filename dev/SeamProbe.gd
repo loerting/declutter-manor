@@ -33,10 +33,13 @@ extends Node3D
 ## one point per pair it reported whichever of the two that point happened to land in; asked per
 ## triangle it reports `entry_hall` and leaves the other two buried, which is the truth.
 
-## Two planes closer than this fight. It is deliberately generous: the depth buffer's precision
-## at the far end of a 40 m lot is worse than at the near end, and a seam that survives here
-## survives everywhere in the house.
-const GAP := 0.004
+## Two faces closer than this, where they overlap, fight. Measured on 2026-09-15 at the player's field
+## of view (GTX 1080, Vulkan, Forward+): a front quad subdivided 9x9 over a diamond behind it, at 2, 15
+## and 30 m, square on and at 70 and 85 degrees. Coplanar fought everywhere; 0.05 mm fought from 15 m,
+## 0.1 mm at 15-30 m, 0.2 mm only at 30 m and 70 degrees, and 0.3 mm and more never. This is
+## 0.5 mm so that a depth buffer with less precision than that one still loses nothing. It was 4 mm,
+## a guess, and at 4 mm every cushion lying on a seat and every book lying on a shelf was a seam.
+const GAP := 0.0005
 ## How parallel two faces must be to count as the same plane, as a dot product. 0.9995 is under
 ## two degrees, which is as far as two surfaces can diverge and still fight over a short run.
 const PARALLEL := 0.9995
@@ -45,8 +48,12 @@ const PARALLEL := 0.9995
 const TOUCH := 0.002
 ## Below this a triangle has no area to fight over and its normal is noise.
 const DEGENERATE := 1e-9
-## Plane buckets are this wide, so a pair within GAP is either in the same bucket or the next.
-const BUCKET := GAP
+## How much further apart than GAP two faces' offsets may be and still be measured where they overlap.
+## Only faces that are not exactly parallel need it, and it is the reach the probe had when GAP was 4 mm,
+## so it finds every pair it found then.
+const DRIFT := 0.0035
+## Plane buckets are this wide, so a pair within GAP + DRIFT is either in the same bucket or the next.
+const BUCKET := GAP + DRIFT
 ## How far off the plane the visibility test steps to ask what is there. It has to clear GAP, because a
 ## point in the sliver between two fighting faces is inside neither and would read as open air,
 ## and it has to stay inside the thinnest thing a seam can be buried in. The thinnest is
@@ -162,11 +169,17 @@ func _compare(buckets: Dictionary) -> void:
 					continue   # one mesh's own faces: a solid's two sides are not a seam
 				if a[1].dot(b[1]) < PARALLEL:
 					continue
-				var gap: float = absf(a[2] - b[2])
-				if gap > GAP:
+				# A first cut on the planes' offsets, which is exact only for faces that are exactly
+				# parallel: two faces a degree apart differ in offset by metres or by nothing, depending
+				# on how far from the origin they are.
+				if absf(a[2] - b[2]) > GAP + DRIFT:
 					continue
 				var over := _overlap(a, b)
 				if over.is_empty():
+					continue
+				# The gap that fights is the one where they overlap.
+				var gap: float = absf((b[1] as Vector3).dot(over[2]) - b[2])
+				if gap > GAP:
 					continue
 				var pair: String = "%s | %s" % [a[0], b[0]] if a[0] < b[0] else "%s | %s" % [b[0], a[0]]
 				var slot := _slot(found, pair, a[1], a[2])

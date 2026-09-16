@@ -72,18 +72,33 @@ where the 30 s search budget gets its first real measurement.
 save integration. **The in-editor home authoring tool is built here, before any content** — place
 an item, press a key, its home is written into the resource.
 
+Standing on the first tranche: `SetDef` and `Catalogue`, the `SetTracker` autoload (a set grants
+its slot once, ever), `ClutterCensus` and the HUD's set and room lists, `ProgressSave` and
+`Autosave` with save version 2, and `InteractProbe`'s save, reload and content-change checks.
+Second tranche: the content moved from code into `resources/manor/`, and the authoring tool as an
+in-game dev mode, `dev/Author.tscn` — not an editor plugin, because the house exists only at runtime.
+Third tranche: the tracker laid out for twenty sets and every room, checked by `dev/HudProbe.tscn`;
+redone for 55 sets as a short list plus a held overview.
+What remains is the gate.
+
 **Gate:** one complete set works end to end — scattered, found, carried, placed, set completes,
 slot granted, saved, reloaded. Then a content change (add an item to that set) is made and the old
 save still loads correctly.
 
 ## Phase 4 — Content
 
-~55 item families and variants, 250 instances, 20 sets, every home authored, every scatter point
+55 item types, 250 instances, 55 sets (`docs/CONTENT.md`), every home authored, every scatter point
 authored. This is the longest phase by a wide margin and the only one where delegating on volume
 is likely to be correct.
 
 **Gate:** `dev/PacingProbe.gd` reports the full run within 15% of `PACING.md`, no set exceeds the
 12-minute rule, and the author plays it start to finish.
+
+Built in six tranches: the foundation and the first sets, then the ground floor, the upper floor, the
+basement, the attic with the exterior, and last the pass over every start — the absurd spots onto the
+fixtures that now exist, and the two checks that catch a start buried in furniture or unreachable by any
+ray. Two of the three gate conditions are measured and met (2026-09-16): **178 minutes against 180**, and
+the longest set is the hangers at 10.0 minutes. The third is the author's play-through.
 
 ## Phase 5 — Feel and ship
 

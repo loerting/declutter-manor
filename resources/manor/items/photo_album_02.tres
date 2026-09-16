@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_8bbw0"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_yesa6"]
+
+[sub_resource type="Resource" id="Resource_w3rhu"]
+script = ExtResource("2_yesa6")
+room = &"hall_bath"
+xform = Transform3D(-0.60921854, 0, 0.79300237, 0, 1, 0, -0.79300237, 0, -0.60921854, 9.819472, 3.5, 13.637376)
+
+[resource]
+script = ExtResource("1_8bbw0")
+id = &"photo_album_02"
+name_key = "item.photo_album"
+slot_cost = 2
+set_id = &"photo_album"
+generator = &"photo_album"
+params = {
+"depth": 0.3,
+"foil": Color(0.82, 0.82, 0.8, 1),
+"tint": Color(0.14, 0.2, 0.36, 1),
+"width": 0.3
+}
+home = &"photo_album_home"
+start = SubResource("Resource_w3rhu")

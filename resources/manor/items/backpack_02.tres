@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_ihn3j"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_swdqp"]
+
+[sub_resource type="Resource" id="Resource_5g3s3"]
+script = ExtResource("2_swdqp")
+room = &"garage"
+xform = Transform3D(-0.7970412, -0.603925, -2.63984e-08, 0, -4.371139e-08, 1, -0.603925, 0.7970412, 3.4839776e-08, 19.287502, 0.24190001, 9.262233)
+
+[resource]
+script = ExtResource("1_ihn3j")
+id = &"backpack_02"
+name_key = "item.backpack"
+slot_cost = 2
+set_id = &"backpack"
+generator = &"backpack"
+params = {
+"tint": Color(0.12, 0.45, 0.48, 1)
+}
+home = &"backpack_home"
+start = SubResource("Resource_5g3s3")

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_uegum"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_xl5oc"]
+
+[sub_resource type="Resource" id="Resource_ltsfp"]
+script = ExtResource("2_xl5oc")
+room = &"side_garden"
+xform = Transform3D(-3.761441e-08, -0.8605174, 0.5094211, 1, -4.371139e-08, 0, 2.2267503e-08, 0.5094211, 0.8605174, 1.3290845, 0.032999884, 14.332409)
+
+[resource]
+script = ExtResource("1_uegum")
+id = &"soda_can_08"
+name_key = "item.soda_can"
+set_id = &"soda_can"
+generator = &"soda_can"
+params = {
+"tint": Color(0.12, 0.25, 0.6, 1)
+}
+home = &"soda_can_home"
+start = SubResource("Resource_ltsfp")

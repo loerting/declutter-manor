@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SetDef" format=3]
+
+[ext_resource type="Script" path="res://data/SetDef.gd" id="1_8on0u"]
+
+[resource]
+script = ExtResource("1_8on0u")
+id = &"grill_tool"
+name_key = "set.grill_tool"

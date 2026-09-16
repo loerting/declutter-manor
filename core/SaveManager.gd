@@ -8,7 +8,7 @@ extends Node
 ##   3. Never lose a good save to a bad write. Verify the temp file, keep the previous one as a
 ##      backup, and only then swap.
 
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 3
 const _EXT := ".sav"
 const _BAK := ".bak"
 const _TMP := ".tmp"
@@ -19,8 +19,16 @@ signal save_loaded(data: Dictionary)
 ## Set by the last load_game()/save_game() when it returned an empty or unchanged result.
 var last_error: String = ""
 
+## A file name other than the build's own, for a probe that saves and loads through the real
+## path. `run_tests.sh` sandboxes the whole data directory; a probe run straight from the command
+## line cannot, so it writes beside the real save instead of over it, and removes what it wrote.
+var basename_override := ""
+
+func basename() -> String:
+	return basename_override if basename_override != "" else BuildConfig.save_basename()
+
 func _base() -> String:
-	return "user://" + BuildConfig.save_basename()
+	return "user://" + basename()
 
 func main_path() -> String:
 	return _base() + _EXT
@@ -42,17 +50,45 @@ static func new_save() -> Dictionary:
 		"play_time": 0.0,
 		"plan_hash": "",
 		"settings_rev": 0,
-		"sets": {},   # set_id -> Array[item_id] already placed at home
-		"items": {},  # item_id -> { room, xform, container, at_home }
+		"sets": {},     # set_id -> Array[item_id] at home when saved
+		"granted": [],  # set ids that have paid their slot; a set never pays twice
+		"items": {},    # item_id -> { room, xform, container, anchor, group, index, at_home }
 	}
 
 # --- Migration ---------------------------------------------------------------------------------
 
-## from_version -> Callable(Dictionary) -> Dictionary. Empty while SAVE_VERSION is 1: version 1
-## is the first, so there is nothing behind it to migrate from. When SAVE_VERSION becomes 2, add
-## `1: _migrate_v1_to_v2` here and a fixture in dev/fixtures/.
+## from_version -> Callable(Dictionary) -> Dictionary. Every version but the current one has an
+## entry, and every entry has a fixture in dev/fixtures/.
 func default_chain() -> Dictionary:
-	return {}
+	return {1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3}
+
+## Version 2 is Phase 3's: it remembers which sets have already granted their slot, and which
+## slot of which place-slot group an item stands in, so a drawer of spoons loads as a stack in
+## its own order rather than as twelve transforms. A version 1 save never recorded either. No
+## set is treated as granted — its `slots` count is kept as it was, and version 1 was only ever
+## written by the test suite, never by a player.
+static func _migrate_v1_to_v2(data: Dictionary) -> Dictionary:
+	var d := data.duplicate(true)
+	d["granted"] = []
+	var items: Dictionary = d.get("items", {})
+	for id: Variant in items:
+		var entry: Dictionary = items[id]
+		entry["group"] = &""
+		entry["index"] = -1
+	d["version"] = 2
+	return d
+
+## Version 3 is Phase 4's: an item can rest on a piece of furniture's anchor, in the anchor's space, so
+## what starts in a fridge's door bin stays in it when the door swings. A version 2 save has no item on
+## an anchor, and every item's `anchor` is empty.
+static func _migrate_v2_to_v3(data: Dictionary) -> Dictionary:
+	var d := data.duplicate(true)
+	var items: Dictionary = d.get("items", {})
+	for id: Variant in items:
+		var entry: Dictionary = items[id]
+		entry["anchor"] = &""
+	d["version"] = 3
+	return d
 
 ## Applies migrations in order until `data` reaches `target`. The chain is a parameter so a test
 ## can exercise the machinery with its own migrations without production code carrying fakes.
@@ -106,7 +142,7 @@ func save_game(data: Dictionary) -> bool:
 	if dir == null:
 		last_error = "cannot open user:// directory"
 		return false
-	var base := BuildConfig.save_basename()
+	var base := basename()
 	if dir.file_exists(base + _EXT):
 		if dir.file_exists(base + _BAK):
 			dir.remove(base + _BAK)

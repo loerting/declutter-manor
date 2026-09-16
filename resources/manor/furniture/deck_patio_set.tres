@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_deck_patio_set_0"]
+script = ExtResource("2_psg")
+id = &"deck_cushion_home"
+name_key = "home.deck_cushion_home"
+accepts = Array[StringName]([&"deck_cushion"])
+capacity = 4
+fill_order = 2
+layout = 2
+step = Vector3(0.84, 0, 0)
+row_length = 2
+row_step = Vector3(0, 0, 1.54)
+anchor = &"seats"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"deck_patio_set"
+generator = &"patio_set"
+room = &"deck"
+wall = 2
+align = 0
+along = 0.15
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_deck_patio_set_0")])

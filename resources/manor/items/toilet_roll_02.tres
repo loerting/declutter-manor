@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_p1hlv"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_nwr11"]
+
+[sub_resource type="Resource" id="Resource_mwrq6"]
+script = ExtResource("2_nwr11")
+room = &"dining"
+xform = Transform3D(-0.20389053, 0, 0.9789937, 0, 1, 0, -0.9789937, 0, -0.20389053, 14.562102, 0.91, 7.738639)
+
+[resource]
+script = ExtResource("1_p1hlv")
+id = &"toilet_roll_02"
+name_key = "item.toilet_roll"
+slot_cost = 2
+set_id = &"toilet_roll"
+generator = &"toilet_roll"
+home = &"toilet_roll_home"
+start = SubResource("Resource_mwrq6")

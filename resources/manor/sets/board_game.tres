@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SetDef" format=3]
+
+[ext_resource type="Script" path="res://data/SetDef.gd" id="1_fqcft"]
+
+[resource]
+script = ExtResource("1_fqcft")
+id = &"board_game"
+name_key = "set.board_game"

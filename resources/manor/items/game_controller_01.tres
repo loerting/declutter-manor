@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_8jdxr"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_fd2ok"]
+
+[sub_resource type="Resource" id="Resource_fsn8o"]
+script = ExtResource("2_fd2ok")
+room = &"entry_hall"
+xform = Transform3D(-0.19358379, 0, -0.98108375, 0, 1, 0, 0.98108375, 0, -0.19358379, 8.748296, 0.44995657, 8.837017)
+
+[resource]
+script = ExtResource("1_8jdxr")
+id = &"game_controller_01"
+name_key = "item.game_controller"
+set_id = &"game_controller"
+generator = &"game_controller"
+params = {
+"tint": Color(0.045, 0.045, 0.05, 1)
+}
+home = &"game_controller_home"
+start = SubResource("Resource_fsn8o")

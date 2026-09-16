@@ -38,7 +38,7 @@ func _ready() -> void:
 	# Its own layer: the interaction ray starts inside this capsule, and a ray that can hit the
 	# body it came from picks up nothing ever again.
 	collision_layer = Layers.bit(Layers.PLAYER)
-	collision_mask = Layers.bit(Layers.WORLD)
+	collision_mask = Layers.bit(Layers.WORLD) | Layers.bit(Layers.BULK)
 	floor_max_angle = deg_to_rad(Balance.FLOOR_MAX_ANGLE_DEG)
 	floor_snap_length = Balance.FLOOR_SNAP
 	# Walking pace along a slope, not across it. Off, a ramp keeps only cos² of the stride in plan:

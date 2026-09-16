@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_18o4p"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_qm88x"]
+
+[sub_resource type="Resource" id="Resource_j1mj5"]
+script = ExtResource("2_qm88x")
+room = &"powder"
+xform = Transform3D(0.57176626, 0, 0.82041657, 0, 1, 0, -0.82041657, 0, 0.57176626, 15.408782, 0.45000005, 14.772209)
+
+[resource]
+script = ExtResource("1_18o4p")
+id = &"dog_toy_03"
+name_key = "item.dog_toy"
+set_id = &"dog_toy"
+generator = &"dog_toy"
+params = {
+"kind": "bone"
+}
+home = &"dog_toy_home"
+start = SubResource("Resource_j1mj5")

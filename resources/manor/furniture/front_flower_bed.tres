@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_front_flower_bed_0"]
+script = ExtResource("2_psg")
+id = &"garden_gnome_home"
+name_key = "home.garden_gnome_home"
+accepts = Array[StringName]([&"garden_gnome"])
+capacity = 3
+fill_order = 2
+layout = 1
+step = Vector3(1.2, 0, 0)
+anchor = &"bed"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"front_flower_bed"
+generator = &"flower_bed"
+room = &"driveway"
+wall = 2
+along = -3.35
+out = 0.025
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_front_flower_bed_0")])

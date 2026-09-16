@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_qhnd3"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_pf75i"]
+
+[sub_resource type="Resource" id="Resource_f8ctj"]
+script = ExtResource("2_pf75i")
+room = &"kitchen"
+xform = Transform3D(0.26337457, 0, -0.96469367, 0, 1, 0, 0.96469367, 0, 0.26337457, 11.859396, 1.31, 10.004119)
+
+[resource]
+script = ExtResource("1_qhnd3")
+id = &"board_game_03"
+name_key = "item.board_game"
+slot_cost = 2
+set_id = &"board_game"
+generator = &"board_game"
+params = {
+"band": Color(0.96, 0.86, 0.5, 1),
+"depth": 0.27,
+"tint": Color(0.2, 0.45, 0.24, 1),
+"width": 0.27
+}
+home = &"board_game_home"
+start = SubResource("Resource_f8ctj")

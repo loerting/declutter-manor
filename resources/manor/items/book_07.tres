@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_ktpw4"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_h22gv"]
+
+[sub_resource type="Resource" id="Resource_ktpw4"]
+script = ExtResource("2_h22gv")
+room = &"guest_room"
+xform = Transform3D(-2.6867133e-08, -0.61464834, -0.78880125, 1, -4.371139e-08, 0, -3.4479598e-08, -0.78880125, 0.61464834, 7.7445636, 4.13155, 13.63974)
+
+[resource]
+script = ExtResource("1_ktpw4")
+id = &"book_07"
+name_key = "item.book"
+set_id = &"book"
+generator = &"book"
+params = {
+"bands": 0,
+"height": 0.245,
+"tint": Color(0.22, 0.34, 0.24, 1),
+"width": 0.023
+}
+home = &"book_home"
+start = SubResource("Resource_ktpw4")

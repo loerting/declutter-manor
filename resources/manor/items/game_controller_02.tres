@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_vi475"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_a3w1l"]
+
+[sub_resource type="Resource" id="Resource_nvs42"]
+script = ExtResource("2_a3w1l")
+room = &"living"
+xform = Transform3D(-0.30192533, 0, 0.9533316, 0, 1, 0, -0.9533316, 0, -0.30192533, 5.2672453, 0.4499567, 14.817422)
+
+[resource]
+script = ExtResource("1_vi475")
+id = &"game_controller_02"
+name_key = "item.game_controller"
+set_id = &"game_controller"
+generator = &"game_controller"
+params = {
+"tint": Color(0.88, 0.88, 0.86, 1)
+}
+home = &"game_controller_home"
+start = SubResource("Resource_nvs42")

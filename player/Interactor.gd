@@ -9,13 +9,16 @@ extends Node3D
 ## What a click would do. The HUD renders it; nothing else reads it.
 enum Prompt { NONE, TAKE, OPEN, CLOSE, PLACE, NO_SLOT }
 
-signal prompt_changed(prompt: Prompt)
+## What a click would do, and the item under the crosshair if there is one — whether or not the click
+## would act on it. Emitted when either changes.
+signal aim_changed(prompt: Prompt, target: ItemDef)
 
 var _camera: Camera3D
 var _carry: CarryComponent
 var _ghost: PlaceGhost
 
 var _prompt: Prompt = Prompt.NONE
+var _target: ItemDef
 var _item: ItemNode
 var _container: ContainerComponent
 var _slots: PlaceSlots
@@ -37,6 +40,9 @@ func _ready() -> void:
 func prompt() -> Prompt:
 	return _prompt
 
+func target() -> ItemDef:
+	return _target
+
 func _process(_delta: float) -> void:
 	_aim()
 
@@ -57,10 +63,10 @@ func _aim() -> void:
 	if held != null:
 		_find_slot(held.def)
 	if _slots != null:
-		_ghost.show_slot(held.def, _slots.slot_global(_index))
+		_ghost.show_slot(held.def, _slots.slot_global(_index, held.def))
 	else:
 		_ghost.clear()
-	_set_prompt(_decide())
+	_set_aim(_decide(), _item.def if _item != null else null)
 
 func _decide() -> Prompt:
 	if _slots != null:
@@ -98,7 +104,7 @@ func _find_slot(def: ItemDef) -> void:
 		var index := slots.next_index(eye + forward * Balance.PLACE_SNAP_RADIUS)
 		if index < 0:
 			continue
-		var to_slot := slots.slot_global(index).origin - eye
+		var to_slot := slots.slot_global(index, def).origin - eye
 		if to_slot.length() < 0.001:
 			continue
 		var alignment := forward.dot(to_slot.normalized())
@@ -108,11 +114,12 @@ func _find_slot(def: ItemDef) -> void:
 		_slots = slots
 		_index = index
 
-func _set_prompt(next: Prompt) -> void:
-	if next == _prompt:
+func _set_aim(next: Prompt, target_def: ItemDef) -> void:
+	if next == _prompt and target_def == _target:
 		return
 	_prompt = next
-	prompt_changed.emit(next)
+	_target = target_def
+	aim_changed.emit(next, target_def)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"return_item"):

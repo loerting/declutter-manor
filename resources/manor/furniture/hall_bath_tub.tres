@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_hall_bath_tub_0"]
+script = ExtResource("2_psg")
+id = &"rubber_duck_home"
+name_key = "home.rubber_duck_home"
+accepts = Array[StringName]([&"rubber_duck"])
+capacity = 6
+fill_order = 2
+layout = 1
+step = Vector3(0.11, 0, 0)
+anchor = &"rim"
+
+[sub_resource type="Resource" id="Resource_hall_bath_tub_1"]
+script = ExtResource("2_psg")
+id = &"shampoo_home"
+name_key = "home.shampoo_home"
+accepts = Array[StringName]([&"shampoo"])
+capacity = 3
+fill_order = 2
+layout = 1
+step = Vector3(0.1, 0, 0)
+anchor = &"shelf"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"hall_bath_tub"
+generator = &"bathtub"
+room = &"hall_bath"
+wall = 1
+align = 2
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_hall_bath_tub_0"), SubResource("Resource_hall_bath_tub_1")])

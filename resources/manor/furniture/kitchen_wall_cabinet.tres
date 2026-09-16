@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_kitchen_wall_cabinet_0"]
+script = ExtResource("2_psg")
+id = &"mug_home"
+name_key = "home.mug_home"
+accepts = Array[StringName]([&"mug"])
+capacity = 8
+fill_order = 2
+layout = 2
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.195, 0, 0.055)
+step = Vector3(0.13, 0, 0)
+row_length = 4
+row_step = Vector3(0, 0, -0.11)
+requires_open = true
+anchor = &"inside_1"
+
+[sub_resource type="Resource" id="Resource_kitchen_wall_cabinet_1"]
+script = ExtResource("2_psg")
+id = &"glass_home"
+name_key = "home.glass_home"
+accepts = Array[StringName]([&"glass"])
+capacity = 8
+fill_order = 2
+layout = 2
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.195, 0, 0.055)
+step = Vector3(0.13, 0, 0)
+row_length = 4
+row_step = Vector3(0, 0, -0.11)
+requires_open = true
+anchor = &"inside_2"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"kitchen_wall_cabinet"
+generator = &"wall_cabinet"
+params = {
+"bays": 2
+}
+room = &"kitchen"
+align = 0
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_kitchen_wall_cabinet_0"), SubResource("Resource_kitchen_wall_cabinet_1")])

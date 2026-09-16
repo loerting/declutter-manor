@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_xmcmp"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_v14ix"]
+
+[sub_resource type="Resource" id="Resource_icngv"]
+script = ExtResource("2_v14ix")
+room = &"utility"
+xform = Transform3D(-0.9745515, 0, 0.22416374, 0, 1, 0, -0.22416374, 0, -0.9745515, 9.687531, -2.3, 13.780349)
+
+[resource]
+script = ExtResource("1_xmcmp")
+id = &"wrench_04"
+name_key = "item.wrench"
+set_id = &"wrench"
+generator = &"wrench"
+params = {
+"size": 0.019
+}
+home = &"wrench_home"
+start = SubResource("Resource_icngv")

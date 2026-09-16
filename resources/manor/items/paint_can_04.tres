@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_1tbks"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_6lap7"]
+
+[sub_resource type="Resource" id="Resource_1tbks"]
+script = ExtResource("2_6lap7")
+room = &"kids_room"
+xform = Transform3D(-0.0713162, 0, -0.99745375, 0, 1, 0, 0.99745375, 0, -0.0713162, 5.4847746, 3.5, 8.344012)
+
+[resource]
+script = ExtResource("1_1tbks")
+id = &"paint_can_04"
+name_key = "item.paint_can"
+slot_cost = 4
+set_id = &"paint_can"
+generator = &"paint_can"
+params = {
+"label": Color(0.16, 0.3, 0.62, 1),
+"paint": Color(0.36, 0.44, 0.56, 1)
+}
+home = &"paint_can_home"
+start = SubResource("Resource_1tbks")

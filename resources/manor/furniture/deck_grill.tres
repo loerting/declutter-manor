@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_deck_grill_0"]
+script = ExtResource("2_psg")
+id = &"grill_tool_home"
+name_key = "home.grill_tool_home"
+accepts = Array[StringName]([&"grill_tool"])
+capacity = 3
+fill_order = 2
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+step = Vector3(0.11, 0, 0)
+rest = 1
+anchor = &"hooks"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"deck_grill"
+generator = &"grill"
+room = &"deck"
+along = 2
+out = 0.12
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_deck_grill_0")])

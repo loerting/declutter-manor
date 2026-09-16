@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_yg5qg"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_123b2"]
+
+[sub_resource type="Resource" id="Resource_aeqvv"]
+script = ExtResource("2_123b2")
+room = &"living"
+xform = Transform3D(0.34601116, 0, -0.9382304, 0, 1, 0, 0.9382304, 0, 0.34601116, 7.273297, 0.44880006, 13.534584)
+
+[resource]
+script = ExtResource("1_yg5qg")
+id = &"tv_remote_01"
+name_key = "item.tv_remote"
+set_id = &"tv_remote"
+generator = &"tv_remote"
+home = &"tv_remote_home"
+start = SubResource("Resource_aeqvv")

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_b6xi0"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_q8e5u"]
+
+[sub_resource type="Resource" id="Resource_pe4vb"]
+script = ExtResource("2_q8e5u")
+room = &"kids_room"
+xform = Transform3D(-0.60148835, 0, -0.7988816, 0, 1, 0, 0.7988816, 0, -0.60148835, 5.457322, 3.5, 7.924142)
+
+[resource]
+script = ExtResource("1_b6xi0")
+id = &"sleeping_bag_01"
+name_key = "item.sleeping_bag"
+slot_cost = 4
+set_id = &"sleeping_bag"
+generator = &"sleeping_bag"
+params = {
+"tint": Color(0.18, 0.36, 0.22, 1)
+}
+home = &"sleeping_bag_home"
+start = SubResource("Resource_pe4vb")

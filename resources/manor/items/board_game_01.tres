@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_1u5av"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_bqte5"]
+
+[sub_resource type="Resource" id="Resource_hjum8"]
+script = ExtResource("2_bqte5")
+room = &"garage"
+xform = Transform3D(-0.511431, 0, 0.8593244, 0, 1, 0, -0.8593244, 0, -0.511431, 19.863997, 1.07, 10.582555)
+
+[resource]
+script = ExtResource("1_1u5av")
+id = &"board_game_01"
+name_key = "item.board_game"
+slot_cost = 2
+set_id = &"board_game"
+generator = &"board_game"
+params = {
+"band": Color(0.93, 0.74, 0.28, 1),
+"depth": 0.295,
+"tint": Color(0.7, 0.16, 0.1, 1),
+"width": 0.295
+}
+home = &"board_game_home"
+start = SubResource("Resource_hjum8")

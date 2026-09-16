@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_6pxuc"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_t3n25"]
+
+[sub_resource type="Resource" id="Resource_yb6fu"]
+script = ExtResource("2_t3n25")
+room = &"workshop"
+xform = Transform3D(-4.303134e-08, -0.9844423, -0.17570816, 1, -4.371139e-08, 0, -7.680447e-09, -0.17570816, 0.9844423, 13.298821, -2.0400002, 9.102613)
+
+[resource]
+script = ExtResource("1_6pxuc")
+id = &"bicycle_02"
+name_key = "item.bicycle"
+slot_cost = 8
+set_id = &"bicycle"
+generator = &"bicycle"
+params = {
+"tint": Color(0.12, 0.3, 0.7, 1)
+}
+home = &"bicycle_home"
+start = SubResource("Resource_yb6fu")

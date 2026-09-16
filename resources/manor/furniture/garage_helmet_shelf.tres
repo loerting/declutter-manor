@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_garage_helmet_shelf_0"]
+script = ExtResource("2_psg")
+id = &"bike_helmet_home"
+name_key = "home.bike_helmet_home"
+accepts = Array[StringName]([&"bike_helmet"])
+capacity = 4
+fill_order = 2
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, 0, 0)
+step = Vector3(0.3, 0, 0)
+anchor = &"top"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"garage_helmet_shelf"
+generator = &"wall_shelf"
+params = {
+"width": 1.3,
+"depth": 0.3,
+"height": 1.55,
+"finish": "pine"
+}
+room = &"garage"
+wall = 3
+align = 0
+along = 1.45
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_garage_helmet_shelf_0")])

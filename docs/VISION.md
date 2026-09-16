@@ -31,11 +31,11 @@ game must be good for both and must never punish the second.
 | Item physics | **Snap placement, no simulation.** Nothing simulates, ever. |
 | Placement | **Predefined place-slots with a snap preview and a click to confirm.** See "Placement" below — this is a mechanic, specified in `docs/ARCHITECTURE.md`. |
 | House authoring | **The agent authors it, the author reviews it.** It must read as real from the outside as well as inside, because garden, deck and pool are playable. |
-| Scale | ~2 storeys + basement + attic + garage + garden/deck/pool. **25 zones, ~250 item instances, ~55 types, 20 sets.** Derived in `docs/HOUSE.md`, not picked. |
+| Scale | ~2 storeys + basement + attic + garage + garden/deck/pool. **25 zones, ~250 item instances, 55 types, 55 sets (one per type).** Derived in `docs/HOUSE.md`, not picked. |
 | Layout and scatter | **Fixed and authored.** The same house and the same hiding places for every player. This is a one-time-playthrough game; there is no replay value to protect and no randomness to balance. |
 | Extra verbs | **Containers open.** Drawers, cabinets, wardrobes, the fridge. Homes are inside them, and so is clutter that belongs somewhere else entirely. |
 | Set completion | On **placing** every member at home, not on finding them. |
-| Findability | **Set tracker plus per-room clutter counts.** You always see which sets exist, how many members remain, and which rooms still hold misplaced items — never which item, never where. |
+| Findability | **Set tracker plus per-room clutter counts.** On screen at all times: sets complete, the sets under way, and the misplaced count of the room you stand in. Holding a key shows every set with how many members remain and every room that still holds misplaced items (the author, 2026-09-14: 55 sets do not fit beside the game). Never which item, never where it lies. Once found, an item says where it belongs: its room and the piece (the HUD plan, 2026-09-16). Whether the way there is guided further is decision D1 of that plan. |
 | Feedback | **Mostly UI**, plus completion sound effects. No world-state visual rewards beyond the room count going to zero. |
 | Audio | **No music.** Reactive, place-appropriate ambience: birds in the garden, the fan in the room with a fan, the barely-there hum of a working bulb. Every source is positional and rises and falls as you move relative to it. |
 | Narrative | **None at all.** |

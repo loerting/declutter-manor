@@ -95,15 +95,19 @@ const START_SLOTS := 1
 const SLOTS_PER_COMPLETED_SET := 1
 ## The only legal slot costs. An item outside this list is a content error.
 const SLOT_COST_TIERS: Array[int] = [1, 2, 4, 8]
-## The finale piece. 20 sets x 1 slot + START_SLOTS = 21, so the last set completion and the
+## The finale piece. 55 sets x 1 slot + START_SLOTS = 56, so the last set completion and the
 ## endgame coincide deliberately — there is no post-endgame limbo.
-const FINALE_SLOT_COST := 21
+const FINALE_SLOT_COST := 56
+## How long the line saying a set is complete stays on screen. Long enough to read a set name
+## and "+1 slot" while walking; short enough to be gone before the next item is picked up.
+const SET_NOTICE_SECONDS := 4.0
 
 # --- Design targets, checked by dev/PacingProbe.gd ------------------------------------------
 
 const TARGET_SESSION_MINUTES := 180.0
 const TARGET_ITEM_COUNT := 250
-const TARGET_SET_COUNT := 20
+## One set per item type (`docs/CONTENT.md`).
+const TARGET_SET_COUNT := 55
 const TARGET_ZONE_COUNT := 25
 ## Per-item budget: 5 s interact + 8 s amortized travel + 30 s search.
 const BUDGET_SECONDS_PER_ITEM := 43.0

@@ -1,0 +1,218 @@
+keys,en
+hud.sets,Sets
+hud.rooms,Misplaced items
+hud.complete,Complete
+hud.set_completed,%s complete. +%s.
+hud.overview_hint,Hold for every set and room
+set.cutlery,Cutlery
+item.spoon,Spoon
+room.rec_room,Rec room
+room.laundry,Laundry
+room.utility,Utility room
+room.workshop,Workshop
+room.storage,Storage
+room.entry_hall,Hall
+room.office,Office
+room.living,Living room
+room.dining,Dining room
+room.kitchen,Kitchen
+room.mudroom,Mudroom
+room.powder,Half bath
+room.garage,Garage
+room.driveway,Driveway
+room.deck,Deck
+room.pool_area,Pool
+room.side_garden,Side garden
+room.landing,Upstairs hall
+room.hall_bath,Bathroom
+room.kids_room,Kids' room
+room.guest_room,Guest room
+room.closet,Walk-in closet
+room.master_bath,Primary bath
+room.master_bed,Primary bedroom
+room.attic,Attic
+set.car_keys,Car keys
+item.car_keys,Car keys
+set.umbrella,Umbrella
+item.umbrella,Umbrella
+set.winter_coat,Winter coat
+item.winter_coat,Winter coat
+set.tv,Television
+item.tv,Television
+set.tv_remote,TV remote
+item.tv_remote,TV remote
+set.game_controller,Game controller
+item.game_controller,Game controller
+set.cushion,Sofa cushion
+item.cushion,Sofa cushion
+set.throw_blanket,Throw blanket
+item.throw_blanket,Throw blanket
+set.book,Book
+item.book,Book
+set.picture_frame,Picture frame
+item.picture_frame,Picture frame
+set.laptop,Laptop
+item.laptop,Laptop
+set.binder,Ring binder
+item.binder,Ring binder
+set.dinner_plate,Dinner plate
+item.dinner_plate,Dinner plate
+set.glass,Drinking glass
+item.glass,Drinking glass
+set.toaster,Toaster
+item.toaster,Toaster
+set.mug,Mug
+item.mug,Mug
+set.sneakers,Sneakers
+item.sneakers,Sneakers
+set.backpack,School backpack
+item.backpack,School backpack
+set.dog_leash,Dog leash
+item.dog_leash,Dog leash
+set.dog_toy,Dog toy
+item.dog_toy,Dog toy
+set.hand_towel,Hand towel
+item.hand_towel,Hand towel
+set.bicycle,Kids' bicycle
+item.bicycle,Kids' bicycle
+set.bike_helmet,Bike helmet
+item.bike_helmet,Bike helmet
+set.soda_can,Empty soda can
+item.soda_can,Empty soda can
+set.bath_towel,Bath towel
+item.bath_towel,Bath towel
+set.pillow,Bed pillow
+item.pillow,Bed pillow
+set.phone_charger,Phone charger
+item.phone_charger,Phone charger
+set.hanger,Clothes hanger
+item.hanger,Clothes hanger
+set.dress_shoes,Dress shoes
+item.dress_shoes,Dress shoes
+set.perfume,Perfume bottle
+item.perfume,Perfume bottle
+set.toy_car,Toy car
+item.toy_car,Toy car
+set.plush_toy,Stuffed animal
+item.plush_toy,Stuffed animal
+set.school_book,School book
+item.school_book,School book
+set.dumbbell,Dumbbell
+item.dumbbell,Dumbbell
+set.rubber_duck,Rubber duck
+item.rubber_duck,Rubber duck
+set.toilet_roll,Toilet paper roll
+item.toilet_roll,Toilet paper roll
+set.shampoo,Shampoo bottle
+item.shampoo,Shampoo bottle
+set.board_game,Board game
+item.board_game,Board game
+set.laundry_basket,Laundry basket
+item.laundry_basket,Laundry basket
+set.paint_can,Paint can
+item.paint_can,Paint can
+set.light_bulb,Light bulb box
+item.light_bulb,Light bulb box
+set.screwdriver,Screwdriver
+item.screwdriver,Screwdriver
+set.wrench,Wrench
+item.wrench,Wrench
+set.suitcase,Suitcase
+item.suitcase,Suitcase
+set.decoration_box,Holiday decoration box
+item.decoration_box,Holiday decoration box
+set.sleeping_bag,Sleeping bag
+item.sleeping_bag,Sleeping bag
+set.photo_album,Photo album
+item.photo_album,Photo album
+set.garden_gnome,Garden gnome
+item.garden_gnome,Garden gnome
+set.grill_tool,Grill tool
+item.grill_tool,Grill tool
+set.deck_cushion,Deck chair cushion
+item.deck_cushion,Deck chair cushion
+set.pool_noodle,Pool noodle
+item.pool_noodle,Pool noodle
+set.goggles,Swim goggles
+item.goggles,Swim goggles
+set.garden_hose,Garden hose
+item.garden_hose,Garden hose
+set.watering_can,Watering can
+item.watering_can,Watering can
+home.backpack_home,bench hooks
+home.bath_towel_home,linen cupboard
+home.bicycle_home,bike rack
+home.bike_helmet_home,helmet shelf
+home.binder_home,shelf above the desk
+home.board_game_home,game shelf
+home.book_home,bookshelf
+home.car_keys_home,key hooks by the front door
+home.cushion_home,sofa
+home.deck_cushion_home,deck chairs
+home.decoration_box_home,storage shelves
+home.dinner_plate_home,sideboard
+home.dog_leash_home,hook by the garage door
+home.dog_toy_home,dog basket
+home.dress_shoes_home,shoe shelf
+home.dumbbell_home,weight rack
+home.game_controller_home,TV stand shelf
+home.garden_gnome_home,front flower bed
+home.garden_hose_home,hose reel
+home.glass_home,glass cupboard
+home.goggles_home,pool bin
+home.grill_tool_home,grill side hooks
+home.hand_towel_home,towel ring
+home.hanger_home,clothes rail
+home.kitchen_cutlery,cutlery drawer
+home.laptop_home,desk
+home.laundry_basket_home,beside the dryer
+home.light_bulb_home,spares shelf
+home.mug_home,cupboard over the coffee maker
+home.paint_can_home,paint shelf
+home.perfume_home,vanity
+home.phone_charger_home,nightstands
+home.photo_album_home,trunk
+home.picture_frame_home,mantel
+home.pillow_home,bed
+home.plush_toy_home,bed
+home.pool_noodle_home,pool bin
+home.rubber_duck_home,tub edge
+home.school_book_home,desk shelf
+home.screwdriver_home,pegboard rack
+home.shampoo_home,shower shelf
+home.sleeping_bag_home,camping shelf
+home.sneakers_home,shoe rack
+home.soda_can_home,recycling bin
+home.suitcase_home,luggage shelf
+home.throw_blanket_home,basket beside the sofa
+home.toaster_home,worktop
+home.toilet_roll_home,cabinet under the basin
+home.toy_car_home,toy box
+home.tv_home,TV stand
+home.tv_remote_home,coffee table tray
+home.umbrella_home,umbrella stand
+home.watering_can_home,potting bench
+home.winter_coat_home,coat hooks
+home.wrench_home,pegboard
+hud.take,Take
+hud.open,Open
+hud.close,Close
+hud.put_away,Put away
+hud.no_slot,No slot free
+hud.put_back,Put back
+hud.pair,%s · %s
+hud.free,%s free
+hud.card_home,Home
+hud.card_set,Set
+hud.at_home,At home
+hud.set_home,%s home
+hud.sets_of,of %s sets
+hud.slots_word,slots
+hud.put_away_of,Put away %s
+hud.tidy,Tidy
+hud.misplaced_here,%s misplaced here
+input.mouse_left,LMB
+input.mouse_right,RMB
+input.mouse_middle,MMB
+input.mouse_other,Mouse %d
+hud.slot_word,slot

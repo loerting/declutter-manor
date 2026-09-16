@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_utility_shelving_0"]
+script = ExtResource("2_psg")
+id = &"paint_can_home"
+name_key = "home.paint_can_home"
+accepts = Array[StringName]([&"paint_can"])
+capacity = 4
+fill_order = 2
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0, 0)
+step = Vector3(0.2, 0, 0)
+anchor = &"level_1"
+
+[sub_resource type="Resource" id="Resource_utility_shelving_1"]
+script = ExtResource("2_psg")
+id = &"light_bulb_home"
+name_key = "home.light_bulb_home"
+accepts = Array[StringName]([&"light_bulb"])
+capacity = 4
+fill_order = 2
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.24, 0, 0)
+step = Vector3(0.16, 0, 0)
+anchor = &"level_3"
+
+[resource]
+script = ExtResource("1_fd")
+id = &"utility_shelving"
+generator = &"steel_shelving"
+params = {
+"levels": "0.1,0.5,0.95,1.4,1.83",
+"boxes": "2,4"
+}
+room = &"utility"
+wall = 1
+align = 2
+along = 0.05
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_utility_shelving_0"), SubResource("Resource_utility_shelving_1")])

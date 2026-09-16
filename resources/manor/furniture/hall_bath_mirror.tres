@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="FurnitureDef" format=3]
+
+[ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+
+[resource]
+script = ExtResource("1_fd")
+id = &"hall_bath_mirror"
+generator = &"mirror"
+params = {
+"width": 0.68,
+"height": 0.8,
+"bottom": 1.14
+}
+room = &"hall_bath"
+align = 2
+along = 0.18

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_04rrl"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_me8q8"]
+
+[sub_resource type="Resource" id="Resource_hkwow"]
+script = ExtResource("2_me8q8")
+room = &"office"
+xform = Transform3D(-0.98493797, 0, -0.1729081, 0, 1, 0, 0.1729081, 0, -0.98493797, 5.3495255, 0.44999993, 8.246304)
+
+[resource]
+script = ExtResource("1_04rrl")
+id = &"light_bulb_04"
+name_key = "item.light_bulb"
+set_id = &"light_bulb"
+generator = &"light_bulb"
+params = {
+"tint": Color(0.14, 0.34, 0.66, 1)
+}
+home = &"light_bulb_home"
+start = SubResource("Resource_hkwow")

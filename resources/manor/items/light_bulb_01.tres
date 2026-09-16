@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_5vlr7"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_csf56"]
+
+[sub_resource type="Resource" id="Resource_t75c1"]
+script = ExtResource("2_csf56")
+room = &"attic"
+xform = Transform3D(-0.119306535, 0, 0.99285746, 0, 1, 0, -0.99285746, 0, -0.119306535, 14.949825, 6.45, 9.93703)
+
+[resource]
+script = ExtResource("1_5vlr7")
+id = &"light_bulb_01"
+name_key = "item.light_bulb"
+set_id = &"light_bulb"
+generator = &"light_bulb"
+params = {
+"tint": Color(0.14, 0.34, 0.66, 1)
+}
+home = &"light_bulb_home"
+start = SubResource("Resource_t75c1")
