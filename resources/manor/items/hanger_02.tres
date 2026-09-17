@@ -12,6 +12,7 @@ xform = Transform3D(-0.20686498, -0.9783695, -4.2765887e-08, 0, -4.371139e-08, 1
 script = ExtResource("1_fxot2")
 id = &"hanger_02"
 name_key = "item.hanger"
+mass = 0.05
 set_id = &"hanger"
 generator = &"hanger"
 params = {

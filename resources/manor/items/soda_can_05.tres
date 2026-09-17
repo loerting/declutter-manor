@@ -12,6 +12,7 @@ xform = Transform3D(-2.804703e-08, -0.64164126, -0.76700485, 1, -4.371139e-08, 0
 script = ExtResource("1_puyjn")
 id = &"soda_can_05"
 name_key = "item.soda_can"
+mass = 0.015
 set_id = &"soda_can"
 generator = &"soda_can"
 params = {

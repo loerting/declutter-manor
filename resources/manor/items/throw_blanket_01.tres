@@ -13,6 +13,7 @@ script = ExtResource("1_gda1v")
 id = &"throw_blanket_01"
 name_key = "item.throw_blanket"
 slot_cost = 2
+mass = 1.2
 set_id = &"throw_blanket"
 generator = &"throw_blanket"
 home = &"throw_blanket_home"

@@ -12,6 +12,7 @@ xform = Transform3D(-0.742275, 0, 0.6700954, 0, 1, 0, -0.6700954, 0, -0.742275, 
 script = ExtResource("1_3gsct")
 id = &"rubber_duck_03"
 name_key = "item.rubber_duck"
+mass = 0.05
 set_id = &"rubber_duck"
 generator = &"rubber_duck"
 params = {

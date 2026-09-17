@@ -24,6 +24,8 @@ func _ready() -> void:
 	EventBus.item_placed.connect(_on_item_placed)
 	EventBus.item_picked_up.connect(_on_item_moved)
 	EventBus.item_returned.connect(_on_item_moved)
+	EventBus.item_dropped.connect(_on_item_moved)
+	EventBus.item_landed.connect(_on_item_moved)
 	recount()
 
 func counts() -> Dictionary:

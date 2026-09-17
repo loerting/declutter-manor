@@ -12,6 +12,7 @@ xform = Transform3D(-0.08715577, 0, -0.9961947, 0, 1, 0, 0.9961947, 0, -0.087155
 script = ExtResource("1_mbdq0")
 id = &"spoon_12"
 name_key = "item.spoon"
+mass = 0.05
 set_id = &"cutlery"
 generator = &"spoon"
 home = &"kitchen_cutlery"

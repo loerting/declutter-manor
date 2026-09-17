@@ -13,6 +13,7 @@ script = ExtResource("1_kyja2")
 id = &"dress_shoes_04"
 name_key = "item.dress_shoes"
 slot_cost = 2
+mass = 0.9
 set_id = &"dress_shoes"
 generator = &"dress_shoes"
 params = {

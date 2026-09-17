@@ -12,6 +12,7 @@ xform = Transform3D(-0.64267254, 0, 0.766141, 0, 1, 0, -0.766141, 0, -0.64267254
 script = ExtResource("1_13yfu")
 id = &"glass_03"
 name_key = "item.glass"
+mass = 0.3
 set_id = &"glass"
 generator = &"glass"
 home = &"glass_home"

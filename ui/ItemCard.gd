@@ -1,9 +1,10 @@
 class_name ItemCard
 extends PanelContainer
-## What the crosshair is on, once the player has found it: its name, what it costs to carry, the room and
+## What the crosshair is on, once the player has found it: its picture, its name, what it costs to carry, the room and
 ## the piece it belongs on, and how much of its set is there already. It describes an item the player is
 ## already looking at, so nothing of the search is given away (`docs/VISION.md`, "Findability").
 
+@onready var _picture: TextureRect = %Picture
 @onready var _name: Label = %Name
 @onready var _cost: Label = %Cost
 @onready var _home_key: Label = %HomeKey
@@ -18,8 +19,10 @@ func _ready() -> void:
 	_set_key.text = tr("hud.card_set")
 	_at_home.text = tr("hud.at_home")
 
-## `carried` is how many members of its set the player is holding.
-func show_item(def: ItemDef, content: Catalogue, plan: FloorPlan, carried: int) -> void:
+## `carried` is how many members of its set the player is holding; `picture` is its item type's picture, or
+## null while there is none (`Portraits.of`), and its place stays kept.
+func show_item(def: ItemDef, content: Catalogue, plan: FloorPlan, carried: int, picture: Texture2D) -> void:
+	_picture.texture = picture
 	_name.text = tr(def.name_key)
 	# Too big for the free slots: the cost says by how much, in words as well as in colour.
 	var fits := Inventory.can_take(def)
@@ -32,6 +35,9 @@ func show_item(def: ItemDef, content: Catalogue, plan: FloorPlan, carried: int) 
 	var home := SetTracker.placed(def.set_id)
 	_dots.show_progress(home, carried, total)
 	_count.text = tr("hud.set_home") % NumberFormatter.of_total(home, total)
+
+func picture() -> Texture2D:
+	return _picture.texture
 
 func name_text() -> String:
 	return _name.text

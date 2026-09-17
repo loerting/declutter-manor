@@ -13,6 +13,7 @@ script = ExtResource("1_rshvb")
 id = &"garden_gnome_02"
 name_key = "item.garden_gnome"
 slot_cost = 4
+mass = 3.0
 set_id = &"garden_gnome"
 generator = &"garden_gnome"
 params = {

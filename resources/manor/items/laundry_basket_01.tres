@@ -13,6 +13,7 @@ script = ExtResource("1_uq1gi")
 id = &"laundry_basket_01"
 name_key = "item.laundry_basket"
 slot_cost = 8
+mass = 1.0
 set_id = &"laundry_basket"
 generator = &"laundry_basket"
 params = {

@@ -199,7 +199,8 @@ hud.open,Open
 hud.close,Close
 hud.put_away,Put away
 hud.no_slot,No slot free
-hud.put_back,Put back
+hud.drop,Drop
+hud.throw,Throw
 hud.pair,%s · %s
 hud.free,%s free
 hud.card_home,Home
@@ -216,3 +217,6 @@ input.mouse_right,RMB
 input.mouse_middle,MMB
 input.mouse_other,Mouse %d
 hud.slot_word,slot
+hud.metres,%s m
+hud.floor,%s floor
+hud.floors,%s floors

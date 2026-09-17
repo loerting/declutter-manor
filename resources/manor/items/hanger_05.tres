@@ -12,6 +12,7 @@ xform = Transform3D(0.3616641, -0.9323085, -4.07525e-08, 0, -4.371139e-08, 1, -0
 script = ExtResource("1_lckpu")
 id = &"hanger_05"
 name_key = "item.hanger"
+mass = 0.05
 set_id = &"hanger"
 generator = &"hanger"
 params = {

@@ -39,24 +39,45 @@ layout_mode = 2
 mouse_filter = 2
 script = ExtResource("2")
 
-[node name="Back" type="HBoxContainer" parent="Rows"]
+[node name="Selected" type="HBoxContainer" parent="Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
+theme_override_constants/separation = 8
 
-[node name="BackKeyCap" type="PanelContainer" parent="Rows/Back"]
+[node name="SelectedName" type="Label" parent="Rows/Selected"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DropKeyCap" type="PanelContainer" parent="Rows/Selected"]
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
 theme_type_variation = &"Key"
 
-[node name="BackKey" type="Label" parent="Rows/Back/BackKeyCap"]
+[node name="DropKey" type="Label" parent="Rows/Selected/DropKeyCap"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"KeyLabel"
 
-[node name="BackText" type="Label" parent="Rows/Back"]
+[node name="DropText" type="Label" parent="Rows/Selected"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
+theme_type_variation = &"Dim"
+
+[node name="ThrowKeyCap" type="PanelContainer" parent="Rows/Selected"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"Key"
+
+[node name="ThrowKey" type="Label" parent="Rows/Selected/ThrowKeyCap"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"KeyLabel"
+
+[node name="ThrowText" type="Label" parent="Rows/Selected"]
+unique_name_in_owner = true
+layout_mode = 2
 theme_type_variation = &"Dim"

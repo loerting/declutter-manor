@@ -16,7 +16,8 @@ game must be good for both and must never punish the second.
 ## The loop
 
 1. Search a room. Misplaced items are visible, but never marked.
-2. Pick items up until your inventory slots run out.
+2. Pick items up until your inventory slots run out. Everything you carry is held out on screen, in
+   two hands at the bottom corners; the wheel or 1–9 selects which one you drop, throw or put away.
 3. Carry them to where they belong. Point at the right place and it snaps, outlined in white;
    left click accepts it.
 4. Completing an entire **set** permanently grants **+1 slot**, forever.
@@ -28,14 +29,14 @@ game must be good for both and must never punish the second.
 | Question | Decision |
 |---|---|
 | Perspective | **First person.** No visible body. A rigged humanoid is the one thing procedural generation cannot fake, and a bad one would undo the whole art direction. |
-| Item physics | **Snap placement, no simulation.** Nothing simulates, ever. |
+| Item physics | **Put away by snapping; dropped and thrown with real physics.** An item put away snaps into its slot and stays there. An item dropped or thrown is simulated until it lies still, and nothing breaks. One that comes to rest out of reach goes back to the last place it rested (the author, 2026-09-16; this was "nothing simulates, ever"). |
 | Placement | **Predefined place-slots with a snap preview and a click to confirm.** See "Placement" below — this is a mechanic, specified in `docs/ARCHITECTURE.md`. |
 | House authoring | **The agent authors it, the author reviews it.** It must read as real from the outside as well as inside, because garden, deck and pool are playable. |
 | Scale | ~2 storeys + basement + attic + garage + garden/deck/pool. **25 zones, ~250 item instances, 55 types, 55 sets (one per type).** Derived in `docs/HOUSE.md`, not picked. |
 | Layout and scatter | **Fixed and authored.** The same house and the same hiding places for every player. This is a one-time-playthrough game; there is no replay value to protect and no randomness to balance. |
 | Extra verbs | **Containers open.** Drawers, cabinets, wardrobes, the fridge. Homes are inside them, and so is clutter that belongs somewhere else entirely. |
 | Set completion | On **placing** every member at home, not on finding them. |
-| Findability | **Set tracker plus per-room clutter counts.** On screen at all times: sets complete, the sets under way, and the misplaced count of the room you stand in. Holding a key shows every set with how many members remain and every room that still holds misplaced items (the author, 2026-09-14: 55 sets do not fit beside the game). Never which item, never where it lies. Once found, an item says where it belongs: its room and the piece (the HUD plan, 2026-09-16). Whether the way there is guided further is decision D1 of that plan. |
+| Findability | **Set tracker plus per-room clutter counts.** On screen at all times: sets complete, the sets under way, and the misplaced count of the room you stand in. Holding a key shows every set with how many members remain and every room that still holds misplaced items (the author, 2026-09-14: 55 sets do not fit beside the game). Never which item, never where it lies. Once found, an item says where it belongs: its room and the piece (the HUD plan, 2026-09-16). Carried, it is guided there (decision D1, the author, 2026-09-16): a compass marker per home room aimed along the route, and in the home room the piece outlined and pinned. A "names only" setting turns the guidance off. |
 | Feedback | **Mostly UI**, plus completion sound effects. No world-state visual rewards beyond the room count going to zero. |
 | Audio | **No music.** Reactive, place-appropriate ambience: birds in the garden, the fan in the room with a fan, the barely-there hum of a working bulb. Every source is positional and rises and falls as you move relative to it. |
 | Narrative | **None at all.** |
@@ -59,7 +60,7 @@ geometry by hand.
 
 ## Placement
 
-Items do not get dropped, they get **put away**. Every home is a set of predefined place-slots
+The verb that makes progress is **put away**. Every home is a set of predefined place-slots
 with an accepted item type and a fill order. Carry a spoon near the cutlery drawer, point at it,
 and the game shows the spoon ghosted into the next free slot with a white outline; left click
 accepts. Twelve spoons stack one at a time in the order the tray fills, never interpenetrating and
@@ -67,6 +68,12 @@ never floating.
 
 The fill order generalises per item family: spoons stack upward, books fill a shelf left to right,
 shoes pair up along a rack, cushions layer on a sofa. Specified in `docs/ARCHITECTURE.md`.
+
+An item can also be **dropped or thrown** anywhere. It falls, tumbles and lies where it comes to
+rest, and that is where it now is: still misplaced, and counted in the room it lies in. Throwing
+a spoon down the stairs is allowed and costs nothing. A throw into somewhere no one standing could
+reach, like on top of a wardrobe, behind the bath or over the fence, is undone by the game: the item goes back
+to the last place it rested.
 
 ## The demo
 
@@ -102,9 +109,6 @@ English, always.
 ## Still assumed, not stated
 
 - The finale piece is provisionally an upright piano in the garage that belongs in the living room.
-- The inventory is an abstract UI list, not a visible physical stack held in front of the camera.
-  Twenty-one carried items cannot be shown in the hands; the ghost preview at the target slot is
-  where the carried item becomes visible again.
 - One autosaving profile, not save slots. It is a single-playthrough game.
 - Godot is pinned at 4.7.2 for the life of the project. Engine upgrades are a deliberate,
   scheduled task with a full re-run of every probe, never a drive-by.

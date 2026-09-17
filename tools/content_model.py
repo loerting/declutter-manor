@@ -336,7 +336,7 @@ def plan_json():
         for zone in sorted(counts):
             zones.extend([zone] * counts[zone])
         out.append({
-            "id": it[0], "name": it[1], "count": it[2], "slot_cost": cost(it[3], it[4]),
+            "id": it[0], "name": it[1], "count": it[2], "slot_cost": cost(it[3], it[4]), "kg": it[3],
             "home_zone": it[5], "home": it[6], "tier": it[8], "starts": zones,
             "absurd": absurd[1],
         })

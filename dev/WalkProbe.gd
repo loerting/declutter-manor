@@ -13,11 +13,13 @@ extends Node3D
 
 const PLAYER := preload("res://player/Player.tscn")
 
-## Frames given to a dropped body to settle. At 60 Hz that is a second, and the drop is 0.6 m.
-const SETTLE_FRAMES := 60
-## Frames given to a body driven up a flight. Long enough for the longest one at walking pace,
+## Seconds given to a dropped body to settle; the drop is 0.6 m. Every wait here is in seconds and turned
+## into physics frames at the project's tick rate (`_ticks`): counted in frames, they all shrank to a
+## quarter when items needed the physics at 240 Hz (2026-09-16).
+const SETTLE_SECONDS := 1.0
+## Seconds given to a body driven up a flight. Long enough for the longest one at walking pace,
 ## with the flight run and the rise both under 4 m.
-const CLIMB_FRAMES := 300
+const CLIMB_SECONDS := 5.0
 ## How high above the expected floor a body is dropped from.
 const DROP := 0.6
 ## The body has landed if its feet are within this of the floor the plan says is there. It is
@@ -26,18 +28,18 @@ const LAND_EPS := 0.06
 ## How far a landed body may have slid from where it was dropped. A body that walks off down a
 ## slope has found a floor that is not the room's.
 const DRIFT_EPS := 0.25
-## Frames a body is driven at a guard rail. Half a second longer than it needs to cross the
+## Seconds a body is driven at a guard rail. Half a second longer than it needs to cross the
 ## OPEN_PROBE gap at walking pace, so a body that is going to get through has got through.
-const SHOVE_FRAMES := 90
+const SHOVE_SECONDS := 1.5
 ## How far a guard's collider may reach past the rail that is drawn: the barrier's own half
 ## thickness and the few centimetres its underside runs below the foot newel, and nothing a body
 ## could catch on.
 const RAIL_BOUNDS_SLACK := 0.08
 ## How far back from an opening a body starts when it is driven through it, and how long it is
-## given. Two metres at 2.8 m/s is under a second; 120 frames is twice that, so a body that is
+## given. Two metres at 2.8 m/s is under a second; two seconds is twice that, so a body that is
 ## going to arrive has arrived and one that is stuck has been stuck for a while.
 const APPROACH := 2.0
-const WALK_FRAMES := 120
+const WALK_SECONDS := 2.0
 ## What one physics frame is allowed to move the body, as a multiple of the distance walking
 ## covers in one. Anything above this is not walking, it is a jump: the body left one place and
 ## arrived at another without crossing what was between them, which is what the author saw going
@@ -87,7 +89,7 @@ func _run() -> void:
 		await _check_stair(stair)
 	for stair: StairDef in _plan.stairs:
 		await _check_guard(stair)
-		await _check_spandrel(stair)
+		await _check_under_flight(stair)
 	_check_rail_bounds(_house)
 	for pool: PoolDef in _plan.pools:
 		await _check_pool(pool)
@@ -197,7 +199,7 @@ func _check_stair(stair: StairDef) -> void:
 	# every third frame on every flight (2026-09-13).
 	var prev_y := _player.global_position.y
 	var bobs := 0
-	for i in range(CLIMB_FRAMES):
+	for i in range(_ticks(CLIMB_SECONDS)):
 		await get_tree().physics_frame
 		var y := _player.global_position.y
 		if y < prev_y - Balance.STEP_EPSILON:
@@ -246,7 +248,7 @@ func _check_guard(stair: StairDef) -> void:
 		_player.teleport(_player.global_position,
 				rad_to_deg(atan2(outward.x, outward.y)))
 		Input.action_press(&"move_forward")
-		for i in range(SHOVE_FRAMES):
+		for i in range(_ticks(SHOVE_SECONDS)):
 			await get_tree().physics_frame
 		Input.action_release(&"move_forward")
 		var at := _player.global_position
@@ -280,11 +282,11 @@ func _check_rail_bounds(node: Node) -> void:
 				_fail("stair.rail.bounds", "%s: a guard collider spans %s..%s, the drawn rail %s..%s"
 						% [node.name, solid.position, solid.end, drawn.position, drawn.end])
 
-## The wall under a flight that has the basement stair beneath it is all that stands between the
+## The guard under a flight that has the basement stair beneath it is all that stands between the
 ## hall and a hole two storeys deep, and `_check_guard` cannot reach it: the floor beside that
-## well is inside the flight above. So it is driven at directly, from the open side of the flight
-## at the tall end of the wall, where a body would actually walk into it.
-func _check_spandrel(stair: StairDef) -> void:
+## well is inside the flight above, too low to stand under. So it is driven at directly, from the
+## open side of the flight where the soffit is high enough to walk under.
+func _check_under_flight(stair: StairDef) -> void:
 	if HouseBuilder._flight_below(_plan, stair) == null:
 		return
 	var lower := _plan.find_room(stair.lower_room)
@@ -301,15 +303,15 @@ func _check_spandrel(stair: StairDef) -> void:
 		await _drop(Vector3(at.x, y0 + DROP, at.y))
 		_player.teleport(_player.global_position, rad_to_deg(atan2(outward.x, outward.y)))
 		Input.action_press(&"move_forward")
-		for i in range(SHOVE_FRAMES):
+		for i in range(_ticks(SHOVE_SECONDS)):
 			await get_tree().physics_frame
 		Input.action_release(&"move_forward")
 		var now := _player.global_position
 		if stair.footprint().has_point(Vector2(now.x, now.z)) or now.y < y0 - LAND_EPS:
-			_fail("stair.spandrel", "%s->%s: a body walked through the under-stair wall and is at %s"
+			_fail("stair.under", "%s->%s: a body walked through the guard under the flight and is at %s"
 					% [stair.lower_room, stair.upper_room, now])
 	if driven == 0:
-		_fail("stair.spandrel", "%s->%s has a flight below it and no open side to drive at"
+		_fail("stair.under", "%s->%s has a flight below it and no open side to drive at"
 				% [stair.lower_room, stair.upper_room])
 
 ## A doorway between two floors at different heights is walked up, not measured. Godot's
@@ -358,7 +360,7 @@ func _check_step(storey: StoreyDef, wall: WallSegment, o: Opening) -> void:
 		return
 	# Arriving is standing on the upper floor INSIDE the upper room. Height alone is reached the
 	# moment the body is up on the threshold, which is still in the middle of the wall.
-	await _walk(-outward, WALK_FRAMES, func() -> bool:
+	await _walk(-outward, _ticks(WALK_SECONDS), func() -> bool:
 		var at := _player.global_position
 		return absf(at.y - y_high) <= LAND_EPS and _player.is_on_floor() \
 				and high.contains(Vector2(at.x, at.z)))
@@ -395,7 +397,7 @@ func _check_pool(pool: PoolDef) -> void:
 	var arrived := func() -> bool:
 		var p := _player.global_position
 		return p.y >= rim - LAND_EPS and not pool.rect.has_point(Vector2(p.x, p.z))
-	await _walk(Vector2(-1.0, 0.0), CLIMB_FRAMES, arrived)
+	await _walk(Vector2(-1.0, 0.0), _ticks(CLIMB_SECONDS), arrived)
 	if _stall > 0:
 		_fail("pool.smooth", "'%s': the body stalled on the way out for %d frames (slowest %.0f%% of walking pace)"
 				% [pool.room, _stall, _slowest * 100.0])
@@ -426,7 +428,7 @@ func _check_deck_flight(deck: DeckDef, dir: Vector2) -> void:
 		var at := _player.global_position
 		return absf(at.y - top) <= LAND_EPS and _player.is_on_floor() \
 				and room.contains(Vector2(at.x, at.z) + dir * Balance.PLAYER_RADIUS * 2.0)
-	await _walk(-dir, WALK_FRAMES, arrived)
+	await _walk(-dir, _ticks(WALK_SECONDS), arrived)
 	if _stall > 0:
 		_fail("deck.smooth", "%s: the body stalled on the flight for %d frames (slowest %.0f%% of walking pace)"
 				% [label, _stall, _slowest * 100.0])
@@ -454,7 +456,7 @@ func _check_shut(storey: StoreyDef, wall: WallSegment, o: Opening) -> void:
 	var outward := wall.normal() * (-1.0 if room.contains(centre + wall.normal()) else 1.0)
 	var start := centre + outward * APPROACH
 	await _drop(Vector3(start.x, HouseBuilder.ground_level(_plan, storey, start) + DROP, start.y))
-	await _walk(-outward, SHOVE_FRAMES, func() -> bool: return false)
+	await _walk(-outward, _ticks(SHOVE_SECONDS), func() -> bool: return false)
 	var at := Vector2(_player.global_position.x, _player.global_position.z)
 	if room.contains(at):
 		_fail("door.solid", "'%s': a body walked through the garage door and is %.2f m inside"
@@ -495,7 +497,11 @@ func _walk(towards: Vector2, frames: int, arrived: Callable) -> void:
 				% [_lurch, _lurch / (Balance.WALK_SPEED * get_physics_process_delta_time()) * 100.0,
 				_lurch_at.x, _lurch_at.y, _lurch_at.z])
 
+## Physics frames in `seconds` at the project's tick rate.
+static func _ticks(seconds: float) -> int:
+	return int(ceil(seconds * float(Engine.physics_ticks_per_second)))
+
 func _drop(from: Vector3) -> void:
 	_player.teleport(from)
-	for i in range(SETTLE_FRAMES):
+	for i in range(_ticks(SETTLE_SECONDS)):
 		await get_tree().physics_frame

@@ -15,6 +15,7 @@ signal aim_changed(prompt: Prompt, target: ItemDef)
 
 var _camera: Camera3D
 var _carry: CarryComponent
+var _body: CharacterBody3D
 var _ghost: PlaceGhost
 
 var _prompt: Prompt = Prompt.NONE
@@ -23,10 +24,20 @@ var _item: ItemNode
 var _container: ContainerComponent
 var _slots: PlaceSlots
 var _index := -1
+## The group the crosshair is on for any carried item, whether or not it takes the selected one. Pointing at a
+## group selects an item it takes (`docs/ARCHITECTURE.md`, "Held out").
+var _pointed: PlaceSlots
+## The player selected an item by hand while `_pointed` was offered. Their choice stands until the crosshair
+## moves to another group or an item is put away.
+var _chosen := false
+## When the throw button went down, in engine ticks, or -1 while it is up.
+var _throw_since := -1
 
-func initialize(camera: Camera3D, carry: CarryComponent) -> void:
+## `body` is what the hands move with: an item let go of leaves at the player's own velocity first.
+func initialize(camera: Camera3D, carry: CarryComponent, body: CharacterBody3D) -> void:
 	_camera = camera
 	_carry = carry
+	_body = body
 	set_process(true)
 
 func _ready() -> void:
@@ -55,13 +66,11 @@ func _aim() -> void:
 	_index = -1
 
 	var hit := _ray()
-	_item = hit as ItemNode
+	_item = ItemPick.item_of(hit)
 	var handle := hit as ContainerHandle
 	_container = handle.container if handle != null else null
 
-	var held := _carry.top()
-	if held != null:
-		_find_slot(held.def)
+	var held := _offer()
 	if _slots != null:
 		_ghost.show_slot(held.def, _slots.slot_global(_index, held.def))
 	else:
@@ -88,18 +97,51 @@ func _ray() -> Object:
 	var hit := space.intersect_ray(q)
 	return hit.get("collider", null) as Object if not hit.is_empty() else null
 
-## The group being offered, from the ones near enough to reach. The camera picks it — the group
-## whose next slot sits closest to the crosshair, inside a cone — so aiming at the drawer is
-## enough and the player never has to aim at a slot inside it.
-func _find_slot(def: ItemDef) -> void:
+## The selected item, after pointing at a group has selected one it takes, with `_slots` and `_index` the
+## group and slot it would go into, or null with empty hands.
+func _offer() -> ItemNode:
+	if _carry.selected() == null:
+		_pointed = null
+		return null
+	_find_slot(Inventory.carried())
+	if _slots != _pointed:
+		_pointed = _slots
+		_chosen = false
+	if _slots != null and not _chosen:
+		_select_for(_slots)
+	var held := _carry.selected()
+	# Chosen by hand and not taken here: the group for that item, if there is one in view.
+	if _slots != null and not _slots.takes(held.def):
+		var only: Array[ItemDef] = [held.def]
+		_find_slot(only)
+	return held
+
+## Selects a carried item `slots` takes, unless the selected one is: the first one after it in the row, round
+## the end, so putting away a handful of spoons is one click per spoon.
+func _select_for(slots: PlaceSlots) -> void:
+	var carried := Inventory.carried()
+	var from := Inventory.selected()
+	for step: int in carried.size():
+		var k := posmod(from + step, carried.size())
+		if slots.takes(carried[k]):
+			_carry.select(k)
+			return
+
+## The group being offered for any of `defs`, from the ones near enough to reach. The camera picks
+## it — the group whose next slot sits closest to the crosshair, inside a cone — so aiming at the
+## drawer is enough and the player never has to aim at a slot inside it.
+func _find_slot(defs: Array[ItemDef]) -> void:
+	_slots = null
+	_index = -1
 	var eye := _camera.global_position
 	var forward := -_camera.global_transform.basis.z
 	var best := cos(deg_to_rad(Balance.PLACE_AIM_CONE_DEG))
 	for node: Node in get_tree().get_nodes_in_group(PlaceSlots.GROUP):
 		var slots := node as PlaceSlots
-		if slots == null or not slots.takes(def) or not slots.available():
+		if slots == null or slots.global_position.distance_to(global_position) > Balance.PLACE_SNAP_RADIUS:
 			continue
-		if slots.global_position.distance_to(global_position) > Balance.PLACE_SNAP_RADIUS:
+		var def := _taken_by(slots, defs)
+		if def == null or not slots.available():
 			continue
 		var index := slots.next_index(eye + forward * Balance.PLACE_SNAP_RADIUS)
 		if index < 0:
@@ -114,6 +156,13 @@ func _find_slot(def: ItemDef) -> void:
 		_slots = slots
 		_index = index
 
+## The first of `defs` the group takes, or null.
+static func _taken_by(slots: PlaceSlots, defs: Array[ItemDef]) -> ItemDef:
+	for def: ItemDef in defs:
+		if slots.takes(def):
+			return def
+	return null
+
 func _set_aim(next: Prompt, target_def: ItemDef) -> void:
 	if next == _prompt and target_def == _target:
 		return
@@ -121,9 +170,41 @@ func _set_aim(next: Prompt, target_def: ItemDef) -> void:
 	_target = target_def
 	aim_changed.emit(next, target_def)
 
+## How far a throw held now would go, from 0 (a lob) to 1 (a full throw); 0 while nothing is held back.
+func throw_charge() -> float:
+	if _throw_since < 0:
+		return 0.0
+	return clampf(float(Time.get_ticks_msec() - _throw_since) / (Balance.THROW_CHARGE_TIME * 1000.0), 0.0, 1.0)
+
+## The actions that select a carried item by its place in the row, first to ninth.
+const SELECT_ACTIONS: Array[StringName] = [&"select_1", &"select_2", &"select_3", &"select_4", &"select_5",
+		&"select_6", &"select_7", &"select_8", &"select_9"]
+
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"return_item"):
-		_carry.return_top()
+	if event.is_action_pressed(&"select_next"):
+		_chosen = true
+		_carry.select_step(1)
+		return
+	if event.is_action_pressed(&"select_previous"):
+		_chosen = true
+		_carry.select_step(-1)
+		return
+	for k: int in SELECT_ACTIONS.size():
+		if event.is_action_pressed(SELECT_ACTIONS[k]):
+			_chosen = true
+			_carry.select(k)
+			return
+	if event.is_action_pressed(&"drop_item"):
+		_carry.drop_selected(_camera.global_transform, _body.velocity)
+		return
+	# Held to wind up, thrown on release. A press with nothing in the hands winds up nothing.
+	if event.is_action_pressed(&"throw_item"):
+		_throw_since = Time.get_ticks_msec() if _carry.selected() != null else -1
+		return
+	if event.is_action_released(&"throw_item"):
+		if _throw_since >= 0:
+			_carry.throw_selected(_camera.global_transform, _body.velocity, throw_charge())
+		_throw_since = -1
 		return
 	if not event.is_action_pressed(&"interact"):
 		return
@@ -141,7 +222,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _place() -> void:
 	if not _slots.can_accept(_index):
 		return
-	var item := _carry.detach_top()
+	var item := _carry.detach_selected()
 	if item == null:
 		return
 	_slots.accept(item, _index)
+	# The next item for the same group is selected on the next aim, whatever the player chose before.
+	_chosen = false

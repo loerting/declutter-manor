@@ -13,6 +13,7 @@ script = ExtResource("1_cc0dc")
 id = &"plush_toy_07"
 name_key = "item.plush_toy"
 slot_cost = 2
+mass = 0.3
 set_id = &"plush_toy"
 generator = &"plush_toy"
 params = {

@@ -75,6 +75,7 @@ static func build(parent: Node3D, plan: FloorPlan) -> void:
 			shape.shape = mi.mesh.create_trimesh_shape()
 			body.add_child(shape)
 			holder.add_child(body)
+			HouseBuilder.backing(holder, poly, GRASS_TOP - GRASS_DEPTH, GRASS_TOP, "Grass%d_%dBacking" % [i, j])
 
 ## Lawn colour at a world point: value noise on `MACRO_LATTICE`, smoothed, as a multiplier on
 ## the grass albedo. A pure function of world position, so two pieces meeting at a seam agree

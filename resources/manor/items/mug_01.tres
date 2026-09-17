@@ -13,6 +13,7 @@ anchor = &"garden_potting_bench_pot"
 script = ExtResource("1_hgmhx")
 id = &"mug_01"
 name_key = "item.mug"
+mass = 0.35
 set_id = &"mug"
 generator = &"mug"
 params = {

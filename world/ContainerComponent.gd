@@ -31,6 +31,23 @@ func initialize(id: StringName, mover: Node3D, open_xform: Transform3D) -> void:
 	_open = open_xform
 	add_to_group(GROUP)
 
+## The moving part, solid to items: an item dropped into an open drawer lands in it, not through it on
+## the floor underneath (`InteractProbe` `carry.rides`). Built once the piece is whole, from the meshes the
+## moving part has then, which are its own and none of the items that later start in it.
+func _ready() -> void:
+	assert(_mover != null, "ContainerComponent: initialize() before adding to the tree")
+	var body := StaticBody3D.new()
+	body.name = "Tray"
+	body.collision_layer = Layers.bit(Layers.TRAY)
+	body.collision_mask = 0
+	var into := _mover.global_transform.affine_inverse()
+	for mi: MeshInstance3D in WorldBuilder.meshes(_mover):
+		var shape := CollisionShape3D.new()
+		shape.shape = mi.mesh.create_trimesh_shape()
+		shape.transform = into * mi.global_transform
+		body.add_child(shape)
+	_mover.add_child(body)
+
 ## A handle on the moving part, so the ray target travels with the drawer front.
 func add_handle(size: Vector3, offset: Vector3) -> void:
 	_handle_box = AABB(offset - size * 0.5, size)
@@ -47,6 +64,14 @@ func handle_bounds() -> AABB:
 ## static half beside it does not (`FurnitureNode.add_anchor`).
 func carries(node: Node) -> bool:
 	return node == _mover
+
+## The moving part: what an item that comes to rest on it hangs under, so it travels with it.
+func mover() -> Node3D:
+	return _mover
+
+## True when `node` is the moving part or hangs anywhere on it.
+func moves(node: Node) -> bool:
+	return node == _mover or _mover.is_ancestor_of(node)
 
 func state() -> State:
 	return _state

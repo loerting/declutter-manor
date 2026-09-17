@@ -12,6 +12,7 @@ xform = Transform3D(-0.30192533, 0, 0.9533316, 0, 1, 0, -0.9533316, 0, -0.301925
 script = ExtResource("1_vi475")
 id = &"game_controller_02"
 name_key = "item.game_controller"
+mass = 0.25
 set_id = &"game_controller"
 generator = &"game_controller"
 params = {

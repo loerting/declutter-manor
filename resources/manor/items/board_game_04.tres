@@ -13,6 +13,7 @@ script = ExtResource("1_2qu1m")
 id = &"board_game_04"
 name_key = "item.board_game"
 slot_cost = 2
+mass = 1.0
 set_id = &"board_game"
 generator = &"board_game"
 params = {

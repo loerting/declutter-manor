@@ -13,6 +13,7 @@ script = ExtResource("1_v4yqx")
 id = &"umbrella_02"
 name_key = "item.umbrella"
 slot_cost = 2
+mass = 0.5
 set_id = &"umbrella"
 generator = &"umbrella"
 params = {

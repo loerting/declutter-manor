@@ -12,6 +12,7 @@ xform = Transform3D(0.57176626, 0, 0.82041657, 0, 1, 0, -0.82041657, 0, 0.571766
 script = ExtResource("1_18o4p")
 id = &"dog_toy_03"
 name_key = "item.dog_toy"
+mass = 0.2
 set_id = &"dog_toy"
 generator = &"dog_toy"
 params = {

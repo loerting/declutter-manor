@@ -13,6 +13,7 @@ anchor = &"kitchen_fridge_door_bin"
 script = ExtResource("1_3qsel")
 id = &"rubber_duck_01"
 name_key = "item.rubber_duck"
+mass = 0.05
 set_id = &"rubber_duck"
 generator = &"rubber_duck"
 params = {

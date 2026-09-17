@@ -13,6 +13,7 @@ script = ExtResource("1_3um68")
 id = &"decoration_box_02"
 name_key = "item.decoration_box"
 slot_cost = 8
+mass = 3.0
 set_id = &"decoration_box"
 generator = &"decoration_box"
 params = {

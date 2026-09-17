@@ -12,6 +12,7 @@ xform = Transform3D(-0.92417634, 0, -0.3819661, 0, 1, 0, 0.3819661, 0, -0.924176
 script = ExtResource("1_b7esb")
 id = &"goggles_03"
 name_key = "item.goggles"
+mass = 0.05
 set_id = &"goggles"
 generator = &"goggles"
 params = {

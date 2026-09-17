@@ -12,6 +12,7 @@ xform = Transform3D(-0.80821776, -0.5888837, -2.5740924e-08, 0, -4.371139e-08, 1
 script = ExtResource("1_m33qv")
 id = &"dog_leash_01"
 name_key = "item.dog_leash"
+mass = 0.3
 set_id = &"dog_leash"
 generator = &"dog_leash"
 home = &"dog_leash_home"

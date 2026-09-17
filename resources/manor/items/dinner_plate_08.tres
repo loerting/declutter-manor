@@ -13,6 +13,7 @@ script = ExtResource("1_w5hqh")
 id = &"dinner_plate_08"
 name_key = "item.dinner_plate"
 slot_cost = 2
+mass = 0.6
 set_id = &"dinner_plate"
 generator = &"dinner_plate"
 home = &"dinner_plate_home"

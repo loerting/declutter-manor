@@ -12,6 +12,7 @@ xform = Transform3D(1.68743e-08, 0.386039, 0.9224825, 1, -4.371139e-08, 0, 4.032
 script = ExtResource("1_4ko8w")
 id = &"book_06"
 name_key = "item.book"
+mass = 0.5
 set_id = &"book"
 generator = &"book"
 params = {

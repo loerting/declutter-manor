@@ -34,6 +34,8 @@ var _furniture: Array[FurnitureDef] = []
 var _items: Array[ItemDef] = []
 ## A `FurnitureNode` per furniture def, then the recipe (`ItemFactory.generate`) of each item.
 var _results: Array = []
+## Per item job: the points of its hull (`ItemFactory.hull_points`), gathered on the same thread.
+var _hull_points: Array[PackedVector3Array] = []
 
 ## The pieces of `content.furniture`, in its order (null where a family does not exist), with the
 ## recipe of every item in `content.items` kept by `ItemFactory`. `threaded` false builds in order.
@@ -48,6 +50,7 @@ static func run(content: Catalogue, threaded := true) -> Array[FurnitureNode]:
 		wanted[key] = true
 		job._items.append(def)
 	job._results.resize(job._furniture.size() + job._items.size())
+	job._hull_points.resize(job._items.size())
 	if threaded and DisplayServer.get_name() != "headless":
 		job._on_pool()
 	else:
@@ -57,7 +60,7 @@ static func run(content: Catalogue, threaded := true) -> Array[FurnitureNode]:
 	for i in range(job._furniture.size()):
 		pieces.append(job._results[i] as FurnitureNode)
 	for k in range(job._items.size()):
-		ItemFactory.keep(job._items[k], job._results[job._furniture.size() + k] as Array)
+		ItemFactory.keep(job._items[k], job._results[job._furniture.size() + k] as Array, job._hull_points[k])
 	return pieces
 
 func _on_pool() -> void:
@@ -72,4 +75,6 @@ func _build(i: int) -> void:
 	if i < _furniture.size():
 		_results[i] = FurnitureFactory.build(_furniture[i])
 	else:
-		_results[i] = ItemFactory.generate(_items[i - _furniture.size()])
+		var parts := ItemFactory.generate(_items[i - _furniture.size()])
+		_hull_points[i - _furniture.size()] = ItemFactory.hull_points(parts)
+		_results[i] = parts

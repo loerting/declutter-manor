@@ -13,6 +13,7 @@ func _ready() -> void:
 	_test_fixture_loads_and_migrates()
 	_test_v2_fixture_loads()
 	_test_v3_fixture_loads()
+	_test_v4_fixture_loads()
 	_test_migration_chain_advances()
 	_test_migration_refuses_a_future_version()
 	_test_migration_refuses_a_gap()
@@ -23,8 +24,12 @@ func _ready() -> void:
 	_test_fill_orders()
 	_test_group_validation()
 	_test_inventory_capacity()
+	_test_inventory_selection()
+	_test_hands_layout()
 	_test_set_tracker()
 	_test_every_set_has_a_home()
+	_test_every_item_weighs_its_cost()
+	_test_compass_bearing()
 
 	print("\n%d checks, %d failed" % [_checks, _failures])
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -133,6 +138,31 @@ func _test_v3_fixture_loads() -> void:
 	var duck: Dictionary = (data.get("items", {}) as Dictionary).get(&"rubber_duck_01", {})
 	_ok("v3 fixture keeps an item on its anchor", duck.get("anchor", &"") == &"kitchen_fridge_door_bin"
 			and duck.get("xform", null) is Transform3D)
+
+## Version 3's fixture migrates to 4 with nothing loose and nothing on a moving part; version 4's own keeps
+## a spoon lying loose and one lying in a drawer.
+func _test_v4_fixture_loads() -> void:
+	print("Fixture v4")
+	var f := FileAccess.open("res://dev/fixtures/manor_v3.sav", FileAccess.READ)
+	var old: Variant = str_to_var(f.get_as_text())
+	f.close()
+	var up := SaveManager.migrate(old as Dictionary if old is Dictionary else {}, 4, SaveManager.default_chain())
+	var duck: Dictionary = (up.get("items", {}) as Dictionary).get(&"rubber_duck_01", {})
+	_ok("v3 fixture migrates to 4 with nothing loose", int(up.get("version", -1)) == 4
+			and duck.get("loose", true) == false and duck.get("mover", true) == false, SaveManager.last_error)
+	f = FileAccess.open("res://dev/fixtures/manor_v4.sav", FileAccess.READ)
+	_ok("v4 fixture is readable", f != null)
+	if f == null:
+		return
+	var parsed: Variant = str_to_var(f.get_as_text())
+	f.close()
+	var data := SaveManager.migrate(parsed as Dictionary if parsed is Dictionary else {}, 4, SaveManager.default_chain())
+	var items: Dictionary = data.get("items", {})
+	var lying: Dictionary = items.get(&"spoon_04", {})
+	var riding: Dictionary = items.get(&"spoon_05", {})
+	_ok("v4 fixture keeps a loose item and one on a moving part", lying.get("loose", false) == true
+			and riding.get("mover", false) == true and riding.get("container", &"") == &"kitchen_run_drawer_2",
+			SaveManager.last_error)
 
 # --- Migration machinery ---------------------------------------------------------------------------
 
@@ -319,6 +349,94 @@ func _test_inventory_capacity() -> void:
 	_ok("a reset run is empty and back to the start",
 		Inventory.used() == 0 and Inventory.capacity == Balance.START_SLOTS)
 
+## Which carried item a drop, a throw or a placement acts on (`Inventory.selected`). The HUD, the hands on
+## screen and the drop all read this one index, so its rules are the rules of all three.
+func _test_inventory_selection() -> void:
+	print("Inventory selection")
+	Inventory.reset(8)
+	_ok("empty hands select nothing", Inventory.selected() == -1)
+	var a := ItemDef.make(&"probe_a", &"spoon", &"probe")
+	var b := ItemDef.make(&"probe_b", &"spoon", &"probe")
+	var c := ItemDef.make(&"probe_c", &"spoon", &"probe")
+	Inventory.take(a)
+	Inventory.take(b)
+	Inventory.take(c)
+	_ok("what was taken last is selected", Inventory.selected() == 2)
+	Inventory.select_step(1)
+	_ok("the next one past the end is the first", Inventory.selected() == 0)
+	Inventory.select_step(-1)
+	_ok("the previous one before the first is the last", Inventory.selected() == 2)
+	_ok("selecting a place with nothing in it fails and changes nothing",
+			not Inventory.select(3) and Inventory.selected() == 2)
+	var d := ItemDef.make(&"probe_d", &"spoon", &"probe")
+	Inventory.take(d)
+	Inventory.select(2)
+	Inventory.release(a)
+	_ok("letting go of one before the selected one keeps the same item selected",
+			Inventory.carried()[Inventory.selected()] == c, "selected %d" % Inventory.selected())
+	Inventory.release(c)
+	_ok("letting go of the selected one selects the one that moves into its place",
+			Inventory.carried()[Inventory.selected()] == d, "selected %d" % Inventory.selected())
+	Inventory.release(d)
+	_ok("letting go of the last one while it is selected selects the new last one", Inventory.selected() == 0)
+	Inventory.release(b)
+	_ok("empty hands again select nothing", Inventory.selected() == -1)
+	Inventory.reset()
+
+## The hands on screen, laid out on paper (`CarryLayout`): at every screen shape the game supports, from one
+## spoon to the finale's worth of spoons, no two held items meet, none reaches the carry bar's column at the
+## bottom centre, none rises past `Balance.HAND_TOP`, and none leaves the screen.
+func _test_hands_layout() -> void:
+	print("Hands on screen")
+	var spoon := Vector2(CarryLayout.held_size(0.16), CarryLayout.held_size(0.16) * 0.3)
+	var mug := Vector2(CarryLayout.held_size(0.12) * 0.8, CarryLayout.held_size(0.12))
+	var tv := Vector2(CarryLayout.held_size(1.0), CarryLayout.held_size(1.0) * 0.6)
+	var bike := Vector2(CarryLayout.held_size(1.7), CarryLayout.held_size(1.7) * 0.55)
+	var loads := {
+		"one spoon": [spoon],
+		"one television": [tv],
+		"twenty small": _repeat(spoon, 12) + _repeat(mug, 8),
+		"a mix": [tv, bike, mug, spoon, tv * 0.5, mug, spoon, bike, mug, spoon],
+		"fifty-six spoons": _repeat(spoon, Balance.FINALE_SLOT_COST),
+		"seven bicycles": _repeat(bike, 7),
+	}
+	_ok("a bigger item is held bigger, up to the limit",
+			CarryLayout.held_size(0.1) < CarryLayout.held_size(0.5)
+			and CarryLayout.held_size(0.5) < CarryLayout.held_size(1.0)
+			and is_equal_approx(CarryLayout.held_size(100.0), Balance.HAND_SIZE_MAX))
+	for aspect: float in [16.0 / 9.0, 16.0 / 10.0, 4.0 / 3.0, 21.0 / 9.0]:
+		for name: String in loads:
+			var footprints: Array[Vector2] = []
+			footprints.assign(loads[name])
+			var rects := CarryLayout.arrange(footprints, aspect)
+			var problem := _layout_problem(rects, aspect)
+			_ok("hands: %s at %.2f" % [name, aspect], problem == "", problem)
+	_ok("hands: nothing held, nothing laid out", CarryLayout.arrange([] as Array[Vector2], 16.0 / 9.0).is_empty())
+
+static func _repeat(size: Vector2, n: int) -> Array:
+	var out: Array = []
+	for i in range(n):
+		out.append(size)
+	return out
+
+## What is wrong with a layout, or "".
+static func _layout_problem(rects: Array[Rect2], aspect: float) -> String:
+	var screen := Rect2(-aspect * 0.5, 0.0, aspect, 1.0)
+	for i: int in rects.size():
+		var r := rects[i]
+		if r.size.x <= 0.0 or r.size.y <= 0.0:
+			return "item %d has no size: %s" % [i, r]
+		if not screen.encloses(r):
+			return "item %d leaves the screen: %s" % [i, r]
+		if r.end.y > Balance.HAND_TOP + 0.0001 or r.position.y < Balance.HAND_BOTTOM - 0.0001:
+			return "item %d is outside the hands' height: %s" % [i, r]
+		if r.position.x < Balance.HAND_CENTRE_CLEAR - 0.0001 and r.end.x > -Balance.HAND_CENTRE_CLEAR + 0.0001:
+			return "item %d reaches the carry bar's column: %s" % [i, r]
+		for j: int in range(i + 1, rects.size()):
+			if r.intersects(rects[j]):
+				return "items %d and %d meet: %s %s" % [i, j, r, rects[j]]
+	return ""
+
 # --- Sets -------------------------------------------------------------------------------------------
 
 ## The progression rule, without a house: a set completes when every member is in its own home
@@ -397,3 +515,36 @@ func _test_every_set_has_a_home() -> void:
 			wrong.append("%s: home '%s' has no name ('%s')" % [s.id, group.id, group.name_key])
 	_ok("the content has every set", content.sets.size() == Balance.TARGET_SET_COUNT, str(content.sets.size()))
 	_ok("every set resolves one named home in a room", wrong.is_empty(), "\n\t".join(wrong))
+
+# --- Mass ---------------------------------------------------------------------------------------
+
+## A thrown item leaves with the player's effort divided by its mass (`CarryComponent.throw_top`), so a
+## mass is content the player feels. It has to be real, the same for every copy of a type, and heavy
+## enough for the slot cost `tools/content_model.py` derived from it: cost = max(weight tier, bulk tier),
+## with 0.5, 2 and 8 kg the tier edges.
+func _test_every_item_weighs_its_cost() -> void:
+	print("Mass")
+	var content := WorldBuilder.catalogue(ManorPlan.build())
+	var wrong: Array[String] = []
+	for s: SetDef in content.sets:
+		var members := content.members(s.id)
+		for def: ItemDef in members:
+			if def.mass <= 0.0 or def.mass != members[0].mass:
+				wrong.append("%s weighs %.2f kg, %s %.2f" % [def.id, def.mass, members[0].id, members[0].mass])
+			var tier := 1 if def.mass <= 0.5 else 2 if def.mass <= 2.0 else 4 if def.mass <= 8.0 else 8
+			if def.slot_cost < tier:
+				wrong.append("%s weighs %.2f kg and costs %d slots, under its weight's %d" % [def.id, def.mass, def.slot_cost, tier])
+	_ok("every item has a mass its slot cost allows", wrong.is_empty(), "\n\t".join(wrong))
+
+## Right of straight ahead is positive, whichever way the eye is turned: a sign error here sends every
+## marker to the wrong side of the compass.
+func _test_compass_bearing() -> void:
+	var ahead := Transform3D.IDENTITY
+	_ok("compass: straight ahead is the middle", is_zero_approx(Compass.bearing(ahead, Vector3(0, 0, -3))))
+	_ok("compass: a point to the right is right", Compass.bearing(ahead, Vector3(2, 0, -2)) > 0.0)
+	_ok("compass: a point to the left is left", Compass.bearing(ahead, Vector3(-2, 5, -2)) < 0.0)
+	_ok("compass: behind is half a turn", is_equal_approx(absf(Compass.bearing(ahead, Vector3(0, 0, 4))), PI))
+	# Turned a quarter left: looking along -X, so -Z is on the right.
+	var turned := Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(1, 0, 1))
+	_ok("compass: turned left, the old ahead is right", is_equal_approx(Compass.bearing(turned, Vector3(1, 0, -5)), PI * 0.5))
+	_ok("compass: turned left, the new ahead is the middle", is_zero_approx(Compass.bearing(turned, Vector3(-4, 0, 1))))

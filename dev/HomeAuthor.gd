@@ -74,7 +74,7 @@ static func _repeats(code: Key) -> bool:
 
 func _drop(eye: Camera3D) -> void:
 	var carry := _world.player().carry()
-	var held := carry.top()
+	var held := carry.selected()
 	if held == null:
 		_say("F5: carrying nothing")
 		return
@@ -82,7 +82,7 @@ func _drop(eye: Camera3D) -> void:
 	if hit.is_empty() or (hit["normal"] as Vector3).y < MIN_FLOOR_NORMAL_Y:
 		_say("F5: no surface to stand '%s' on under the crosshair" % held.def.id)
 		return
-	var item := carry.detach_top()
+	var item := carry.detach_selected()
 	_world.items_root().add_child(item)
 	item.global_transform = drop_xform(hit["position"] as Vector3, _yaw(eye), item.def)
 	item.set_carried(false)
@@ -251,7 +251,7 @@ static func _save(res: Resource, path: String) -> Error:
 
 func _aimed(eye: Camera3D) -> ItemNode:
 	var hit := _cast(eye, Layers.bit(Layers.ITEM))
-	return hit.get("collider", null) as ItemNode if not hit.is_empty() else null
+	return ItemPick.item_of(hit.get("collider", null) as Object) if not hit.is_empty() else null
 
 func _cast(eye: Camera3D, mask: int) -> Dictionary:
 	var from := eye.global_position

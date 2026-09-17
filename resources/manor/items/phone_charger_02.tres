@@ -12,6 +12,7 @@ xform = Transform3D(0.6892866, 0, 0.7244888, 0, 1, 0, -0.7244888, 0, 0.6892866, 
 script = ExtResource("1_d7fiq")
 id = &"phone_charger_02"
 name_key = "item.phone_charger"
+mass = 0.1
 set_id = &"phone_charger"
 generator = &"phone_charger"
 home = &"phone_charger_home"

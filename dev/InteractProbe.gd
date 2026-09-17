@@ -38,6 +38,26 @@ const AUTHOR_DIR := "user://probe_author"
 const REFERENCE_SET := &"cutlery"
 ## The kitchen run's family, for the drawer dimensions the stack has to fit inside.
 const BASE_RUN := preload("res://props/furniture/BaseRun.gd")
+## A let-go item lies on what is under it if its lowest point is within this of that surface: the
+## physics engine's contact margin, not an authored rest, so looser than `REST_EPS`.
+const LOOSE_REST_EPS := 0.01
+## Seconds of wall clock a let-go item is given to be judged, past the engine's own limit.
+const LOOSE_TIMEOUT := Balance.LOOSE_SETTLE_LIMIT + 4.0
+## An item that falls out of the world is sent back well before that limit: nothing waits for it to land.
+const FALL_TIMEOUT := 2.0
+## A full throw along an open floor lands at least this far from the eye that threw it.
+const THROW_MIN_DISTANCE := 2.0
+## A thrown item needs this much open floor ahead of the eye to land on the floor it was thrown along.
+const THROW_RUN := 3.0
+## How many spoons the selection check carries at once.
+const HANDS_LOAD := 3
+## A held copy's corner may stray this far past its place in the layout, in screen heights: the outline of
+## the selected one and the float are drawn past the rectangle the layout measured.
+const HANDS_SCREEN_EPS := 0.01
+## The item the auto-selection check carries beside the spoons has no home this near the cutlery drawer.
+const AUTO_SELECT_APART := Balance.PLACE_SNAP_RADIUS * 3.0
+## A position that came back from a save, or went back to where it rested, is this close to it.
+const BACK_EPS := 0.001
 
 var _violations := 0
 var _plan: FloorPlan
@@ -50,6 +70,9 @@ var _set: StringName
 ## The generated house and its furniture: torn down and rebuilt to prove a save loads.
 var _built: Array[Node] = []
 var _census: ClutterCensus
+## The item ids that came to rest or were sent back since `_await_rest` last asked.
+var _landed: Array[StringName] = []
+var _returned: Array[StringName] = []
 var _completions: Array[StringName] = []
 ## Dev builds only. With it, the probe stops when the twelve spoons are in the drawer and takes
 ## the picture — the only proof of a stack that stacks is one somebody can look at
@@ -85,6 +108,9 @@ func _ready() -> void:
 	# The probe drives the player, so the player must not take the pointer: a windowed dev run
 	# would grab the mouse and log "NO GRAB" while nobody is holding it.
 	_player.capture_mouse(false)
+	_player.carry().initialize(_items)
+	EventBus.item_landed.connect(func(id: StringName) -> void: _landed.append(id))
+	EventBus.item_returned.connect(func(id: StringName) -> void: _returned.append(id))
 	await _run()
 
 func _run() -> void:
@@ -96,7 +122,10 @@ func _run() -> void:
 	await _check_container_fsm()
 	await _check_reachable()
 	_check_census_before()
-	await _check_take_and_return()
+	await _check_take()
+	await _check_let_go()
+	await _check_hands()
+	await _check_auto_select()
 	await _check_stacking()
 	await _capture()
 	await _check_travel()
@@ -230,7 +259,7 @@ func _check_container_fsm() -> void:
 
 ## Every item in the house can be picked up from where a player can stand: with every container
 ## open, some eye at standing height, within reach, with nothing solid at its eye or its feet, sees the
-## item before anything else (`Clearance.reachable`). Nothing else looked, and a start inside a piece
+## item before anything else (`Reach.reachable`). Nothing else looked, and a start inside a piece
 ## whose body is one solid box is an item no ray reaches (2026-09-16).
 func _check_reachable() -> void:
 	var containers: Array[ContainerComponent] = []
@@ -248,25 +277,25 @@ func _check_reachable() -> void:
 			_fail("start.reachable", "'%s' is in no room" % item.def.id)
 			continue
 		var floor_y := room.floor_y(_plan.storey_of(room.id).base_y)
-		if not Clearance.reachable(space, _plan, item.extent(), item.global_transform, floor_y):
+		if not Reach.reachable(space, _plan, item.extent(), item.global_transform, floor_y):
 			_fail("start.reachable", "'%s' in '%s' at %s: no eye within reach sees it first" % [item.def.id, room.id, centre])
 	for c: ContainerComponent in containers:
 		c.force(false)
 
 # --- Picking up -----------------------------------------------------------------------------
 
-## Walk up to a spoon on the worktop, look at it, and press the button — the whole of the ray,
-## the reach, the prompt and the pick-up in one measurement.
-func _check_take_and_return() -> void:
+## Walk up to a spoon lying in a room, look at it, and press the button — the whole of the ray,
+## the reach, the prompt and the pick-up in one measurement. The spoon stays in the hands for
+## `_check_let_go`.
+func _check_take() -> void:
 	var loose := _reference_in(_items)
 	var spoon := loose[0]
-	var was := spoon.global_transform
-	await _stand_looking_at(was.origin)
+	await _stand_looking_at(spoon.global_position)
 	if _player.interactor().prompt() != Interactor.Prompt.TAKE:
 		_fail("reach.take", "looking at a spoon from %.2f m prompts %d, not TAKE"
 				% [STAND_OFF, _player.interactor().prompt()])
 	await _press(&"interact")
-	if _player.carry().count() != 1 or _player.carry().top() != spoon:
+	if _player.carry().count() != 1 or _player.carry().selected() != spoon:
 		_fail("reach.take", "the click did not pick the spoon up")
 		return
 	if Inventory.used() != spoon.def.slot_cost:
@@ -285,16 +314,387 @@ func _check_take_and_return() -> void:
 	if _player.carry().count() != 1:
 		_fail("carry.full", "a second spoon was taken into a one-slot inventory")
 
-	await _press(&"return_item")
+
+# --- Letting go -----------------------------------------------------------------------------
+
+## The spoon `_check_take` left in the hands is dropped, picked up, thrown, lost twice and put down in
+## a drawer by physics, and a save is taken with one spoon lying loose and one riding the drawer.
+func _check_let_go() -> void:
+	var spoon := _player.carry().selected()
+	if spoon == null:
+		_fail("carry.drop", "nothing in the hands to let go of")
+		return
+	await _press(&"drop_item")
 	if _player.carry().count() != 0 or Inventory.used() != 0:
-		_fail("carry.return", "the spoon did not leave the player's hands")
-	if not spoon.global_transform.is_equal_approx(was):
-		_fail("carry.return", "the spoon went back to %s, not %s"
-				% [spoon.global_position, was.origin])
-	if not spoon.visible:
-		_fail("carry.return", "a returned spoon is invisible")
+		_fail("carry.drop", "the spoon did not leave the player's hands")
+	if not spoon.is_loose() or not spoon.visible:
+		_fail("carry.drop", "a dropped spoon is not loose and visible (loose %s, visible %s)"
+				% [spoon.is_loose(), spoon.visible])
+	if await _await_rest(spoon) != &"landed":
+		_fail("carry.drop", "a spoon dropped in front of the player did not come to rest there")
+		return
+	_check_lies(spoon, "carry.drop")
+
+	await _stand_looking_at(spoon.global_position)
+	await _press(&"interact")
+	if _player.carry().selected() != spoon:
+		_fail("carry.retake", "a dropped spoon could not be picked up where it lies")
+		return
+
+	var from := await _face_open_floor()
+	await _press(&"throw_item")
+	await _seconds(Balance.THROW_CHARGE_TIME * 1.25)
+	await _release(&"throw_item")
+	if await _await_rest(spoon) != &"landed":
+		_fail("carry.throw", "a thrown spoon did not come to rest where it can be reached")
+		return
+	_check_lies(spoon, "carry.throw")
+	var thrown := Vector2(spoon.global_position.x - from.x, spoon.global_position.z - from.z).length()
+	if thrown < THROW_MIN_DISTANCE:
+		_fail("carry.throw", "a full throw landed %.2f m from the eye, under %.2f" % [thrown, THROW_MIN_DISTANCE])
+	var rested := spoon.global_transform
+	print("  dropped and picked up again; thrown %.2f m" % thrown)
+
+	# Out of the world, straight down: sent back to where it lay after the throw.
+	await _let_go_to(spoon, Vector3(rested.origin.x, -50.0, rested.origin.z))
+	if await _await_rest(spoon, FALL_TIMEOUT) != &"returned":
+		_fail("carry.lost", "a spoon that fell out of the world did not come back within %.1f s" % FALL_TIMEOUT)
+	elif spoon.global_position.distance_to(rested.origin) > BACK_EPS or not spoon.is_loose():
+		_fail("carry.lost", "a spoon that fell out of the world came back to %s (loose %s), not %s"
+				% [spoon.global_position, spoon.is_loose(), rested.origin])
+
+	# On top of a wall cabinet, which no standing eye sees: sent back too.
+	var cabinet := _bounds_of(find_child("kitchen_wall_cabinet", true, false))
+	await _let_go_to(spoon, Vector3(cabinet.get_center().x, cabinet.end.y + 0.05, cabinet.get_center().z))
+	if await _await_rest(spoon) != &"returned":
+		_fail("carry.reach", "a spoon on top of the kitchen wall cabinet was left there")
+	elif spoon.global_position.distance_to(rested.origin) > BACK_EPS:
+		_fail("carry.reach", "a spoon lost on the wall cabinet came back to %s, not %s"
+				% [spoon.global_position, rested.origin])
+
+	var drawer := _loose_drawer()
+	drawer.open()
+	await _settle(drawer)
+	var inside := _bounds_of(drawer.mover())
+	await _let_go_to(spoon, Vector3(inside.get_center().x, inside.end.y - 0.03, inside.get_center().z))
+	if await _await_rest(spoon) != &"landed":
+		_fail("carry.rides", "a spoon dropped into an open drawer did not come to rest in it")
+	elif not drawer.moves(spoon) or spoon.is_loose():
+		_fail("carry.rides", "a spoon lying in an open drawer does not ride it (loose %s)" % spoon.is_loose())
+	var out := spoon.global_position
+	drawer.close()
+	await _settle(drawer)
+	if absf(out.distance_to(spoon.global_position) - BASE_RUN.DRAWER_TRAVEL) > 0.01:
+		_fail("carry.rides", "the drawer shut by %.3f m and the spoon lying in it moved %.3f m"
+				% [BASE_RUN.DRAWER_TRAVEL, out.distance_to(spoon.global_position)])
+
+	await _check_loose_save(spoon, drawer)
+
+# --- The hands ----------------------------------------------------------------------------------
+
+## Three spoons in the hands: selected by the wheel and by number, held out in front of the eye where no
+## wall can reach them and where the middle of the screen stays clear, and the selected one — not the
+## last one taken — is the one a drop lets go of. The spoons are dropped on the floor afterwards.
+func _check_hands() -> void:
+	if _player.carry().count() != 0:
+		_fail("carry.select", "the hands are not empty before the selection check")
+		return
+	Inventory.reset(HANDS_LOAD)
+	var spoons: Array[ItemNode] = []
+	for item: ItemNode in _reference_in(self):
+		if spoons.size() < HANDS_LOAD and not item.is_carried() and _player.carry().try_take(item):
+			spoons.append(item)
+	if spoons.size() != HANDS_LOAD:
+		_fail("carry.select", "%d spoons taken, not %d" % [spoons.size(), HANDS_LOAD])
+		return
+	var carry := _player.carry()
+	var steps: Array = [
+		[&"", 2, "the last one taken"],
+		[&"select_previous", 1, "the previous one"],
+		[&"select_1", 0, "the first by number"],
+		[&"select_previous", 2, "the previous one round the start"],
+		[&"select_next", 0, "the next one round the end"],
+		[&"select_2", 1, "the second by number"],
+	]
+	for step: Array in steps:
+		var action := step[0] as StringName
+		if action != &"":
+			await _press(action)
+			await _release(action)
+		if carry.selected() != spoons[step[1] as int] or Inventory.selected() != step[1] as int:
+			_fail("carry.select", "%s selects %d (hands say '%s')" % [step[2], Inventory.selected(),
+					carry.selected().def.id if carry.selected() != null else "nothing"])
+
+	_check_held_out(carry, spoons.size())
+
+	await _face_open_floor()
+	await _press(&"drop_item")
+	var dropped := spoons[1]
+	var kept: Array[ItemNode] = [spoons[0], spoons[2]]
+	if not dropped.is_loose() or carry.held() != kept:
+		_fail("carry.select", "a drop with the second spoon selected let go of the wrong one (loose: %s)"
+				% [dropped.is_loose()])
+	var defs: Array[ItemDef] = [kept[0].def, kept[1].def]
+	if Inventory.carried() != defs:
+		_fail("carry.select", "the inventory and the hands disagree after a drop")
+	if carry.selected() != spoons[2]:
+		_fail("carry.select", "after dropping the selected spoon, '%s' is selected, not the one that moved into its place"
+				% (carry.selected().def.id if carry.selected() != null else "nothing"))
+	await _frames(2)
+	if _player.carry_view().copies().size() != kept.size():
+		_fail("hands.copies", "%d copies held out for %d carried spoons" % [_player.carry_view().copies().size(), kept.size()])
+	await _await_rest(dropped)
+	for item: ItemNode in kept:
+		await _press(&"drop_item")
+		await _await_rest(item)
+	if carry.count() != 0 or not _player.carry_view().copies().is_empty():
+		_fail("hands.copies", "empty hands still hold out %d copies" % _player.carry_view().copies().size())
+	Inventory.reset()
+
+## Every copy held out lies inside the body's radius, so it cannot reach into a wall; on screen, every corner of
+## every copy is inside the screen, below `Balance.HAND_TOP` and outside the carry bar's column.
+func _check_held_out(carry: CarryComponent, expected: int) -> void:
+	var view := _player.carry_view()
+	view.settle()
+	var copies := view.copies()
+	if copies.size() != expected or carry.count() != expected:
+		_fail("hands.copies", "%d copies held out for %d carried items" % [copies.size(), carry.count()])
+	var camera := _player.camera()
+	var screen := camera.get_viewport().get_visible_rect().size
+	var eye := camera.global_position
+	for copy: Node3D in copies:
+		for mi: MeshInstance3D in WorldBuilder.meshes(copy):
+			var box := mi.global_transform * mi.get_aabb()
+			for i in range(8):
+				var corner := box.get_endpoint(i)
+				if corner.distance_to(eye) > Balance.PLAYER_RADIUS:
+					_fail("hands.reach", "'%s' reaches %.3f m from the eye, past the body's %.2f m"
+							% [copy.name, corner.distance_to(eye), Balance.PLAYER_RADIUS])
+					return
+				var at := camera.unproject_position(corner)
+				# In screen heights from the vertical centre line and up from the bottom edge, as `CarryLayout` lays out.
+				var laid := Vector2((at.x - screen.x * 0.5) / screen.y, (screen.y - at.y) / screen.y)
+				var inside := at.x >= 0.0 and at.x <= screen.x and at.y >= 0.0 and at.y <= screen.y
+				if not inside or laid.y > Balance.HAND_TOP + HANDS_SCREEN_EPS \
+						or absf(laid.x) < Balance.HAND_CENTRE_CLEAR - HANDS_SCREEN_EPS:
+					_fail("hands.screen", "'%s' has a corner at %s on a %s screen (%.3f, %.3f screen heights)"
+							% [copy.name, at, screen, laid.x, laid.y])
+					return
+
+## A save with one spoon riding a drawer and another lying loose on a floor puts both back: the first
+## in the drawer, the second loose where it lay.
+func _check_loose_save(riding: ItemNode, drawer: ContainerComponent) -> void:
+	var lying := _reference_in(_items)[0]
+	if lying == riding or not _player.carry().try_take(lying):
+		_fail("save.loose", "no second spoon to leave lying loose")
+		return
+	await _stand_looking_at(lying.origin_parent.global_transform * lying.origin_xform.origin)
+	await _press(&"drop_item")
+	if await _await_rest(lying) != &"landed":
+		_fail("save.loose", "the second spoon did not come to rest")
+		return
+	var drawer_id := drawer.container_id
+	var riding_id := riding.def.id
+	var riding_local := riding.transform
+	var lying_id := lying.def.id
+	var lying_at := lying.global_transform
+	var saved := ProgressSave.capture(self, _plan)
+	await _rebuild(_content, saved)
+	for item: ItemNode in _all_items(self):
+		if item.def.id == riding_id:
+			var carrier := _container(drawer_id)
+			if item.get_parent() != carrier.mover() or not item.transform.is_equal_approx(riding_local):
+				_fail("save.rides", "the spoon in the drawer reloaded under %s at %s" % [item.get_parent().name, item.position])
+		elif item.def.id == lying_id:
+			if not item.is_loose() or item.global_position.distance_to(lying_at.origin) > BACK_EPS:
+				_fail("save.loose", "the loose spoon reloaded at %s (loose %s), not at %s"
+						% [item.global_position, item.is_loose(), lying_at.origin])
+	await _frames(10)
+	for item: ItemNode in _all_items(self):
+		if item.def.id == lying_id and item.global_position.distance_to(lying_at.origin) > BACK_EPS:
+			_fail("save.loose", "the reloaded loose spoon moved to %s" % item.global_position)
+
+## Holds nothing and moves the item to `at`, loose, as if it had been thrown there.
+func _let_go_to(item: ItemNode, at: Vector3) -> void:
+	if not item.is_carried() and not _player.carry().try_take(item):
+		_fail("carry.take", "'%s' could not be taken to let go of" % item.def.id)
+		return
+	await _press(&"drop_item")
+	item.global_position = at
+	item.linear_velocity = Vector3.ZERO
+	await get_tree().physics_frame
+
+## Waits until the item has come to rest or been sent back, and says which, or &"" on a timeout.
+func _await_rest(item: ItemNode, timeout := LOOSE_TIMEOUT) -> StringName:
+	_landed.clear()
+	_returned.clear()
+	var until := Time.get_ticks_msec() + int(timeout * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().physics_frame
+		if _returned.has(item.def.id):
+			return &"returned"
+		if _landed.has(item.def.id):
+			return &"landed"
+	return &""
+
+## The item's lowest point against the surface straight under it.
+func _check_lies(item: ItemNode, check: String) -> void:
+	var lowest := item.global_position.y + ItemFactory.bounds(item.def, item.global_basis).position.y
+	var centre := item.global_transform * item.extent().get_center()
+	var q := PhysicsRayQueryParameters3D.create(centre + Vector3.UP * 0.2, centre - Vector3.UP * 1.0,
+			Layers.prop_mask(), [item.get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		_fail(check, "nothing under '%s' at %s" % [item.def.id, centre])
+		return
+	var gap := lowest - (hit["position"] as Vector3).y
+	if gap > LOOSE_REST_EPS or gap < -LOOSE_REST_EPS:
+		_fail(check, "'%s' lies %.4f m off the surface under it" % [item.def.id, gap])
+
+## Turns the player, where they stand, to the level direction with the most open floor ahead, and
+## returns the eye.
+func _face_open_floor() -> Vector3:
+	var eye := _player.camera().global_position
+	var space := get_world_3d().direct_space_state
+	var best := Vector3.ZERO
+	var best_run := 0.0
+	for i in range(16):
+		var a := TAU * float(i) / 16.0
+		var dir := Vector3(cos(a), 0.0, sin(a))
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, eye + dir * 20.0,
+				Layers.bit(Layers.WORLD) | Layers.bit(Layers.BULK)))
+		var run := 20.0 if hit.is_empty() else eye.distance_to(hit["position"] as Vector3)
+		if run > best_run:
+			best_run = run
+			best = dir
+	if best_run < THROW_RUN:
+		_fail("carry.throw", "no open floor to throw along from %s (best %.2f m)" % [eye, best_run])
+	_player.aim_at(eye + best * 5.0)
+	await _frames(2)
+	return eye
+
+## The world bounds of every mesh under a node.
+func _bounds_of(node: Node) -> AABB:
+	var box := AABB()
+	var first := true
+	for mi: MeshInstance3D in WorldBuilder.meshes(node):
+		var b := mi.global_transform * mi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	return box
+
+## A kitchen drawer that is not the cutlery drawer, which `_check_stacking` fills.
+func _loose_drawer() -> ContainerComponent:
+	var cutlery := _slots().container()
+	for node: Node in get_tree().get_nodes_in_group(ContainerComponent.GROUP):
+		var c := node as ContainerComponent
+		if c != null and c != cutlery and String(c.container_id).begins_with("kitchen_run_drawer"):
+			return c
+	return null
 
 # --- Placing --------------------------------------------------------------------------------
+
+## Two spoons and an item the cutlery drawer does not take, carried together. Pointing at the open drawer
+## selects a spoon; an item the player selects by hand while the drawer is offered stays selected until the
+## crosshair leaves the drawer; each click puts a spoon away and selects the next one without the wheel. The
+## spoons go back on the floor and the other item back where it was, so `_check_stacking` starts clean.
+func _check_auto_select() -> void:
+	var slots := _slots()
+	var drawer := slots.container()
+	var carry := _player.carry()
+	var spoons := _reference_in(self).slice(0, 2)
+	var other: ItemNode = null
+	for item: ItemNode in _all_items(self):
+		if item.def.set_id != _set and not item.is_carried() and not item.is_loose() \
+				and not item.get_parent() is PlaceSlots and not _home_near(item.def, slots):
+			other = item
+			break
+	if spoons.size() != 2 or other == null or carry.count() != 0:
+		_fail("place.select", "no two spoons and another item to carry (hands hold %d)" % carry.count())
+		return
+	Inventory.reset(Balance.FINALE_SLOT_COST)
+	var row: Array[ItemNode] = [spoons[0], other, spoons[1]]
+	for item: ItemNode in row:
+		if not carry.try_take(item):
+			_fail("place.select", "'%s' could not be taken" % item.def.id)
+			return
+	drawer.open()
+	await _settle(drawer)
+	var target := slots.slot_global(slots.next_index(), spoons[0].def).origin
+	await _select_by_hand(&"select_2", other)
+	await _stand_looking_at(target)
+	await _frames(2)
+	_expect_selected(spoons[1], Interactor.Prompt.PLACE, "pointing at the drawer with the other item selected")
+
+	await _select_by_hand(&"select_2", other)
+	await _frames(4)
+	_expect_selected(other, -1, "selected by hand while the drawer is offered")
+
+	var eye := _player.camera().global_position
+	_player.aim_at(eye - (target - eye))
+	await _frames(2)
+	_player.aim_at(target)
+	await _frames(2)
+	_expect_selected(spoons[1], Interactor.Prompt.PLACE, "looking away from the drawer and back")
+
+	# Chosen by hand and put away: the choice was for that spoon, so the next one is offered again.
+	await _select_by_hand(&"select_2", other)
+	await _select_by_hand(&"select_3", spoons[1])
+	await _frames(2)
+	await _press(&"interact")
+	await _release(&"interact")
+	if spoons[1].get_parent() != slots:
+		_fail("place.select", "the selected spoon did not go into the drawer")
+	await _frames(2)
+	_expect_selected(spoons[0], Interactor.Prompt.PLACE, "after putting one spoon away")
+	await _press(&"interact")
+	await _release(&"interact")
+	var left: Array[ItemNode] = [other]
+	if spoons[0].get_parent() != slots or carry.held() != left:
+		_fail("place.select", "the second spoon did not go into the drawer (hands hold %d)" % carry.count())
+		return
+	await _frames(2)
+	_expect_selected(other, -1, "with only the other item left")
+
+	# Back as they were: the other item where it stood, the spoons out of the drawer and on the floor.
+	var back := carry.detach_selected()
+	back.origin_parent.add_child(back)
+	back.transform = back.origin_xform
+	back.set_carried(false)
+	for spoon: ItemNode in spoons:
+		carry.try_take(spoon)
+	await _face_open_floor()
+	for spoon: ItemNode in spoons:
+		await _press(&"drop_item")
+		await _await_rest(spoon)
+	if slots.occupied_count() != 0 or carry.count() != 0:
+		_fail("place.select", "%d spoons left in the drawer, %d in the hands" % [slots.occupied_count(), carry.count()])
+	Inventory.reset()
+
+## Whether a group within `AUTO_SELECT_APART` of `slots` takes the item: one that would be offered beside the
+## drawer when it is selected by hand.
+func _home_near(def: ItemDef, slots: PlaceSlots) -> bool:
+	for node: Node in get_tree().get_nodes_in_group(PlaceSlots.GROUP):
+		var group := node as PlaceSlots
+		if group != null and group.takes(def) \
+				and group.global_position.distance_to(slots.global_position) < AUTO_SELECT_APART:
+			return true
+	return false
+
+func _select_by_hand(action: StringName, item: ItemNode) -> void:
+	await _press(action)
+	await _release(action)
+	if _player.carry().selected() != item:
+		_fail("place.select", "%s did not select '%s'" % [action, item.def.id])
+
+## The selected item is `item`, and the prompt is `prompt`; any prompt but PLACE when `prompt` is -1.
+func _expect_selected(item: ItemNode, prompt: int, when: String) -> void:
+	var selected := _player.carry().selected()
+	var shown := _player.interactor().prompt()
+	var prompt_ok := shown == prompt if prompt >= 0 else shown != Interactor.Prompt.PLACE
+	if selected != item or not prompt_ok:
+		_fail("place.select", "%s: '%s' is selected (expected '%s'), prompt %d" % [when,
+				selected.def.id if selected != null else "nothing", item.def.id, shown])
 
 ## Twelve spoons, one at a time, into the drawer — the Phase 2 gate. Each one is placed by
 ## looking at the drawer and pressing the button, and each is checked against the slot the
@@ -572,6 +972,10 @@ func _build(content: Catalogue) -> void:
 	add_child(house)
 	var from := get_child_count()
 	_items = WorldBuilder.furnish(self, _plan, content)
+	var loose := LooseItems.new()
+	loose.name = "LooseItems"
+	loose.initialize(self, _plan)
+	add_child(loose)
 	_built = [house] as Array[Node]
 	for i in range(from, get_child_count()):
 		_built.append(get_child(i))
@@ -583,6 +987,7 @@ func _rebuild(content: Catalogue, saved: Dictionary) -> void:
 	await _frames(1)
 	_build(content)
 	ProgressSave.apply(self, _items, _plan, content, saved)
+	_player.carry().initialize(_items)
 	# The game builds its census after the save is applied, so it counts from the start; this one
 	# outlives the house it counted, and is asked again the same way.
 	_census.recount()
@@ -647,6 +1052,18 @@ func _press(action: StringName) -> void:
 	event.pressed = true
 	Input.parse_input_event(event)
 	await _frames(2)
+
+func _release(action: StringName) -> void:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = false
+	Input.parse_input_event(event)
+	await _frames(2)
+
+func _seconds(n: float) -> void:
+	var until := Time.get_ticks_msec() + int(n * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
 
 ## Spins until a container has finished moving. Bounded, so a container that never settles is
 ## a violation reported by the check that follows rather than a probe that hangs.

@@ -12,6 +12,7 @@ xform = Transform3D(-0.10869744, -0.9940749, -4.3452392e-08, 0, -4.371139e-08, 1
 script = ExtResource("1_tmqhm")
 id = &"hand_towel_01"
 name_key = "item.hand_towel"
+mass = 0.2
 set_id = &"hand_towel"
 generator = &"hand_towel"
 params = {

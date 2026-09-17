@@ -13,6 +13,7 @@ script = ExtResource("1_1kx2c")
 id = &"laptop_01"
 name_key = "item.laptop"
 slot_cost = 2
+mass = 1.8
 set_id = &"laptop"
 generator = &"laptop"
 home = &"laptop_home"

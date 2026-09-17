@@ -13,6 +13,7 @@ script = ExtResource("1_tm4ig")
 id = &"bike_helmet_02"
 name_key = "item.bike_helmet"
 slot_cost = 2
+mass = 0.35
 set_id = &"bike_helmet"
 generator = &"bike_helmet"
 params = {

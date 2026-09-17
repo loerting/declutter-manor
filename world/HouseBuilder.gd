@@ -146,8 +146,6 @@ const GUARD_INSET := 0.05
 ## Depth of the collision ramp under a flight. Only its top face is ever touched; the rest is
 ## there so a body cannot tunnel through it on a fast frame.
 const RAMP_THICKNESS := 0.4
-## Thickness of the wall under a flight that has another flight beneath it.
-const SPANDREL := 0.08
 
 static func build(plan: FloorPlan) -> Node3D:
 	var root := Node3D.new()
@@ -233,6 +231,7 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 		for piece: PackedVector2Array in pieces:
 			i += 1
 			surface(holder, Props.prism(piece, top - FLOOR_SLAB, top), [floor_mat], "Floor%d" % i, true)
+			backing(holder, piece, top - FLOOR_SLAB, top, "Floor%dBacking" % i)
 	for pool: PoolDef in plan.pools_in(room.id):
 		ExteriorBuilder.build_pool(holder, storey, room, pool)
 
@@ -519,7 +518,9 @@ static func _build_wall(parent: Node3D, plan: FloorPlan, storey: StoreyDef, wall
 	_emit(holder, parts["panel"], Mats.of(GARAGE_DOOR_SLOT, GARAGE_DOOR_TINT, 0.55, 1.0, false, true),
 			"GarageDoor", true)
 	_emit(holder, parts["plinth"], Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true), "Plinth")
-	_emit(holder, parts["glass"], _glass(), "Glass")
+	# A pane is a barrier too: a thrown spoon went out through the office window into the garden
+	# (`InteractProbe` `carry.throw`, 2026-09-16). Only windows have glass, so no doorway closes.
+	_emit(holder, parts["glass"], _glass(), "Glass", true)
 
 ## The higher finished floor among the rooms a wall names, as an offset from the storey base
 ## (zero or negative). Openings, skirting and steps are all measured from it.
@@ -897,6 +898,26 @@ static func surface(parent: Node3D, mesh: ArrayMesh, materials: Array, node_name
 	body.add_child(shape)
 	parent.add_child(body)
 
+## The slab between `y_bottom` and `y_top` under `polygon`, as convex prisms on `Layers.BACKING`: solid, so an
+## item pushed under a floor's surface is pushed back out of it rather than through it.
+static func backing(parent: Node3D, polygon: PackedVector2Array, y_bottom: float, y_top: float,
+		node_name: String) -> void:
+	var body := StaticBody3D.new()
+	body.name = node_name
+	body.collision_layer = Layers.bit(Layers.BACKING)
+	body.collision_mask = 0
+	for piece: PackedVector2Array in Geometry2D.decompose_polygon_in_convex(polygon):
+		var points := PackedVector3Array()
+		for p: Vector2 in piece:
+			points.append(Vector3(p.x, y_bottom, p.y))
+			points.append(Vector3(p.x, y_top, p.y))
+		var shape := ConvexPolygonShape3D.new()
+		shape.points = points
+		var node := CollisionShape3D.new()
+		node.shape = shape
+		body.add_child(node)
+	parent.add_child(body)
+
 # --- Roof ---------------------------------------------------------------------------------------
 
 ## The roof is generated from the plan like everything else, so the attic is inside the roof
@@ -1055,10 +1076,11 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 	profile.append(Vector2(stair.run, rise - FLOOR_SLAB))
 	# A flight with another flight going down under it — the basement stair under the main one —
 	# cannot be solid to the floor, or there is nowhere for the lower one to be. It closes along
-	# a soffit parallel to its own pitch instead, which is how a stair over a stair is built, and
-	# the under-stair wall on its open side (`_spandrel`) is what closes the space off.
+	# a soffit parallel to its own pitch instead, which is how a stair over a stair is built. The
+	# space under it stays open to the room; the lower flight's well is guarded where it meets the
+	# room's floor (`_build_guard_under`).
 	var below := _flight_below(plan, stair)
-	var soffit_foot := FLOOR_SLAB * stair.run / rise
+	var soffit_foot := _soffit_foot(stair, rise)
 	# A ladder closes the same way: built solid to the floor, the attic ladder was a wooden block
 	# the size of a wardrobe standing in the upstairs hall.
 	var open_under := below != null or stair.width < LADDER_WIDTH
@@ -1084,8 +1106,6 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 		var probe := stair.foot + stair.direction * stair.run * 0.5 + across * s * (stair.width * 0.5 + OPEN_PROBE)
 		if lower.contains(probe):
 			_build_rake_rail(rails, stair, s, y0, riser, going, steps)
-			if below != null:
-				_spandrel(holder, lower_storey, lower, stair, origin, u, w, s, soffit_foot, rise)
 	# Guards around the well in the upper floor, on every edge that has floor beyond it. The
 	# head edge is where the flight arrives and stays open.
 	var well := stair.footprint()
@@ -1094,7 +1114,7 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 	# foot edge: outward is -direction; side edges: outward is ±across
 	var foot_mid := stair.foot - d * OPEN_PROBE
 	var y_top := y1
-	if upper.contains(foot_mid) and not _under_a_flight(plan, stair, stair.foot - d * GUARD_INSET):
+	if upper.contains(foot_mid) and _flight_over(plan, stair, stair.foot - d * GUARD_INSET) == null:
 		var a := stair.foot - d * GUARD_INSET - across * (stair.width * 0.5 + GUARD_INSET)
 		var b := stair.foot - d * GUARD_INSET + across * (stair.width * 0.5 + GUARD_INSET)
 		_build_guard(rails, Vector3(a.x, y_top, a.y), Vector3(b.x, y_top, b.y))
@@ -1102,12 +1122,14 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 		var mid := well.get_center() + across * s * (stair.width * 0.5 + OPEN_PROBE)
 		if not upper.contains(mid):
 			continue
-		# An edge under a flight standing in the room above is closed by that flight's under-stair
-		# wall, and a rail there would stand inside it.
-		if _under_a_flight(plan, stair, well.get_center() + across * s * (stair.width * 0.5 + GUARD_INSET)):
-			continue
 		var a := stair.foot + across * s * (stair.width * 0.5 + GUARD_INSET) - d * GUARD_INSET
 		var b := a + d * (guard_len + GUARD_INSET)
+		# An edge under a flight standing in the room above runs under that flight's soffit.
+		var over := _flight_over(plan, stair, well.get_center() + across * s * (stair.width * 0.5 + GUARD_INSET))
+		if over != null:
+			_build_guard_under(rails, Vector3(a.x, y_top, a.y), Vector3(b.x, y_top, b.y),
+					func(at: Vector3) -> float: return _soffit_y(plan, over, Vector2(at.x, at.z)) - y_top)
+			continue
 		_build_guard(rails, Vector3(a.x, y_top, a.y), Vector3(b.x, y_top, b.y))
 	_emit(holder, rails["post"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Balusters")
 	_emit(holder, rails["rail"], Mats.of(stair.tread_slot, Color.WHITE, 0.6, 1.0, true), "Handrail")
@@ -1121,26 +1143,77 @@ static func _flight_below(plan: FloorPlan, stair: StairDef) -> StairDef:
 			return other
 	return null
 
-## Whether a point on this flight's well edge lies under a flight that stands in the room this one
-## arrives in.
-static func _under_a_flight(plan: FloorPlan, stair: StairDef, at: Vector2) -> bool:
+## The flight standing in the room this one arrives in whose footprint covers a point, or null.
+static func _flight_over(plan: FloorPlan, stair: StairDef, at: Vector2) -> StairDef:
 	for other: StairDef in plan.stairs:
 		if other != stair and other.lower_room == stair.upper_room and other.footprint().has_point(at):
-			return true
-	return false
+			return other
+	return null
 
-## The wall under a flight's open side, from the floor to its soffit: the triangle a real stair
-## over a basement stair is closed with, plastered like the room it faces. It is solid, because
-## what is behind it is a hole down to the basement.
-static func _spandrel(holder: Node3D, storey: StoreyDef, room: RoomDef, stair: StairDef,
-		origin: Vector3, u: Vector3, w: Vector3, side: float, soffit_foot: float, rise: float) -> void:
-	var tri := PackedVector2Array([Vector2(soffit_foot, 0.0),
-			Vector2(stair.run, rise - FLOOR_SLAB), Vector2(stair.run, 0.0)])
-	var outer := side * stair.width * 0.5
-	var inner := outer - side * SPANDREL
-	var mesh := Props.extrude(tri, origin, u, Vector3.UP, w, minf(inner, outer), maxf(inner, outer))
-	surface(holder, mesh, [Mats.of(room.wall_slot, Color(1.32, 1.34, 1.36), 0.95, room.wall_scale, true)],
-			"Spandrel", true)
+## Where a flight with a flight below it leaves the floor: its soffit runs parallel to the pitch,
+## one slab under the nosings.
+static func _soffit_foot(stair: StairDef, rise: float) -> float:
+	return FLOOR_SLAB * stair.run / rise
+
+## The height of a flight's soffit over a plan point, in world Y.
+static func _soffit_y(plan: FloorPlan, stair: StairDef, at: Vector2) -> float:
+	var lower := plan.find_room(stair.lower_room)
+	var upper := plan.find_room(stair.upper_room)
+	var y0 := lower.floor_y(plan.storey_of(stair.lower_room).base_y)
+	var rise := upper.floor_y(plan.storey_of(stair.upper_room).base_y) - y0
+	var foot := _soffit_foot(stair, rise)
+	var u := (at - stair.foot).dot(stair.direction)
+	return y0 + (u - foot) * (rise - FLOOR_SLAB) / (stair.run - foot)
+
+## A level guard on a floor that runs in under a flight's soffit, as the basement well's edge does
+## under the main flight. `headroom` gives the soffit's height over the floor at a point on the
+## line. There used to be a plastered wall from the floor to the soffit here, standing over the
+## basement flight's own rail, and the author asked for it gone (2026-09-16).
+## The handrail runs from the newel at the high end until it meets the soffit, where it is let into
+## the flight. Past that the balusters stand up into the soffit, and none stands where the soffit
+## is too low for one. The barrier ends at the last baluster: beyond it the gap under the soffit is
+## lower than a baluster spacing.
+static func _build_guard_under(rails: Dictionary, a: Vector3, b: Vector3, headroom: Callable) -> void:
+	var h_a: float = headroom.call(a)
+	var h_b: float = headroom.call(b)
+	if h_a > h_b:
+		_build_guard_under(rails, b, a, headroom)
+		return
+	var post_h := RAIL_HEIGHT + NEWEL_OVER
+	assert(h_b > post_h, "HouseBuilder: a guard under a flight needs a full newel at its high end")
+	var dir := (b - a).normalized()
+	var length := a.distance_to(b)
+	var h_at := func(t: float) -> float: return h_a + (h_b - h_a) * t / length
+	# where the headroom is a given height, as a distance from a, clamped onto the line
+	var t_at := func(h: float) -> float: return clampf((h - h_a) / (h_b - h_a) * length, 0.0, length)
+	rails["post"].append(Props.part(Vector3(NEWEL, post_h, NEWEL), b + Vector3.UP * post_h * 0.5))
+	var basis := Basis(dir, Vector3.UP, dir.cross(Vector3.UP))
+	# the rail's end is under the soffit by its own height, so its top is inside the flight
+	var t_rail: float = t_at.call(RAIL_HEIGHT)
+	var t_end := length - NEWEL * 0.5 + RAIL_TENON
+	rails["rail"].append([Props.box(Vector3(t_end - t_rail, HANDRAIL.y, HANDRAIL.x)),
+			Transform3D(basis, a + dir * ((t_rail + t_end) * 0.5) + Vector3.UP * (RAIL_HEIGHT + HANDRAIL.y * 0.5))])
+	var count := int(floor((length - NEWEL) / BALUSTER_SPACING))
+	var t_first := length
+	for i in range(1, count + 1):
+		var t := length * float(i) / float(count + 1)
+		var room: float = h_at.call(t)
+		if room < BALUSTER_SPACING:
+			continue
+		# a square section under a raked soffit: let in by its width, it touches on the low side too
+		var top := minf(RAIL_HEIGHT, room + BALUSTER)
+		rails["post"].append(Props.part(Vector3(BALUSTER, top, BALUSTER), a + dir * t + Vector3.UP * top * 0.5))
+		t_first = minf(t_first, t)
+	var hull := PackedVector3Array()
+	var across := dir.cross(Vector3.UP)
+	for t: float in [t_first, maxf(t_first, t_rail), length + NEWEL * 0.5] as Array[float]:
+		var top := minf(RAIL_HEIGHT, h_at.call(t))
+		for y: float in [0.0, top] as Array[float]:
+			for half: float in [BARRIER * 0.5, -BARRIER * 0.5] as Array[float]:
+				hull.append(a + dir * t + Vector3.UP * y + across * half)
+	var prism := ConvexPolygonShape3D.new()
+	prism.points = hull
+	rails["barrier"].append([prism, Transform3D.IDENTITY])
 
 ## One static body carrying every guard on this flight. A guard is a barrier in the physics
 ## world even though it is balusters in the visual one, so each bar is given as a shape and its

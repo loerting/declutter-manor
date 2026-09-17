@@ -13,6 +13,7 @@ anchor = &"kitchen_fridge_freezer"
 script = ExtResource("1_2a04d")
 id = &"book_01"
 name_key = "item.book"
+mass = 0.5
 set_id = &"book"
 generator = &"book"
 params = {

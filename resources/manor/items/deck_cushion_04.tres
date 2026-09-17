@@ -13,6 +13,7 @@ script = ExtResource("1_j6d3e")
 id = &"deck_cushion_04"
 name_key = "item.deck_cushion"
 slot_cost = 4
+mass = 0.8
 set_id = &"deck_cushion"
 generator = &"deck_cushion"
 home = &"deck_cushion_home"

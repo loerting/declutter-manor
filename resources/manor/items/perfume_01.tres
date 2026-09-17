@@ -12,6 +12,7 @@ xform = Transform3D(3.2332576e-08, 0.73968315, -0.67295533, 1, -4.371139e-08, 0,
 script = ExtResource("1_1rs70")
 id = &"perfume_01"
 name_key = "item.perfume"
+mass = 0.3
 set_id = &"perfume"
 generator = &"perfume"
 params = {

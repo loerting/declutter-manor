@@ -14,6 +14,7 @@ script = ExtResource("1_i66e4")
 id = &"sneakers_01"
 name_key = "item.sneakers"
 slot_cost = 2
+mass = 0.8
 set_id = &"sneakers"
 generator = &"sneakers"
 params = {

@@ -4,14 +4,16 @@ extends CanvasLayer
 ##
 ## - the room they stand in and how much misplaced clutter it still holds, on a strip of tape;
 ## - what a click would do, under the crosshair;
-## - the item the crosshair is on: what it costs to carry, the room and piece it belongs on, and how much
+## - the item the crosshair is on: its picture, what it costs to carry, the room and piece it belongs on, and how much
 ##   of its set is home (`ItemCard`);
-## - how full their hands are, and which item right-click puts back (`CarryBar`);
+## - how full their hands are, and which carried item is selected (`CarryBar`);
 ## - sets complete, slots, items put away, and the sets under way as pips (the tracker);
-## - held `show_tracker`: every set and every room, in place of the tracker.
+## - held `show_tracker`: every set and every room, in place of the tracker;
+## - the way to where the carried items belong: a compass marker per home room, and a pin on a home in view
+##   (`Compass`, `HomePins`, from `WayHome`).
 ##
 ## Never which item is misplaced, never where it lies (`docs/VISION.md`, "Findability"). Nothing here
-## decides anything: it is told (`Interactor.aim_changed`, `EventBus`, `ClutterCensus`).
+## decides anything: it is told (`Interactor.aim_changed`, `EventBus`, `ClutterCensus`, `WayHome`).
 
 ## Player-facing text states the mechanical fact and nothing else (`CLAUDE.md`, "No AI-slop copy").
 const PROMPTS: Dictionary = {
@@ -51,6 +53,8 @@ const ITEM_PROMPTS: Array[Interactor.Prompt] = [Interactor.Prompt.TAKE, Interact
 @onready var _rooms: GridContainer = %Rooms
 @onready var _notice: Control = %Notice
 @onready var _notice_text: Label = %NoticeText
+@onready var _compass: Compass = %Compass
+@onready var _pins: HomePins = %Pins
 
 ## Every overview row is this wide and a name that does not fit ends in an ellipsis, so fifty-five sets
 ## and every room of the house fit the overview's four columns (`dev/HudProbe.gd`).
@@ -62,6 +66,8 @@ const ITEM_PROMPTS: Array[Interactor.Prompt] = [Interactor.Prompt.TAKE, Interact
 
 var _content: Catalogue
 var _plan: FloorPlan
+## The item pictures, once whoever owns them hands them over (`show_pictures`).
+var _portraits: Portraits
 ## set id -> its overview row: the name, then the count.
 var _set_rows: Dictionary = {}
 ## Sets with some but not all members home or in hand, the last one to change first.
@@ -72,10 +78,14 @@ var _counts: Dictionary = {}
 var _notice_serial := 0
 var _prompt: Interactor.Prompt = Interactor.Prompt.NONE
 var _target: ItemDef
+## The way home and the eye it is seen from, once whoever owns them hands them over (`guide`).
+var _way: WayHome
+var _camera: Camera3D
 
 func _ready() -> void:
 	_crosshair.draw.connect(_draw_crosshair)
 	EventBus.carried_changed.connect(_on_carried_changed)
+	EventBus.carried_selected.connect(_on_carried_selected)
 	EventBus.item_picked_up.connect(_on_item_moved)
 	EventBus.item_returned.connect(_on_item_moved)
 	_sets_title.text = tr("hud.sets")
@@ -91,10 +101,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action(&"show_tracker") and not event.is_echo():
 		show_overview(event.is_pressed())
 
-## Every set and every room in place of the tracker, or the tracker back.
+## Every set and every room in place of the tracker, or the tracker back. The compass steps aside for it.
 func show_overview(on: bool) -> void:
 	_overview.visible = on
 	_tracker.visible = not on
+	_show_compass()
+
+func _process(_delta: float) -> void:
+	if _way != null:
+		_show_way()
 
 ## Connected by whoever owns both, so the HUD never reaches for the player (rule 4).
 func watch(interactor: Interactor) -> void:
@@ -117,6 +132,26 @@ func track(content: Catalogue, plan: FloorPlan, census: ClutterCensus) -> void:
 	census.counts_changed.connect(_on_counts_changed)
 	_on_counts_changed(census.counts())
 
+## The item card and the carry bar show pictures from `portraits`, and are redrawn once they are rendered.
+func show_pictures(portraits: Portraits) -> void:
+	_portraits = portraits
+	portraits.rendered.connect(_on_pictures_rendered)
+	_on_pictures_rendered()
+
+## The compass and the pins show the way home `way` finds, seen from `camera`. Connected by whoever owns
+## both, for the same reason as `watch`.
+func guide(way: WayHome, camera: Camera3D) -> void:
+	_way = way
+	_camera = camera
+	_show_way()
+
+func _on_pictures_rendered() -> void:
+	_show_load()
+	_show_card()
+
+func _picture(def: ItemDef) -> Texture2D:
+	return null if _portraits == null else _portraits.of(def)
+
 # --- The crosshair and the item card ---------------------------------------------------------------
 
 ## What a click would do and the item it would do it to, if it is one.
@@ -125,6 +160,10 @@ func _show_aim(prompt: Interactor.Prompt, target: ItemDef) -> void:
 	_target = target
 	var key: String = PROMPTS.get(prompt, "")
 	_prompt_text.text = "" if key == "" else tr(key)
+	# Pointing at a group may have selected another item than the one in hand a moment ago: the prompt names it.
+	var selected := Inventory.selected()
+	if prompt == Interactor.Prompt.PLACE and selected >= 0:
+		_prompt_text.text = tr("hud.pair") % [tr(key), tr(Inventory.carried()[selected].name_key)]
 	_prompt_key.text = InputNames.of(&"interact")
 	# Nothing to press when there is no room for the item: the words say why.
 	_prompt_key_cap.visible = key != "" and prompt != Interactor.Prompt.NO_SLOT
@@ -135,7 +174,7 @@ func _show_card() -> void:
 	var shown := _target != null and _content != null and ITEM_PROMPTS.has(_prompt)
 	_card.visible = shown
 	if shown:
-		_card.show_item(_target, _content, _plan, _carried_of(_target.set_id))
+		_card.show_item(_target, _content, _plan, _carried_of(_target.set_id), _picture(_target))
 
 ## A dot, not a reticle: this is a game about looking at things, and a shooter's cross reads as a weapon.
 ## It brightens when the crosshair is on something a click would act on.
@@ -147,10 +186,21 @@ func _draw_crosshair() -> void:
 
 # --- Hands -----------------------------------------------------------------------------------------
 
-func _on_carried_changed(_used: int, capacity: int) -> void:
-	_carry_bar.show_load(Inventory.carried(), capacity)
+func _on_carried_changed(_used: int, _capacity: int) -> void:
+	_show_load()
 	_show_tracker()
 	_show_card()
+
+func _on_carried_selected(_index: int) -> void:
+	_show_load()
+	_show_aim(_prompt, _target)
+
+func _show_load() -> void:
+	var carried := Inventory.carried()
+	var pictures: Array[Texture2D] = []
+	for def: ItemDef in carried:
+		pictures.append(_picture(def))
+	_carry_bar.show_load(carried, Inventory.capacity, Inventory.selected(), pictures)
 
 ## Taking a member in hand, or putting it back, is the set changing as far as the player is concerned.
 func _on_item_moved(item_id: StringName) -> void:
@@ -238,12 +288,14 @@ func _on_set_completed(set_id: StringName) -> void:
 		return
 	_notice_text.text = tr("hud.set_completed") % [tr(s.name_key), NumberFormatter.slots(Balance.SLOTS_PER_COMPLETED_SET)]
 	_notice.visible = true
+	_show_compass()
 	# A second set finishing inside the first one's notice gets its full time on screen.
 	_notice_serial += 1
 	var serial := _notice_serial
 	await get_tree().create_timer(Balance.SET_NOTICE_SECONDS).timeout
 	if serial == _notice_serial:
 		_notice.visible = false
+		_show_compass()
 
 # --- The overview ----------------------------------------------------------------------------------
 
@@ -284,6 +336,46 @@ func _on_counts_changed(counts: Dictionary) -> void:
 	_rooms_title.visible = not counts.is_empty()
 	_counts = counts
 	_show_here()
+
+# --- The way home ---------------------------------------------------------------------------------
+
+## Redrawn every frame: the marks move as the head turns, not only when the way changes.
+func _show_way() -> void:
+	var eye := _camera.global_transform
+	var marks: Array[Compass.Mark] = []
+	for way: WayHome.Way in _way.ways():
+		var mark := Compass.Mark.new()
+		mark.bearing = Compass.bearing(eye, way.aim)
+		mark.title = tr("hud.pair") % [tr(_plan.find_room(way.room).name_key),
+				tr("hud.metres") % NumberFormatter.count(roundi(way.metres))]
+		mark.floors = way.floors
+		mark.picture = _picture(way.def)
+		mark.metres = way.metres
+		marks.append(mark)
+	show_marks(marks)
+	var tags: Array[HomePins.Tag] = []
+	var view := _pins.get_viewport_rect()
+	for pin: WayHome.Pin in _way.pins():
+		if _camera.is_position_behind(pin.at):
+			continue
+		var at := _camera.unproject_position(pin.at)
+		if not view.has_point(at):
+			continue
+		var tag := HomePins.Tag.new()
+		tag.at = at
+		tag.text = tr("hud.pair") % [tr(pin.def.name_key), tr(_content.find_group(pin.group).name_key)]
+		tags.append(tag)
+	_pins.show_tags(tags)
+
+## The compass shows these marks.
+func show_marks(marks: Array[Compass.Mark]) -> void:
+	_compass.show_marks(marks)
+	_show_compass()
+
+## The top of the screen holds one thing at a time: the compass steps aside for a notice and for the overview,
+## and is not there while it has nothing to show.
+func _show_compass() -> void:
+	_compass.visible = _compass.shown_count() > 0 and not _overview.visible and not _notice.visible
 
 # --- The room --------------------------------------------------------------------------------------
 

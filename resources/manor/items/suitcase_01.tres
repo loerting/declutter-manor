@@ -13,6 +13,7 @@ script = ExtResource("1_inngl")
 id = &"suitcase_01"
 name_key = "item.suitcase"
 slot_cost = 8
+mass = 4.0
 set_id = &"suitcase"
 generator = &"suitcase"
 params = {

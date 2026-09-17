@@ -14,6 +14,7 @@ script = ExtResource("1_5udwy")
 id = &"toaster_01"
 name_key = "item.toaster"
 slot_cost = 2
+mass = 1.8
 set_id = &"toaster"
 generator = &"toaster"
 home = &"toaster_home"

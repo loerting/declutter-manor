@@ -13,6 +13,7 @@ script = ExtResource("1_pig5e")
 id = &"school_book_05"
 name_key = "item.school_book"
 slot_cost = 2
+mass = 0.9
 set_id = &"school_book"
 generator = &"school_book"
 params = {

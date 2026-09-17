@@ -14,6 +14,7 @@ script = ExtResource("1_h4cpm")
 id = &"garden_hose_01"
 name_key = "item.garden_hose"
 slot_cost = 8
+mass = 4.5
 set_id = &"garden_hose"
 generator = &"garden_hose"
 home = &"garden_hose_home"

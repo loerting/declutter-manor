@@ -14,6 +14,7 @@ script = ExtResource("1_kv75b")
 id = &"toilet_roll_01"
 name_key = "item.toilet_roll"
 slot_cost = 2
+mass = 0.12
 set_id = &"toilet_roll"
 generator = &"toilet_roll"
 home = &"toilet_roll_home"

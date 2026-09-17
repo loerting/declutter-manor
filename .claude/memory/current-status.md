@@ -854,3 +854,131 @@ unless the author wants another walk first now that 1-4 are in.
 Everything above is verified and staged, not committed: `--import` 0, `run_tests.sh` 58 checks
 0 failed, `Diag` 0, `PlanProbe` 0, `WalkProbe` 0, `InteractProbe` 0, `SeamProbe` 0 exposed /
 571 buried, no `SCRIPT ERROR` or `Parse Error` in any log.
+
+**2026-09-16 after S commit (8fb776c): stair wall removed + C1 physics carry built, verified, NOT committed.**
+- Stair: `HouseBuilder._spandrel` deleted (author: wall over the basement stair's railing unnecessary).
+  `_build_guard_under` = level guard on the hall edge of the basement well, rail dies into the main
+  flight's soffit, balusters to the soffit, prism barrier. WalkProbe `stair.spandrel` -> `stair.under`
+  (red only with guard AND basement rake barrier removed, both proven). SeamProbe 0 exposed.
+- C1 (I skipped the separate plan page: real renders instead of mockups; told the author). Jolt adopted.
+  `ItemNode` is RigidBody3D, Hold STILL/CARRIED/LOOSE (frozen unless loose), hull solid on `Layers.PROP`
+  (`ItemFactory.hull_points`, native convex hulls on Generation workers), click target child `ItemPick`
+  (ITEM layer). `CarryComponent.drop_top/throw_top` (effort joules, sqrt(2E/m), `ItemDef.mass` from
+  content_model kg, 250 tres written), `return_top`/`return_item` removed; input `drop_item` Q/pad B,
+  `throw_item` RMB/pad RT (hold to charge). `world/LooseItems.gd` judges at sleep or 8 s: `Reach.reachable`
+  (moved from dev/Clearance to `world/Reach.gd`) -> lies there (remember_origin), else `recover` to last
+  rest (slot or spot); fell below world -> recover at once; lands on a container mover -> reparented
+  under mover, frozen. EventBus `item_dropped`, `item_landed`; Autosave/Census listen. Save v4
+  (`loose`, `mover`, `_migrate_v3_to_v4`, fixture manor_v4.sav). CarryBar hint "Q Drop <item>" (hud.drop).
+- Physics findings, all measured: open drawers/doors had NO collision (`ContainerComponent._ready` Tray
+  trimesh on `Layers.TRAY`); window glass had none (spoon thrown out of office window; now collides);
+  floors/ground are hollow trimesh -> 7 thin items fell through -> `HouseBuilder.backing` convex prisms
+  on `Layers.BACKING` (items only). project.godot: 240 ticks, penetration_slop 0.0005, margin 0 (60 Hz:
+  16/165 drops sunk up to 3.7 cm; 120 Hz: 3). Hull thinning cut corners (pillow 5 mm) -> kept whole.
+  WalkProbe waits converted from frames to seconds (`_ticks`).
+- New `dev/DropProbe.tscn` (55 types x 3 turns, worst 2.8 mm; red at 60 Hz and without backing).
+  InteractProbe carry.drop/retake/throw/lost/reach/rides, save.loose/rides: each proven red (8 breaks).
+  RunTests 88 (mass vs slot cost, v4 fixture; red proven). All green: Walk, Interact, Drop, Hud, Furniture,
+  Plan, Pacing 178, Generation, export, Diag unchanged. Boot 2.2-2.9 s windowed (was 1.84).
+  Renders `screenshots/carry/drop_pile.png`, `drop_close.png`. Stair renders were lost with the scratchpad.
+- Next: author checks the stair in game + feel of drop/throw (needs play, 240 Hz feel); commit when asked;
+  then C2 on-screen stack + wheel/1-9 selection, C3 placement auto-select + carry bar merge, then U2-U5
+  (FOV slider + HUD size setting in ROADMAP Phase 5). D4a licence exception in CLAUDE.md not yet written
+  (goes with the font in U-work).
+
+**2026-09-16 C2 built (after the author said "C2"), NOT committed (nothing since 8fb776c is).**
+- Selection lives in `Inventory` (`selected`, `select`, `select_step`; take selects the new item; release
+  keeps the row position; EventBus `carried_selected`). `CarryComponent.selected/detach_selected/
+  drop_selected/throw_selected/held()` + signal `held_changed`; `top()` API gone. Inputs `select_next`
+  (wheel down, pad RB), `select_previous` (wheel up, LB), `select_1..9`. CarryBar/CarryCells outline and
+  name the selected item.
+- Hands on screen: `player/CarryLayout.gd` (pure: two hands split at bottom centre, rows bottom-up,
+  HAND_TOP 0.34, centre column 0.38 clear for the carry bar, uniform shrink) + `player/CarryView.gd`
+  (under Head in Player.tscn): mesh copies 0.2 m from the eye (inside 0.3 m capsule = no wall clipping, no
+  2nd camera), corners projected and fitted to the rect (3 passes), broadest face to eye, slender items
+  rolled 28 deg, fly-in from pickup spot, selected 1.18x + white inverted-hull outline, hand OmniLight on
+  RoomLayers.SHARED, float drift. Constants `Balance` "The hands on screen".
+- `dev/CarryShot.tscn` renders the real game with `--carry=ids --stand --look --select --size`.
+- Tests: RunTests 123 (selection rules + layout at 4 aspects x 6 loads incl. 56 spoons; both proven red).
+  InteractProbe `carry.select`, `hands.copies/.reach/.screen` (red proven: distance 0.45, drop-last,
+  wheel reversed, screen offset). HudProbe bar names the selected item (red proven). All green: tests 123,
+  Interact, Hud, Walk, Drop, Pacing, Furniture, export. Renders `screenshots/hands/*` (spoon, TV, 20 small,
+  mix, mix at Steam Deck).
+- Docs: VISION loop step 2 + removed "abstract inventory" assumption; ARCHITECTURE "### Held out", probe
+  rows, SSOT rows.
+- Next: author judges renders/play feel; C3 (auto-select at a home + carry bar merge), then U2-U5.
+
+**2026-09-16 C3 built (after the author said "C3"), NOT committed (nothing since 8fb776c is).**
+- Auto-select: `Interactor._offer` finds the best group for ANY carried item (`_find_slot(defs)`); when that
+  group (`_pointed`) changes, or after a place, and the player has not chosen by hand (`_chosen`, set by
+  wheel/1-9/LB/RB, cleared on group change and on place), `_select_for` selects the first item after the
+  selected one the group takes. A hand-chosen item the group does not take is offered to its own group.
+- Prompt "Put away · <item>" (Hud re-renders on `carried_selected`). Carry bar row reworked: item name,
+  then Q Drop and RMB Throw key caps (`CarryBar.selected_text/selected_label/key_texts`, string `hud.throw`).
+- Probes: InteractProbe `place.select` (`_check_auto_select`, between hands and stacking; puts everything
+  back), HudProbe `hud.place` + bar keys. Lesson: a HudProbe `get_node("%X")` for a node unique inside
+  CarryBar.tscn is null -> SCRIPT ERROR aborts the check and the probe still says 0 violations; grep logs.
+- `dev/CarryShot.gd --look-home=<item id>`.
+- Red proofs: all six breaks (no auto-select, hand choice ignored, place keeps the choice, prompt unnamed,
+  prompt does not follow selection, throw key cap) fail their check. The place-reset break first stayed
+  green; the probe now chooses the spoon by hand (select_2 then select_3) right before placing.
+- Renders: `screenshots/placing/pointing_at_home.png` (mug, book, spoon carried; spoon last taken; bookshelf
+  at stand 6.9,0,9.8 -> Book auto-selected, ghost, "Put away · Book") and `looking_away.png` (Spoon).
+  Noticed: the prompt label overlaps the bottom of the ghost -> look at in U-work.
+- NEXT: author judges renders + play feel of auto-select; commit when asked; then HUD U2-U5.
+
+**2026-09-17 U2 item pictures built (author said "U2"), NOT committed (nothing since 8fb776c is).**
+- Scope recovered from the transcript (plan artifact NvXbmWC1 is gone): "One SubViewport renders every
+  distinct item into an atlas, framed from its own bounds; proof = per-cell coverage band + boot < 4 s".
+- `ui/Portraits.gd` (+ `ui/portrait_outline.gdshader`): own-world SubViewport, ortho camera, one 128 px cell
+  per Params.key (180), pose = `CarryView.held_pose(def)` (extracted public static; slender roll now inside
+  it), items > PORTRAIT_SLENDER 3.0 rolled to the best 15-degree step, scaled to PORTRAIT_FILL 0.84 of cell;
+  key light + ambient (a directional rim light did nothing visible -> replaced by a 2D outline pass, straight
+  alpha, blend_disabled). Posing waits for the first frame_post_draw. Headless -> `of()` null.
+- `Hud.show_pictures(portraits)` (GameWorld owns the node); ItemCard picture 56 px, card 310 -> 364 wide,
+  name autowraps (a 394 card met the tracker; the 72 px picture had squeezed the name to "Stuffed a...",
+  which HudProbe's readable floor of 48 px does not catch). CarryCells draws pictures in blocks (not in gauge
+  mode), cost digit only for cost > 1 over a picture. Balance "Item pictures" section.
+- `dev/PortraitProbe.tscn` (windowed): every/fills/visible/time/card; red proven: fixed scale 177, no
+  outline 64 visible, key without params 200, card blank 1, bar rect outside block 2. Worst fill 0.77,
+  worst light share 0.108, 180 types in ~512 ms in isolation.
+- Measured in game: first frame 3.8 s after world start with and without pictures; pictures ready ~1.4 s
+  later (5.2 s). `dev/CarryShot` got `--look-item=<id>` and `--slots=N`.
+- Renders: `screenshots/pictures/card_and_bar.png` (bear card, 5 carried at 10 slots), `atlas.png`.
+- Not done in U2: pictures in tracker rows (U4 ledger shows members). NEXT: author judges; U3 compass.
+
+**2026-09-17 U3 the way home built (author said "U3"), NOT committed (nothing since 8fb776c is).**
+- Spec recovered from the transcript (plan html): compass marker per home room aimed at the next doorway or
+  flight, "↑ 1 floor" line, home outline in the ghost's white (closed container -> its front), pins only for
+  carried items in their home room while in view, setting "Guidance: full / names only" (D1a).
+- `RoomGraph`: waypoints per link (door approach 0.7 m each side, flight: stand-off + foot + head + stand-off,
+  exterior pairs routed round the house's outside corners lazily), `route`, `aim` (furthest waypoint in plain
+  sight, backward scan, detour round flight corners when none seen), `clear` (both wall faces, doors/arches
+  with jamb, flights: below = treads under WAY_HEADROOM 2.0 with the foot edge open, above = well with head
+  edge open), `passable` (GARAGE_DOOR is built shut -> no longer a link; PacingProbe still 178 min).
+  Obstacles precomputed per storey; waypoints cached.
+- `world/WayHome.gd` (Node, GameWorld wires with the camera; `--guidance=names`), `Way`/`Pin` inner classes;
+  outline target = container mover if slots within HOME_OUTLINE_REACH 0.3 of it, else the whole piece (lids).
+- `world/HomeOutline.gd` + `home_outline.gdshader` (smoothed-normal hull, screen-space width 2.5 px@1080,
+  pulled 5 cm to the eye, stencil read) + `home_outline_mask.gdshader` (stencil write 64, no depth test).
+  Without the stencil+pull a flush door/drawer front showed only fragments (render proved it).
+- `ui/Compass.gd` (760 px band top centre, markers pushed apart with a faint line to the true tick, nearest
+  kept when crowded, floors arrow drawn), `ui/HomePins.gd`; Hud `guide(way, camera)`, `show_marks`; compass
+  steps aside for the notice (same spot) and the overview. Locale hud.metres/floor/floors.
+- `dev/WayProbe.tscn` headless: way.route (1320 routes, longest 11), way.clear (physics ray, furniture
+  excluded), way.outline, way.names, way.time (all 55 carried from the attic: 1.9 ms). HudProbe hud.compass
+  + compass in fits/clear. RunTests compass bearing (129 checks). Red proven: doors wrong side 1294, flights
+  ignored 754, lid outlined 2, names ignored 1, no push-apart (both passes) 4, compass over notice 8 fits,
+  bearing sign 3 FAIL.
+- First probe run found 890: no wall thickness, flights/guards not in plan walls, garage door shut, fallback
+  aiming through obstacles, attic ladder stand-off on the knee wall, lids outlined.
+- Renders scratchpad u3 -> screenshots/way/: hall (4 markers, floors), kitchen (cupboard door + drawer
+  outlines, pins), living (coffee table), pool (round the garage).
+- Compass: `gap` 20 between markers, separate `drop` 6 band->disc (gap*0.5 pushed discs out of the rect: 28 hud.compass).
+- Suite 2026-09-17: import, tests 129, Plan, Interact, Hud, Walk, Drop, Pacing, Furniture, Way, Generation, export all green.
+  PortraitProbe + HudProbe --long screenshot TIMED OUT: the desktop was not letting Godot windows draw (a bare
+  window got 2 frame_post_draw in 300 frames; `WorldBuilder.capture` force_draws so CarryShot renders still work).
+  Nothing in U3 touches Portraits. Rerun both with the Godot window visible before committing.
+- 2026-09-17 author said "Commit, then U4": stair wall + C1-C3 + U2 + U3 committed as ONE commit on top of 8fb776c
+  (files overlap too much to split). PortraitProbe still timed out right before (display not drawing) - still owed.
+- NEXT: U4 ledger.

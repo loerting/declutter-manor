@@ -8,7 +8,7 @@ extends Node
 ##   3. Never lose a good save to a bad write. Verify the temp file, keep the previous one as a
 ##      backup, and only then swap.
 
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 const _EXT := ".sav"
 const _BAK := ".bak"
 const _TMP := ".tmp"
@@ -52,7 +52,7 @@ static func new_save() -> Dictionary:
 		"settings_rev": 0,
 		"sets": {},     # set_id -> Array[item_id] at home when saved
 		"granted": [],  # set ids that have paid their slot; a set never pays twice
-		"items": {},    # item_id -> { room, xform, container, anchor, group, index, at_home }
+		"items": {},    # item_id -> { room, xform, container, mover, anchor, group, index, loose, at_home }
 	}
 
 # --- Migration ---------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ static func new_save() -> Dictionary:
 ## from_version -> Callable(Dictionary) -> Dictionary. Every version but the current one has an
 ## entry, and every entry has a fixture in dev/fixtures/.
 func default_chain() -> Dictionary:
-	return {1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3}
+	return {1: _migrate_v1_to_v2, 2: _migrate_v2_to_v3, 3: _migrate_v3_to_v4}
 
 ## Version 2 is Phase 3's: it remembers which sets have already granted their slot, and which
 ## slot of which place-slot group an item stands in, so a drawer of spoons loads as a stack in
@@ -88,6 +88,19 @@ static func _migrate_v2_to_v3(data: Dictionary) -> Dictionary:
 		var entry: Dictionary = items[id]
 		entry["anchor"] = &""
 	d["version"] = 3
+	return d
+
+## Version 4 is the carry rework's: an item can lie loose where it came to rest after it was dropped or
+## thrown (`loose`), and one that came to rest on a drawer or a door hangs under its moving part (`mover`,
+## with `xform` in that part's space). Nothing before version 4 could be either.
+static func _migrate_v3_to_v4(data: Dictionary) -> Dictionary:
+	var d := data.duplicate(true)
+	var items: Dictionary = d.get("items", {})
+	for id: Variant in items:
+		var entry: Dictionary = items[id]
+		entry["mover"] = false
+		entry["loose"] = false
+	d["version"] = 4
 	return d
 
 ## Applies migrations in order until `data` reaches `target`. The chain is a parameter so a test

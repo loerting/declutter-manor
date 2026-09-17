@@ -13,6 +13,7 @@ script = ExtResource("1_rplf8")
 id = &"bike_helmet_01"
 name_key = "item.bike_helmet"
 slot_cost = 2
+mass = 0.35
 set_id = &"bike_helmet"
 generator = &"bike_helmet"
 params = {

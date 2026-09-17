@@ -13,6 +13,7 @@ script = ExtResource("1_7soco")
 id = &"pool_noodle_02"
 name_key = "item.pool_noodle"
 slot_cost = 4
+mass = 0.2
 set_id = &"pool_noodle"
 generator = &"pool_noodle"
 params = {

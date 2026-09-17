@@ -12,6 +12,7 @@ xform = Transform3D(0.95398456, 0.2998557, 1.3107109e-08, 0, -4.371139e-08, 1, 0
 script = ExtResource("1_nrfqg")
 id = &"picture_frame_01"
 name_key = "item.picture_frame"
+mass = 0.5
 set_id = &"picture_frame"
 generator = &"picture_frame"
 params = {

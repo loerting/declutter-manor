@@ -6,7 +6,10 @@ extends Node3D
 ## The graphics tier is a launch argument for now. It becomes a setting in Phase 5, where the
 ## settings resource is written; until then the default is the tier the gate renders call high.
 ##
-##     godot --path . -- --tier=low
+##     godot --path . -- --tier=low [--guidance=names]
+##
+## `--guidance=names` turns the way home off but for the names, the setting of decision D1 until Phase 5 writes
+## the settings.
 ##
 ## The save is loaded over the house as it is built, and written back whenever the house changes
 ## (`Autosave`). `--fresh` starts a new run without reading it — dev builds only — and the first
@@ -20,6 +23,7 @@ const HUD := preload("res://ui/Hud.tscn")
 var fresh := false
 
 var _tier := Graphics.Tier.HIGH
+var _guidance := WayHome.Guidance.FULL
 var _shot := ""
 var _player: PlayerController
 var _plan: FloorPlan
@@ -30,6 +34,8 @@ func _ready() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--tier="):
 			_tier = Graphics.from_string(arg.trim_prefix("--tier="))
+		elif arg == "--guidance=names":
+			_guidance = WayHome.Guidance.NAMES
 		elif arg.begins_with("--screenshot="):
 			_shot = arg.trim_prefix("--screenshot=")
 		elif arg == "--fresh" and BuildConfig.is_dev_only():
@@ -57,6 +63,7 @@ func _ready() -> void:
 	_player = PLAYER.instantiate() as PlayerController
 	assert(_player != null, "GameWorld: Player.tscn is not a PlayerController")
 	add_child(_player)
+	_player.carry().initialize(items)
 	_player.teleport(WorldBuilder.spawn_point(plan), plan.spawn_facing)
 	WorldBuilder.attach_culler(self, plan, _player.camera())
 
@@ -65,6 +72,10 @@ func _ready() -> void:
 	census.name = "ClutterCensus"
 	census.initialize(self, plan)
 	add_child(census)
+	var loose := LooseItems.new()
+	loose.name = "LooseItems"
+	loose.initialize(self, plan)
+	add_child(loose)
 	var autosave := Autosave.new()
 	autosave.name = "Autosave"
 	autosave.initialize(self, plan)
@@ -75,6 +86,18 @@ func _ready() -> void:
 	add_child(hud)
 	hud.watch(_player.interactor())
 	hud.track(content, plan, census)
+	# The pictures take a frame or two to draw; the HUD shows none until they are ready.
+	var portraits := Portraits.new()
+	portraits.name = "Portraits"
+	add_child(portraits)
+	hud.show_pictures(portraits)
+	portraits.render(content.items)
+	var way := WayHome.new()
+	way.name = "WayHome"
+	way.guidance = _guidance
+	way.initialize(plan, content, RoomGraph.new(plan), _player.camera(), self)
+	add_child(way)
+	hud.guide(way, _player.camera())
 	print("world ready in %d ms — plan '%s' (%s), tier %s" % [
 			Time.get_ticks_msec() - t0, plan.id, plan.plan_hash(), Graphics.tier_name(_tier)])
 

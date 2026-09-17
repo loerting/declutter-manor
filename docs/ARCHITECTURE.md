@@ -38,11 +38,18 @@ value appears there, it must never be re-typed anywhere else.
 | A location's items and sets | its `Catalogue`, `resources/<plan id>/catalogue.tres`, from `WorldBuilder.catalogue(plan)` |
 | Where content is written, and in what form | `dev/HomeAuthor.gd` — never hand-type an item transform |
 | Which room a point is in | `FloorPlan.room_at` |
-| The walking route between two rooms | `world/RoomGraph.gd` — `PacingProbe` and the HUD read the same graph |
+| The walking route between two rooms | `world/RoomGraph.gd` — `PacingProbe` and the way home read the same graph |
+| What stands in a line of sight on a floor | `RoomGraph.clear` — walls with their thickness, doorways, flights; never a second wall test |
+| Where a carried item's home is, and the way there | `WayHome` — the compass, the pins and the outline are drawn from it, never worked out in the HUD |
 | What a home is called on screen | `HomeName.of(group, content, plan)` — the piece's room and `PlaceSlotGroup.name_key` |
 | The key an action is bound to, in a hint | `core/util/InputNames.gd` — never a key written into a string |
+| An item type's picture | `Portraits.of(def)` — rendered once at boot; never a second render or a hand-made icon |
 | The HUD's look | `ui/HudTheme.tres` and `ui/glass.tres`; the two drawn parts, `SetDots` and `CarryCells`, carry their colours as exports |
 | What the save holds and how it is put back | `world/ProgressSave.gd` |
+| Whether a standing player could pick an item up where it is | `world/Reach.gd` — starts, imports and loose items ask the same test |
+| Where carried items are drawn on screen | `player/CarryLayout.gd` — the rectangles; `CarryView` only turns them into places in front of the eye |
+| Which carried item is selected | `Inventory.selected()` — the HUD, the hands and the drop read the one index |
+| Physics layers and what collides with what | `core/Layers.gd` |
 | Cross-system communication | `EventBus` autoload, typed signals only |
 | Phase / game flow | `GameState` autoload (`request_phase` -> `commit_phase`) |
 | Any number shown to the player | `core/util/NumberFormatter.gd` — never `str(x)` |
@@ -291,8 +298,17 @@ probe that reaches past the ray is a probe that can pass while the game does not
 | `slots.closed` | a container's slots offered while it is shut — a ghost inside a carcass |
 | `container.fsm` | a container that does not open, does not shut, or does not start closed. Every container in the house, not just the kitchen's |
 | `reach.take` | the ray, the reach and the prompt: looking at a spoon from a stride away must say `Take` |
+| `carry.select` | the wheel, LB/RB and 1–9 selecting the wrong carried item, a drop letting go of anything but the selected one, the hands and the inventory disagreeing afterwards, or a selection that does not move to the item that took the dropped one's place |
+| `place.select` | pointing at the drawer with another item selected not selecting a spoon, a selection made by hand while the drawer is offered being overruled, or a click that puts one spoon away not selecting the next |
+| `hands.copies` / `.reach` / `.screen` | a copy held out for an item no longer carried, a copy reaching past the body's radius (into a wall), or a corner of one outside the screen, above `Balance.HAND_TOP` or in the carry bar's column |
 | `carry.full` | a second item taken into a one-slot inventory, and a full inventory that does not say so |
-| `carry.return` | an item put back anywhere but exactly where it was picked up |
+| `carry.drop` | a dropped item that stays in the hands, is not loose and visible, does not come to rest in front of the player, or lies more than 1 cm off what is under it |
+| `carry.retake` | a dropped item that cannot be picked up where it lies |
+| `carry.throw` | a full throw along open floor that lands under 2 m from the eye, or somewhere it cannot be reached |
+| `carry.lost` | an item that falls out of the world and is not back where it last rested within 2 s |
+| `carry.reach` | an item that comes to rest on top of a wall cabinet, where no standing eye sees it, and is left there |
+| `carry.rides` | an item that lands in an open drawer and does not travel with the drawer when it shuts — or falls through it |
+| `save.loose` / `save.rides` | a save that does not put a loose item back lying where it lay, or an item in a drawer back under the drawer |
 | `place.stack` | the twelve-spoon gate: each spoon at the slot the group generated, in order, and a full drawer that stops offering |
 | `place.rests` | the bottom spoon more than 3 mm off the drawer floor: a slot rest measured wrong, or a generator whose origin moved |
 | `place.travel` | slots hung off the carcass instead of the drawer, so what is in a drawer stays behind when it shuts |
@@ -503,22 +519,85 @@ each answer is a component:
   items it still holds, or "Tidy". The room comes from `EventBus.zone_entered`, which `ProbeCuller`
   emits because it already tracks the eye's room.
 - **Item card** (`ui/ItemCard.tscn`): shown while the crosshair is on an item a click would take
-  (`Interactor.aim_changed` carries the prompt and the item). Name, slot cost — with how many slots are
+  (`Interactor.aim_changed` carries the prompt and the item). Its picture, name (wrapping, never cut),
+  slot cost — with how many slots are
   free when it does not fit — the home as "room · piece", and the set's progress as pips. The home's
   wording is `HomeName.of`: the room of the `FurnitureDef` carrying the group, and the group's
   `PlaceSlotGroup.name_key`, whose English text is the home column of `docs/CONTENT.md`. The card only
   describes an item already found, so it gives nothing of the search away.
 - **Carry bar** (`ui/CarryBar.tscn`, `CarryCells`): slots used of capacity and free, one cell per slot,
-  each carried item a block as wide as its cost, the last one taken outlined and named with the key
-  that puts it back. Past what fits in `CarryCells.max_width` the cells narrow into segments.
+  each carried item a block as wide as its cost with its picture on it, the selected one outlined and named
+  beside the keys that drop and throw it. Past what fits in `CarryCells.max_width` the cells narrow into
+  segments, which carry no pictures.
 - **Tracker** (`%Tracker`): sets complete of the total, slots, set members put away of all of them
   (`SetTracker.home_count`), and the sets under way — some members home or in hand, not all — at most
   `Hud.active_rows`, the last one changed first, each with its pips (`SetDots`: a filled disc at home, a
   bright ring in hand, a faint ring still out; shape as well as colour).
+- **Compass** (`ui/Compass.gd`) and **pins** (`ui/HomePins.gd`): the way home, below. The compass takes the
+  top middle, and steps aside while the set-complete notice or the overview is up.
 - **Held `show_tracker`** (Tab) shows `%Overview` in place of the tracker: every set and every room with a
   count, in four-column grids of fixed-width rows (`Hud.row_width`); a name that does not fit ends in an
   ellipsis. Sets keep content order and a completed set stays in place, dimmed. Tranche U4 replaces it
   with the ledger.
+
+### The way home
+
+Decision D1 of the HUD plan (the author, 2026-09-16): the hunt stays unmarked, and a carried item is guided
+home in three layers. The name, "Kitchen · cupboard over the coffee maker", is always on the item card. The
+other two are `world/WayHome.gd` (tranche U3), and `GameWorld --guidance=names` turns them off until Phase 5
+writes the settings.
+
+- **From another room, a compass marker per home room** (`ui/Compass.gd`), with the picture of a carried item
+  that goes there (the selected one first), the room, the metres on foot (`RoomGraph.walk`) and how many floors
+  up or down. It points at the furthest place on the route the eye can see: `RoomGraph.waypoints` lists every
+  link on the route crossed — `Balance.WAY_APPROACH` in front of a doorway to as far past it, both ends of a
+  flight with a place to stand off each, and between two exterior zones a way round the outside of the house
+  past its corners — and `RoomGraph.aim` takes the last one `RoomGraph.clear` finds in plain sight, never past
+  a change of floor. `clear` tests a straight line on one storey against both faces of every wall, through a
+  doorway or an arch with `WAY_JAMB` to spare, and against every flight: from below where its treads are under
+  `WAY_HEADROOM`, walked onto across its foot; from above as a railed hole, walked onto across its head. When
+  nothing on the route is in sight, the marker points at the first corner of the way round the flights. A
+  garage door is built shut, so it is a wall, for the route and for the pacing model alike.
+- **In the home room, the home is outlined and pinned.** The outline (`world/HomeOutline.gd`) goes on the
+  container's moving part if the slots are within `HOME_OUTLINE_REACH` of it — the drawer they are in, the
+  door in front of them — and on the whole piece otherwise: the lid of a deep toy box is not where the car
+  goes. It is a hull of every mesh with its normals averaged per corner, grown `HOME_OUTLINE_PX` in screen
+  space and drawn `HOME_OUTLINE_PULL` nearer the eye, so the carcass round a flush drawer front does not hide
+  it; a mask pass marks the piece's own pixels in the stencil first, so the line is only ever round the
+  outside. A pin (`ui/HomePins.gd`) names the item and the piece at the next free slot, while it is in view.
+
+`WayHome` looks again every `WAY_INTERVAL`. With a member of all 55 sets in hand, from the attic, a look
+takes 1.9 ms on the author's machine (`way.time`); a real load is a handful of rooms.
+
+`dev/WayProbe.tscn` (headless, the real house): `way.route` walks from the middle of every room, carrying a
+member of every set, to wherever the marker aims, up and down flights, until it is in the home room — 1320
+routes, the longest 11 markers; `way.clear` casts a ray through the built house, furniture left out, from the
+eye to every place a marker aims, so the plan's walls choose and the built walls, flights and railings check;
+`way.outline` finds, in every home room, no marker, a pin, and exactly one outline, on the part holding the
+slots and drawn round them; `way.names` finds nothing with the guidance set to names. `RunTests` checks the
+compass's left and right. Each was shown red.
+
+### Item pictures
+
+`ui/Portraits.gd` (tranche U2) draws a picture of every item type once, after the house's first frame, so
+it never delays the first sight of the house. One `SubViewport` with a world of its own and an
+orthographic camera holds every distinct `Params.key` side by side, one cell of
+`Balance.PORTRAIT_CELL` pixels each. Each item is posed the way the hands hold it
+(`CarryView.held_pose`). An item more than `PORTRAIT_SLENDER` times longer than wide is rolled to whichever
+`PORTRAIT_ROLL_STEP_DEG` step fills its cell most, and every item is scaled from its own posed bounds to
+`PORTRAIT_FILL` of the cell, so keys are not a speck beside a television. A second 2D pass draws a light
+line round every item (`ui/portrait_outline.gdshader`), so a black item stays visible on the dark card. The
+frame is read back once, mipmapped, and cut into one `AtlasTexture` per item type (`Portraits.of(def)`).
+Headless there is no renderer and `of` returns null; the card keeps the picture's place either way, so
+the HUD's layout does not depend on it. `GameWorld` owns the node and hands it to `Hud.show_pictures`, and
+the card and bar redraw on `rendered`.
+
+`dev/PortraitProbe.tscn` (needs a renderer) renders the manor's 180 item types and measures every cell:
+`portrait.every` (every item has a picture, no two types share one), `portrait.fills` (the drawn part spans
+at least 0.7 of the cell and stays off its edge), `portrait.visible` (at least 5% of the drawn part is
+light, which only the outline guarantees for a black item), `portrait.time` (`PORTRAIT_BUDGET_MS`), and
+`portrait.card` (the card and the bar's blocks show the right picture in the right place). Each was shown
+red.
 
 The look is one theme, `ui/HudTheme.tres`, and one material, `ui/glass.tres`: panels blur and tint the
 room behind them so text reads the same over a white wall and inside a cupboard. The window scales the
@@ -530,8 +609,10 @@ Labels under `Screen` do not auto-translate: the code translates, and translatin
 finale's 56 slots nearly full and an item under the crosshair, at 1280x720, 1280x800, 1920x1080 and
 2560x1440, each laid out at the size the window's stretch gives it, and then again with Godot's
 pseudolocalization making every string 40% longer: `hud.fits`, `hud.clear` (room tag, tracker, card,
-carry bar, prompt and notice pairwise; overview vs notice, carry bar, room tag), `hud.rows`,
-`hud.short`, `hud.overview`, `hud.here`, `hud.card`, `hud.bar`. Each was shown red. `--screenshot=
+carry bar, prompt, notice and compass pairwise, but the notice and the compass, which take turns; overview vs
+notice, carry bar, room tag), `hud.rows`, `hud.short`, `hud.overview`, `hud.here`, `hud.card`, `hud.bar`,
+`hud.place`, `hud.compass` (four markers, two of them on nearly one bearing: inside the compass, apart, in
+bearing order, the nearest shown). Each was shown red. `--screenshot=
 --backdrop= [--overview] [--long] [--size=]` renders it; legibility is only proven by looking.
 
 **`ProgressSave`** is the bridge between the house and the save file, and `Autosave` writes it
@@ -544,8 +625,9 @@ without reading the save.
 
 ## Placement — the place-slot system
 
-Items are never dropped. They are put away into predefined slots, and this is the core verb, so it
-is specified rather than left to implementation.
+Items are put away into predefined slots. This is the core verb, so it is specified rather than
+left to implementation. Dropping and throwing are the other way to let go of an item
+("Loose items", below).
 
 **`PlaceSlotGroup`** is a Resource carried by a piece of furniture (`FurnitureDef.slots`):
 
@@ -579,15 +661,19 @@ aiming, for a bookshelf or a row of mugs where any free position is equally corr
 1. While carrying, a spherical query around the player finds `PlaceSlotGroup`s within reach whose
    `accepts` matches a carried item, skipping groups whose `requires_open` container is closed.
 2. The camera ray picks the group being aimed at; the group resolves the target slot from its
-   `fill_order`.
+   `fill_order`. **Pointing at a group selects an item it takes** (`Interactor._offer`) unless the
+   selected one already is: the first one after it in the row, so a handful of spoons goes into the
+   drawer one click each. An item the player selects by hand while the group is offered stays selected
+   until the crosshair moves to another group or an item is put away; that item is then offered to its
+   own group, if one is in view. The prompt names the item: "Put away · Spoon".
 3. A ghost of the item is drawn at that slot: the item's own mesh, unshaded, with a white
    inverted-hull outline pass. Nothing is committed and nothing has moved.
 4. Left click accepts. The item leaves the inventory, is instanced at the slot transform, the slot
    is marked occupied, and `EventBus.item_placed` fires.
 5. `SetTracker` decides whether that completes a set and grants the slot.
 
-There is no free-placement mode and no "drop anywhere". An item the player no longer wants to carry
-goes back to where it was picked up.
+There is no free-placement mode: an item goes into a slot or it is let go of and lands where physics
+puts it.
 
 **Containers** are a `ContainerComponent` with a `CLOSED / OPENING / OPEN / CLOSING` FSM and a
 tweened door or drawer. A container holds both `PlaceSlotGroup`s (homes) and authored `start`
@@ -602,8 +688,9 @@ The occupancy is on the `PlaceSlots` **node**, and that node is attached where t
 in. `InteractProbe`'s `place.travel` check exists because that is easy to get wrong and
 invisible until someone shuts a drawer.
 
-`Inventory` is an autoload and holds the capacity and the list of carried `ItemDef`s, because
-capacity is the progression and it is what the save records. `CarryComponent` is a node on the
+`Inventory` is an autoload and holds the capacity, the list of carried `ItemDef`s and which of them is
+selected, because capacity is the progression and it is what the save records, and because the HUD, the
+hands on screen and the drop all have to agree on one selection. `CarryComponent` is a node on the
 player and holds the corresponding `ItemNode`s as its children — carried items stay in the tree
 the whole time, under the hands instead of under the world, so nothing is ever an orphan and an
 item put back goes back as the same node it was.
@@ -612,6 +699,76 @@ item put back goes back as the same node it was.
 and a placement asks the slot whether it will take the item before the item leaves the hands.
 That ordering is the difference between "the click did nothing" and an item that has been
 silently teleported.
+
+### Loose items
+
+An item leaves the hands two ways: into a slot, or let go of. Q drops the selected item in front of
+the eye; holding the right mouse button winds up a throw and releasing it throws along the view
+(`Interactor`, `CarryComponent`). A throw gives the item the player's effort, not a speed: effort grows
+over `Balance.THROW_CHARGE_TIME` from a lob to a full throw, and the item leaves at `sqrt(2E/m)`,
+capped, so a dumbbell lands short where a spoon flies (`ItemDef.mass`, from `tools/content_model.py`).
+
+**Every item is a `RigidBody3D`, frozen unless it is loose** (`ItemNode.Hold`: `STILL`, `CARRIED`,
+`LOOSE`). An item put away or lying where it was authored is frozen and stays exactly where it is,
+whatever lands on it; one let go of is simulated until it lies still. Its solid is the convex hull of its
+meshes (`ItemFactory.hull`), gathered on the generation worker threads; its click target is a separate
+`ItemPick` body, because a body has one layer and a spoon's honest hull is a target the crosshair
+misses. Nothing breaks.
+
+**Where it ends up is judged when it lies still** (`world/LooseItems.gd`): asleep, or after
+`Balance.LOOSE_SETTLE_LIMIT` still moving. If a player standing in the house could pick it up there
+(`Reach.reachable`, the same test the authored starts pass), it lies there, and that is now where it
+is — the place it goes back to if it is lost later. If not, it goes back to where it last rested: the
+slot it was taken from if that is still free, or where it lay. One that falls out of the world is not
+waited for. One that comes to rest on a drawer or a door hangs under the moving part and is frozen
+there, so it travels with it.
+
+**What the physics needed, measured, not guessed** (`dev/DropProbe.tscn`: every type, three turns, onto a
+floor built like the house's):
+
+- Floors and the ground are triangle meshes, which have a surface and no inside. Seven thin items fell
+  straight through them. Every floor and ground piece has a solid behind it on `Layers.BACKING`
+  (`HouseBuilder.backing`), which only items collide with.
+- An open drawer's box and a door's panel had no collision at all; a spoon dropped into a drawer fell
+  through it to the floor. `ContainerComponent` gives the moving part its meshes as a solid on
+  `Layers.TRAY`, which only items collide with, so an open door changes nothing for the player.
+- Window glass did not collide; a thrown spoon went out through the office window. It does now.
+- Jolt, at 240 physics ticks, with a penetration slop of 0.5 mm and no collision margin
+  (`project.godot`). At 60 ticks and the default 2 cm slop, 16 of 165 drops lay up to 3.7 cm into the
+  floor; at 120 ticks three still did. At 240 all lie within 2.8 mm. The player's own frame cost did not
+  change measurably (7.5 ms a frame walking, 60 and 240 alike, on the author's machine).
+- The hull is kept whole. Thinned to fewer points it cuts the item's own corners off, and a pillow lay
+  5 mm into the floor.
+
+A dropped item is misplaced like any other and counted in the room it lies in (`ClutterCensus`). The
+save records a loose item where it last rested, with `loose` so it loads as loose, and one riding a
+moving part with `mover`, its `xform` in that part's space (save version 4).
+
+### Held out
+
+Everything carried is drawn on screen (`player/CarryView.gd`), and one of it is selected
+(`Inventory.selected`): the last one taken, until the wheel, LB/RB or 1–9 pick another. A drop, a throw
+and a placement act on the selected item. Letting go of it selects the item that moves into its place in
+the row.
+
+**Two hands, laid out on paper first** (`player/CarryLayout.gd`, pure and tested in `RunTests`). The row
+of carried items, in the order taken, is split at the bottom centre: the first half left of the carry bar,
+the rest right of it, so one item is held in the right hand. Each hand packs its items in rows from the
+bottom up, never above `Balance.HAND_TOP` and never into the carry bar's column, so the crosshair, the
+prompt and the card keep the middle of the screen. Sizes grow with the item but far slower than it does
+(`CarryLayout.held_size`): a spoon is held at about 0.08 of the screen's height and a television at 0.13.
+A crowded hand shrinks everything alike until the rows fit; fifty-six spoons fit at every supported screen
+shape.
+
+**Small and near instead of real size and far.** A copy of the item's meshes hangs
+`Balance.HAND_DISTANCE` (0.2 m) from the eye and is scaled until it covers its rectangle on screen. Through
+the lens it looks the same as a real-size item further out, but it is inside the body's 0.3 m radius, so it
+can never reach into a wall the player stands against — no second camera, no second render pass. It is lit
+by the room it is carried through, plus a small light only items take, and casts no shadow. A copy turned
+towards an off-centre spot covers more than its box, so its corners are projected and it is scaled and
+moved until they fit (`CarryView._target`). Each item shows its broadest face; a slender one is held across
+the diagonal. A picked-up item flies in from where it lay; the selected one is bigger and carries the
+placement ghost's white outline.
 
 ### Furniture is data
 
@@ -752,13 +909,15 @@ Written now, before there is anything to save, because retrofitting this is what
 - **Identity is a stable `StringName`, never a node path, never an array index.** An item's `id` is
   fixed at authoring time and never reused, even after the item is deleted.
 - The save is a dictionary: `version`, `slots`, `sets` (id -> placed member ids), `granted` (the
-  set ids that have paid their slot), `items` (id -> `{room, xform, container, anchor, group, index,
-  at_home}`), `plan_hash`, `play_time`, `settings_rev`. `group` and `index` are the place-slot an
+  set ids that have paid their slot), `items` (id -> `{room, xform, container, mover, anchor, group,
+  index, loose, at_home}`), `plan_hash`, `play_time`, `settings_rev`. `group` and `index` are the place-slot an
   item stands in, so a drawer reloads as the same stack in the same order; `xform` is in the
   container's space when `container` is set and in the world's otherwise. Version 2 added
   `granted`, `group` and `index` (`SaveManager._migrate_v1_to_v2`); version 3 added `anchor`, the place on
   a piece of furniture an item rests on, in whose space its `xform` then is
-  (`SaveManager._migrate_v2_to_v3`). Every version has a fixture.
+  (`SaveManager._migrate_v2_to_v3`); version 4 added `loose`, an item lying where it came to rest after
+  it was let go of, and `mover`, an item lying on a container's moving part, in whose space its `xform`
+  then is (`SaveManager._migrate_v3_to_v4`). Every version has a fixture.
 - Probes that save from the command line cannot sandbox `XDG_DATA_HOME`, so they set
   `SaveManager.basename_override` and delete what they wrote.
 - `plan_hash` records which floor plan the save was made against. A save whose plan hash differs

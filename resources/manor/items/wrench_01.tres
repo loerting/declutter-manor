@@ -12,6 +12,7 @@ xform = Transform3D(0.9635821, 0, 0.26741266, 0, 1, 0, -0.26741266, 0, 0.9635821
 script = ExtResource("1_5a6q0")
 id = &"wrench_01"
 name_key = "item.wrench"
+mass = 0.3
 set_id = &"wrench"
 generator = &"wrench"
 params = {

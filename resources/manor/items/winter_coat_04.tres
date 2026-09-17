@@ -13,6 +13,7 @@ script = ExtResource("1_4hj4d")
 id = &"winter_coat_04"
 name_key = "item.winter_coat"
 slot_cost = 2
+mass = 1.5
 set_id = &"winter_coat"
 generator = &"winter_coat"
 params = {

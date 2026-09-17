@@ -13,6 +13,7 @@ script = ExtResource("1_6ux6e")
 id = &"tv_01"
 name_key = "item.tv"
 slot_cost = 8
+mass = 14.0
 set_id = &"tv"
 generator = &"tv"
 home = &"tv_home"

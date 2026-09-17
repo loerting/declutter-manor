@@ -13,6 +13,7 @@ script = ExtResource("1_md0v1")
 id = &"pillow_01"
 name_key = "item.pillow"
 slot_cost = 2
+mass = 0.9
 set_id = &"pillow"
 generator = &"pillow"
 params = {

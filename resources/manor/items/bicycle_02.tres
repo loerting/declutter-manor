@@ -13,6 +13,7 @@ script = ExtResource("1_6pxuc")
 id = &"bicycle_02"
 name_key = "item.bicycle"
 slot_cost = 8
+mass = 11.0
 set_id = &"bicycle"
 generator = &"bicycle"
 params = {

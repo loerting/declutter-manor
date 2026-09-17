@@ -13,6 +13,7 @@ script = ExtResource("1_xfy4e")
 id = &"school_book_03"
 name_key = "item.school_book"
 slot_cost = 2
+mass = 0.9
 set_id = &"school_book"
 generator = &"school_book"
 params = {

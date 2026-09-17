@@ -13,6 +13,7 @@ script = ExtResource("1_pw3fo")
 id = &"watering_can_01"
 name_key = "item.watering_can"
 slot_cost = 4
+mass = 1.0
 set_id = &"watering_can"
 generator = &"watering_can"
 home = &"watering_can_home"

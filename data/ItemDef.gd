@@ -11,6 +11,9 @@ extends Resource
 @export var name_key := ""
 ## 1, 2, 4 or 8. `Balance.is_valid_slot_cost` is the check; anything else is a content error.
 @export var slot_cost := 1
+## Kilograms, from the weights `tools/content_model.py` derives the slot cost from. A thrown item is
+## thrown with the player's effort, not at a speed, so this is what makes a dumbbell land short.
+@export var mass := 1.0
 ## Which set this belongs to, or &"" for scenery that is never collected.
 @export var set_id: StringName = &""
 ## The family in `ItemFactory` that builds it.

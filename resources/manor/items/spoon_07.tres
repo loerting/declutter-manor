@@ -13,6 +13,7 @@ container = &"kitchen_run_door_2"
 script = ExtResource("1_bupgs")
 id = &"spoon_07"
 name_key = "item.spoon"
+mass = 0.05
 set_id = &"cutlery"
 generator = &"spoon"
 home = &"kitchen_cutlery"

@@ -12,6 +12,7 @@ xform = Transform3D(0.34601116, 0, -0.9382304, 0, 1, 0, 0.9382304, 0, 0.34601116
 script = ExtResource("1_yg5qg")
 id = &"tv_remote_01"
 name_key = "item.tv_remote"
+mass = 0.15
 set_id = &"tv_remote"
 generator = &"tv_remote"
 home = &"tv_remote_home"

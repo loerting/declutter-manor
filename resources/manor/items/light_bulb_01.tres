@@ -12,6 +12,7 @@ xform = Transform3D(-0.119306535, 0, 0.99285746, 0, 1, 0, -0.99285746, 0, -0.119
 script = ExtResource("1_5vlr7")
 id = &"light_bulb_01"
 name_key = "item.light_bulb"
+mass = 0.1
 set_id = &"light_bulb"
 generator = &"light_bulb"
 params = {

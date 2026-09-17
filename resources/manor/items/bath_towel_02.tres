@@ -13,6 +13,7 @@ script = ExtResource("1_wuy3r")
 id = &"bath_towel_02"
 name_key = "item.bath_towel"
 slot_cost = 2
+mass = 0.7
 set_id = &"bath_towel"
 generator = &"bath_towel"
 params = {

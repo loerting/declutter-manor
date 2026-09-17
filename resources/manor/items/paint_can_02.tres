@@ -13,6 +13,7 @@ script = ExtResource("1_bpnsj")
 id = &"paint_can_02"
 name_key = "item.paint_can"
 slot_cost = 4
+mass = 5.0
 set_id = &"paint_can"
 generator = &"paint_can"
 params = {

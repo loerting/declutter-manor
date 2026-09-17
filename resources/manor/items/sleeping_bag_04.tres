@@ -13,6 +13,7 @@ script = ExtResource("1_3trqo")
 id = &"sleeping_bag_04"
 name_key = "item.sleeping_bag"
 slot_cost = 4
+mass = 1.5
 set_id = &"sleeping_bag"
 generator = &"sleeping_bag"
 params = {

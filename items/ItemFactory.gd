@@ -71,10 +71,12 @@ const FAMILIES: Dictionary[StringName, Script] = {
 static var _recipes: Dictionary[String, Array] = {}
 ## Per `Params.key` and turn: the bounds of those meshes (`bounds`).
 static var _bounds: Dictionary[String, AABB] = {}
+## Per `Params.key`: the solid a let-go item lands as (`hull`), shared by every copy.
+static var _hulls: Dictionary[String, ConvexPolygonShape3D] = {}
 
 static func build(def: ItemDef) -> ItemNode:
 	var node := ItemNode.new()
-	node.initialize(def, build_visual(def))
+	node.initialize(def, build_visual(def), hull(def))
 	return node
 
 ## The meshes alone, with no body: what the ghost preview is drawn from.
@@ -119,6 +121,43 @@ static func bounds(def: ItemDef, basis: Basis) -> AABB:
 	_bounds[key] = box
 	return box
 
+## The item's solid for physics: the convex hull of its meshes, in its own space. A mug lands as a
+## cylinder and a hanger as a triangle; nothing in the house needs to land inside anything else, and a
+## hull is the one shape every physics engine rests stably.
+static func hull(def: ItemDef) -> ConvexPolygonShape3D:
+	var key := Params.key(def.generator, def.params)
+	if not _hulls.has(key):
+		_keep_hull(key, hull_points(_recipe(def)))
+	return _hulls[key]
+
+## The corners of the convex hull of `parts`, found in native code: each mesh's own hull, then one hull over
+## those. Touches no state of this class, so `Generation` calls it on worker threads beside `generate`.
+## Every vertex, gathered in script on the main thread, cost 0.9 s at boot (2026-09-16). The hull is kept
+## whole: thinned to fewer corners it cuts the item's own corners off, and a pillow lay 5 mm into the floor
+## (`dev/DropProbe.tscn`).
+static func hull_points(parts: Array) -> PackedVector3Array:
+	var points := PackedVector3Array()
+	for part: Array in parts:
+		var own := (part[0] as Mesh).create_convex_shape(true, false)
+		points.append_array((part[2] as Transform3D) * own.points)
+	if parts.size() < 2:
+		return points
+	# The corners of the parts' hulls are not the corners of the item's: a hull over them, once more,
+	# leaves only the outer ones. It takes triangles, so the list is padded to whole ones.
+	while points.size() % 3 != 0:
+		points.append(points[0])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = points
+	var cloud := ArrayMesh.new()
+	cloud.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return cloud.create_convex_shape(true, false).points
+
+static func _keep_hull(key: String, points: PackedVector3Array) -> void:
+	var shape := ConvexPolygonShape3D.new()
+	shape.points = points
+	_hulls[key] = shape
+
 ## The item at a point, turned by `basis`, sitting there the way `how` says
 ## (`PlaceSlotGroup.Rest`): lowest point on it and centred over it, or highest point at it. The
 ## bounds are measured from the mesh after the turn, so a key ring modelled lying flat hangs from
@@ -156,8 +195,12 @@ static func generate(def: ItemDef) -> Array:
 	return parts
 
 ## Keeps parts `generate` made for `def`, so every item with its key is built from them. Main thread only.
-static func keep(def: ItemDef, parts: Array) -> void:
-	_recipes[Params.key(def.generator, def.params)] = parts
+## `points` are the parts' `hull_points` when they were gathered with them, or empty to gather them later.
+static func keep(def: ItemDef, parts: Array, points := PackedVector3Array()) -> void:
+	var key := Params.key(def.generator, def.params)
+	_recipes[key] = parts
+	if not points.is_empty():
+		_keep_hull(key, points)
 
 static func _recipe(def: ItemDef) -> Array:
 	var key := Params.key(def.generator, def.params)

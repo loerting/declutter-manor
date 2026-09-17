@@ -13,6 +13,7 @@ script = ExtResource("1_v5eyb")
 id = &"binder_06"
 name_key = "item.binder"
 slot_cost = 2
+mass = 0.8
 set_id = &"binder"
 generator = &"binder"
 params = {

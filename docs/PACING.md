@@ -92,6 +92,10 @@ assumed 24 m legs, the measurement walks them. What neither of them measures is 
 per item: at 45 s the run is 240 minutes, 33% out, and the two fifteen-member sets break the rule. That is
 the play test's question, and it is the number to measure first.
 
+The model walked through the garage door until 2026-09-17, which is built shut; `WayProbe` found it when a
+marker aimed at it. With the garage reached through the mudroom the run still reads 178 minutes, and the
+hangers 10.1.
+
 ## Performance budget
 
 Measured before the content push, not after. `dev/PerfProbe.gd`, plus a 500-item stress scene

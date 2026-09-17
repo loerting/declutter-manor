@@ -13,6 +13,7 @@ script = ExtResource("1_6dxpk")
 id = &"grill_tool_03"
 name_key = "item.grill_tool"
 slot_cost = 2
+mass = 0.3
 set_id = &"grill_tool"
 generator = &"grill_tool"
 params = {

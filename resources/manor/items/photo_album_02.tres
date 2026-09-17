@@ -13,6 +13,7 @@ script = ExtResource("1_8bbw0")
 id = &"photo_album_02"
 name_key = "item.photo_album"
 slot_cost = 2
+mass = 1.5
 set_id = &"photo_album"
 generator = &"photo_album"
 params = {

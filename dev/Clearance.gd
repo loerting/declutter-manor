@@ -20,11 +20,6 @@ const FRONT_REACH := 0.75
 const OVERLAP_AREA := 0.0001
 ## An item whose shape reaches into anything solid by more than this is inside it.
 const ITEM_SKIN := 0.005
-## Where a player might stand to reach an item: this many directions round it, at these distances, with
-## the feet this far over the floor (a body standing, not lying in it).
-const REACH_TURNS := 16
-const REACH_OUT: Array[float] = [0.45, 0.8, 1.2, 1.6]
-const REACH_FEET := 0.3
 
 ## The floor in front of every door, archway and garage door in the walls of `room`, on its side.
 static func doorways(plan: FloorPlan, room: RoomDef) -> Array[PackedVector2Array]:
@@ -134,34 +129,3 @@ static func buried(space: PhysicsDirectSpaceState3D, def: ItemDef, xform: Transf
 	q.transform = xform * Transform3D(Basis.IDENTITY, box.get_center())
 	q.collision_mask = Layers.bit(Layers.WORLD)
 	return not space.intersect_shape(q, 1).is_empty()
-
-## True when a player could pick up an item whose bounds are `box` at `xform`: some eye at standing height
-## over `floor_y`, within reach, with nothing solid at its eye or its feet, sees the item before anything
-## that stops the interaction ray. Other items do not count: the one in front is picked up first.
-static func reachable(space: PhysicsDirectSpaceState3D, plan: FloorPlan, box: AABB, xform: Transform3D,
-		floor_y: float) -> bool:
-	var centre := xform * box.get_center()
-	var local := xform.affine_inverse()
-	for step in range(REACH_TURNS):
-		var a := TAU * float(step) / float(REACH_TURNS)
-		for out: float in REACH_OUT:
-			var feet := Vector3(centre.x + cos(a) * out, floor_y + REACH_FEET, centre.z + sin(a) * out)
-			var eye := Vector3(feet.x, floor_y + Balance.EYE_HEIGHT, feet.z)
-			if eye.distance_to(centre) > Balance.INTERACT_REACH or plan.room_at(feet, ProgressSave.ROOM_SLACK) == null:
-				continue
-			if _solid_at(space, eye) or _solid_at(space, feet):
-				continue
-			var entry: Variant = box.intersects_segment(local * eye, local * centre)
-			if entry == null:
-				continue
-			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, centre,
-					Layers.interact_mask() & ~Layers.bit(Layers.ITEM)))
-			if hit.is_empty() or eye.distance_to(hit["position"] as Vector3) >= eye.distance_to(xform * (entry as Vector3)) - ITEM_SKIN:
-				return true
-	return false
-
-static func _solid_at(space: PhysicsDirectSpaceState3D, at: Vector3) -> bool:
-	var q := PhysicsPointQueryParameters3D.new()
-	q.position = at
-	q.collision_mask = Layers.bit(Layers.WORLD)
-	return not space.intersect_point(q, 1).is_empty()

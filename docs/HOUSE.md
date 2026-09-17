@@ -93,9 +93,10 @@ the middle of a 3.8 m stair hall, with a lane either side, because five doorways
 `Balance.DOOR_CLEARANCE` and a centred pair was the first arrangement the probe accepted. No house
 is built like that, and the author said so. Stacking the basement flight under the main one is
 what makes a wall-hugging stair possible: the main flight closes along a soffit instead of solid
-to the floor (`HouseBuilder._flight_below`), and its open side is closed with a plastered
-spandrel down to the floor (`HouseBuilder._spandrel`), which `dev/WalkProbe.gd` drives a body
-into. Every door on the hall's east wall sits either in front of the stair's foot or behind its
+to the floor (`HouseBuilder._flight_below`). The space under it stays open to the hall: a
+plastered spandrel closed it until 2026-09-16, standing over the basement flight's own rail, and
+the author had it removed. The basement well's hall edge is guarded under the soffit instead
+(`HouseBuilder._build_guard_under`), which `dev/WalkProbe.gd` drives a body into. Every door on the hall's east wall sits either in front of the stair's foot or behind its
 head, placed by coordinate (`WallDeriver.pierce_between_at`), and `dev/PlanProbe.gd` still
 measures every doorway's clearance.
 

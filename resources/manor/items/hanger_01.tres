@@ -13,6 +13,7 @@ anchor = &"garden_hose_reel_crank"
 script = ExtResource("1_e55ef")
 id = &"hanger_01"
 name_key = "item.hanger"
+mass = 0.05
 set_id = &"hanger"
 generator = &"hanger"
 params = {

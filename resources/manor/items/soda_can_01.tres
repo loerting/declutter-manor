@@ -13,6 +13,7 @@ anchor = &"closet_shoe_rack_tiers"
 script = ExtResource("1_rs7tt")
 id = &"soda_can_01"
 name_key = "item.soda_can"
+mass = 0.015
 set_id = &"soda_can"
 generator = &"soda_can"
 params = {

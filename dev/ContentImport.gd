@@ -156,6 +156,7 @@ func _import(entry: Dictionary, dry: bool) -> int:
 		var def := ItemDef.make(StringName("%s_%02d" % [set_id, n + 1]), set_id, home, set_id)
 		def.name_key = "item.%s" % set_id
 		def.slot_cost = int(entry["slot_cost"])
+		def.mass = float(entry["kg"])
 		def.params = ItemFactory.variant(set_id, n)
 		def.start = _scatter(def, StringName(str(starts[n])))
 		if def.start == null:
@@ -211,7 +212,7 @@ func _scatter(def: ItemDef, zone: StringName) -> ItemPlacement:
 		var landed := _plan.room_at(xform.origin, ProgressSave.ROOM_SLACK)
 		if landed == null or landed.id != zone or Clearance.buried(space, def, xform) \
 				or not _supported(space, def, xform, (hit["position"] as Vector3).y) \
-				or not Clearance.reachable(space, _plan, ItemFactory.extent(def), xform, floor_y):
+				or not Reach.reachable(space, _plan, ItemFactory.extent(def), xform, floor_y):
 			continue
 		_taken[zone].append(_spaced(foot))
 		var placement := ItemPlacement.new()

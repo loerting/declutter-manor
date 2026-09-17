@@ -127,11 +127,14 @@ boundary that appears in the floor plan, or a colour/material that appears in `M
     godot --headless --path . --import                       # after adding any class_name
     godot --headless --path . --script res://dev/PlanProbe.gd # house consistency, interior vs exterior
     godot --headless --path . dev/WalkProbe.tscn             # the house can be walked and climbed
-    godot --headless --path . dev/InteractProbe.tscn         # pick up, open, put away, stack
+    godot --headless --path . dev/InteractProbe.tscn         # pick up, open, put away, stack, select, drop, throw, lost items, hands
+    godot --headless --path . dev/DropProbe.tscn             # every item type dropped onto a floor lies on it, not in it
     godot --headless --path . dev/FurnitureProbe.tscn        # furniture placement, clear fronts, groups, every family's winding
     godot --headless --path . dev/HudProbe.tscn              # HUD layout 720p-1440p and +40% text; card and carry bar content
     godot --headless --path . dev/PacingProbe.tscn           # the run against PACING.md, walked in the real house
     godot --path . dev/GenerationProbe.tscn                  # the worker pool builds the meshes the ordered path builds
+    godot --path . dev/PortraitProbe.tscn                    # every item's picture fills its cell, reads on the dark card, arrives in time
+    godot --headless --path . dev/WayProbe.tscn              # every marker leads home without aiming through the house; the home is outlined
     godot --path . -- --view=<name> --screenshot=<abs path>   # the only proof of anything visual
 
 A headless boot exits 0 even when a script failed to compile — always grep the log for

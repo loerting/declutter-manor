@@ -12,6 +12,7 @@ xform = Transform3D(3.1900342e-08, 0.72979474, 0.6836663, 1, -4.371139e-08, 0, 2
 script = ExtResource("1_bf7xm")
 id = &"screwdriver_02"
 name_key = "item.screwdriver"
+mass = 0.15
 set_id = &"screwdriver"
 generator = &"screwdriver"
 params = {

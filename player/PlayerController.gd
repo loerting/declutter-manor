@@ -15,6 +15,7 @@ extends CharacterBody3D
 @onready var _camera: Camera3D = %Camera
 @onready var _carry: CarryComponent = %Carry
 @onready var _interactor: Interactor = %Interactor
+@onready var _carry_view: CarryView = %CarryView
 
 var _yaw := 0.0
 var _pitch := 0.0
@@ -47,7 +48,8 @@ func _ready() -> void:
 	floor_constant_speed = true
 	# The hands and the crosshair hang off the head, so both travel with the eye. They are
 	# wired here because this is what owns both of them; neither reaches for the other (rule 5).
-	_interactor.initialize(_camera, _carry)
+	_interactor.initialize(_camera, _carry, self)
+	_carry_view.initialize(_camera, _carry)
 	_yaw = rotation.y
 
 ## The eye. Anything that needs to know where the player is looking — the interactor, the
@@ -58,6 +60,10 @@ func camera() -> Camera3D:
 ## The hands. The world hands items to them; nothing walks the tree to find them.
 func carry() -> CarryComponent:
 	return _carry
+
+## What the player sees of what they carry.
+func carry_view() -> CarryView:
+	return _carry_view
 
 ## What the crosshair is on, and what a click would do. The HUD connects to its prompt.
 func interactor() -> Interactor:

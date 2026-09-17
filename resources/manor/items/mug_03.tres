@@ -12,6 +12,7 @@ xform = Transform3D(0.58626723, 0, -0.8101177, 0, 1, 0, 0.8101177, 0, 0.58626723
 script = ExtResource("1_fannv")
 id = &"mug_03"
 name_key = "item.mug"
+mass = 0.35
 set_id = &"mug"
 generator = &"mug"
 params = {

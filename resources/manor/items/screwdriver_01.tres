@@ -13,6 +13,7 @@ container = &"dining_sideboard_door_2"
 script = ExtResource("1_e2h55")
 id = &"screwdriver_01"
 name_key = "item.screwdriver"
+mass = 0.15
 set_id = &"screwdriver"
 generator = &"screwdriver"
 params = {

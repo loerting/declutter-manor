@@ -13,6 +13,7 @@ anchor = &"kitchen_west_run_b_bowl"
 script = ExtResource("1_gl36r")
 id = &"goggles_01"
 name_key = "item.goggles"
+mass = 0.05
 set_id = &"goggles"
 generator = &"goggles"
 params = {

@@ -12,6 +12,7 @@ xform = Transform3D(-0.9745515, 0, 0.22416374, 0, 1, 0, -0.22416374, 0, -0.97455
 script = ExtResource("1_xmcmp")
 id = &"wrench_04"
 name_key = "item.wrench"
+mass = 0.3
 set_id = &"wrench"
 generator = &"wrench"
 params = {

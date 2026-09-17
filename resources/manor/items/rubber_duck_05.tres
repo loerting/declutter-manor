@@ -12,6 +12,7 @@ xform = Transform3D(0.5209863, 0, -0.85356504, 0, 1, 0, 0.85356504, 0, 0.5209863
 script = ExtResource("1_4ardv")
 id = &"rubber_duck_05"
 name_key = "item.rubber_duck"
+mass = 0.05
 set_id = &"rubber_duck"
 generator = &"rubber_duck"
 params = {
