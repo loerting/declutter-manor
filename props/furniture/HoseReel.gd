@@ -44,7 +44,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var depth := PLATE.z + DRUM.y + FLANGE.y + CRANK.z + CRANK_HANDLE.y
 	piece.initialize(def, Vector2(FLANGE.x * 2.0 + absf(TAP_X) * 2.0, depth))
 	piece.mounted = true
-	var steel := Props.mat(STEEL, 0.45, 0.4)
+	var steel := Mats.finish("painted_metal", STEEL, 0.45)
 	var along_z := Basis(Vector3.RIGHT, PI * 0.5)
 	var front := PLATE.z + DRUM.y
 	var parts: Array = [
@@ -57,10 +57,10 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	]
 	piece.add_child(Props.mi(Props.bake(parts), steel))
 	var handle_at := Vector3(0, drum_y + CRANK.y - CRANK.x, front + FLANGE.y + CRANK.z)
-	piece.add_child(Props.mi(Props.cyl(CRANK_HANDLE.x, CRANK_HANDLE.x, CRANK_HANDLE.y, 16), Props.mat(KNOB, 0.5), handle_at + Vector3(0, 0, CRANK_HANDLE.y * 0.5),
+	piece.add_child(Props.mi(Props.cyl(CRANK_HANDLE.x, CRANK_HANDLE.x, CRANK_HANDLE.y, 16), Mats.finish("plastic", KNOB, 0.5), handle_at + Vector3(0, 0, CRANK_HANDLE.y * 0.5),
 			Vector3(90, 0, 0)))
 
-	var brass := Props.mat(BRASS, 0.35, 0.7)
+	var brass := Mats.finish("metal_polished", BRASS, 0.3)
 	var tap: Array = [
 		[Props.cyl(TAP_FLANGE.x, TAP_FLANGE.x, TAP_FLANGE.y, 20), Transform3D(along_z, Vector3(TAP_X, TAP_Y, TAP_FLANGE.y * 0.5))],
 		[Props.cyl(TAP_BODY.x, TAP_BODY.x, TAP_BODY.y, 16), Transform3D(along_z, Vector3(TAP_X, TAP_Y, TAP_BODY.y * 0.5))],
@@ -74,10 +74,10 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var inlet := Vector3(-PLATE.x * 0.35, drum_y + PLATE_RAISE - PLATE.y * 0.5 - INLET.y * 0.5, wall)
 	tap.append([Props.cyl(INLET.x, INLET.x, INLET.y, 14), Transform3D.IDENTITY.translated(inlet)])
 	piece.add_child(Props.mi(Props.bake(tap), brass))
-	piece.add_child(Props.mi(Props.cyl(TAP_WHEEL.x, TAP_WHEEL.x, TAP_WHEEL.y, 20), Props.mat(Color(0.7, 0.12, 0.1), 0.5), Vector3(TAP_X, TAP_Y + 0.03, TAP_BODY.y * 0.6)))
+	piece.add_child(Props.mi(Props.cyl(TAP_WHEEL.x, TAP_WHEEL.x, TAP_WHEEL.y, 20), Mats.finish("painted_metal", Color(0.7, 0.12, 0.1), 0.5), Vector3(TAP_X, TAP_Y + 0.03, TAP_BODY.y * 0.6)))
 	var lead := Props.smooth_path(PackedVector3Array([spout, spout - Vector3(0, 0.06, 0), Vector3(TAP_X * 0.7, TAP_Y - 0.13, wall),
 			Vector3(inlet.x, TAP_Y, wall), inlet - Vector3(0, INLET.y * 0.5 + 0.02, 0), inlet]), 5)
-	piece.add_child(Props.mi(Props.tube(lead, LEAD, 10), Props.mat(HOSE, 0.5)))
+	piece.add_child(Props.mi(Props.tube(lead, LEAD, 10), Mats.finish("plastic", HOSE, 0.5)))
 
 	piece.add_anchor(&"drum", Transform3D(Basis.IDENTITY, Vector3(0, drum_y + DRUM.x + COIL_HANG, PLATE.z + DRUM.y * 0.5)), piece)
 	piece.add_anchor(&"crank", Transform3D(Basis.IDENTITY, handle_at + Vector3(0, CRANK_HANDLE.x, CRANK_HANDLE.y)), piece)

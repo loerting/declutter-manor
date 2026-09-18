@@ -66,7 +66,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		[Props.cyl(COLLAR.x, COLLAR.x, COLLAR.y, 20), Transform3D(Basis.IDENTITY, Vector3(0, COLLAR.z, STAND_Z))],
 		[Props.cyl(HUB.x, HUB.x * 0.8, HUB.y, 20), Transform3D(Basis.IDENTITY, Vector3(0, HUB.z, STAND_Z))],
 	]
-	piece.add_child(Props.mi(Props.bake(brass), Props.mat(BRASS, 0.35, 0.7)))
+	piece.add_child(Props.mi(Props.bake(brass), Mats.finish("metal_polished", BRASS, 0.3)))
 	piece.add_box(Vector3(0.38, top.x - SECTIONS[0].x, 0.27), Vector3(0, (top.x + SECTIONS[0].x) * 0.5, STAND_Z))
 	piece.add_box(Vector3(LEG_REACH * 2.0, hub_top, LEG_REACH * 2.0), Vector3(0, hub_top * 0.5, STAND_Z))
 	return piece

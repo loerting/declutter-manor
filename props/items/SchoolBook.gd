@@ -25,7 +25,7 @@ const VARIANTS: Array[Dictionary] = [
 func build(def: ItemDef) -> Node3D:
 	var width := Params.number(def.params, "width", DEFAULT_WIDTH)
 	var root := Props.book(Color.WHITE, width, HEIGHT, Vector3.ZERO, Vector3.ZERO, DEPTH,
-			Props.mat(Params.colour(def.params, "tint", MATHS), 0.35))
+			Mats.finish("paper", Params.colour(def.params, "tint", MATHS), 0.35))
 	# Props.book's boards and spine, measured the way it builds them.
 	var board := minf(0.0035, width * 0.16)
 	var hinge := -DEPTH * 0.5 + width * 0.5
@@ -35,7 +35,7 @@ func build(def: ItemDef) -> Node3D:
 	for side: float in [-1.0, 1.0]:
 		parts.append(Props.part(Vector3(board + Props.PROUD * 2.0, BAND, boards_depth + Props.PROUD),
 				Vector3(side * (width * 0.5 - board * 0.5), y, hinge + (boards_depth + Props.PROUD) * 0.5)))
-	root.add_child(Props.mi(Props.bake(parts), Props.mat(WHITE, 0.35)))
+	root.add_child(Props.mi(Props.bake(parts), Mats.finish("paper", WHITE, 0.35)))
 	return root
 
 func variant(index: int) -> Dictionary:

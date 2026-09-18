@@ -42,7 +42,7 @@ func build(def: ItemDef) -> Node3D:
 		var phi := PI * 0.5 * float(k) / float(RINGS)
 		rings.append(_ring(inner, height - WALL, cos(phi), sin(phi)))
 	rings.append(rings[0])
-	root.add_child(Props.mi(Props.loft(rings, false, false), Props.mat(tint, 0.3)))
+	root.add_child(Props.mi(Props.loft(rings, false, false), Mats.finish("plastic", tint, 0.3)))
 	# Vents: a rim standing proud of the shell round a dark floor lower than the rim's top.
 	var rims: Array = []
 	var floors: Array = []
@@ -58,8 +58,8 @@ func build(def: ItemDef) -> Node3D:
 		var basis := Props.aim_y(normal)
 		rims.append([grommet, Transform3D(basis, at)])
 		floors.append([floor_disc, Transform3D(basis, at + normal * VENT.z * 0.2)])
-	root.add_child(Props.mi(Props.bake(rims), Props.mat(tint.darkened(0.25), 0.4)))
-	root.add_child(Props.mi(Props.bake(floors), Props.mat(LINER, 0.8)))
+	root.add_child(Props.mi(Props.bake(rims), Mats.finish("plastic", tint.darkened(0.25), 0.4)))
+	root.add_child(Props.mi(Props.bake(floors), Mats.finish("plastic", LINER, 0.8)))
 	return root
 
 func variant(index: int) -> Dictionary:

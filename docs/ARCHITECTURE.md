@@ -184,13 +184,27 @@ is what the stairwell subtraction needs.
 
 Every slot in `assets/textures.json` carries the real-world size of one tile, and `Mats` sets
 `uv1_scale` from it; that physical scale is most of what separates a scene that reads as real
-from one that reads as plastic. Two rooms need a size the scan was not taken at, so `RoomDef`
-carries `wall_scale` and `floor_scale` as explicit, documented multipliers: the attic's knee
-walls are boarded and the siding scan is a 1.2 m panel, which put one board across a wall
-0.9 m tall; the kitchen floor is stone and the stone scan is a 1.2 m worktop slab. `Mats.of`
-also takes `matte`, which drops the packed ORM map for a flat roughness — the roof boards are
-sawn timber and every wood scan here is a finished floor at roughness ~0.53, which put two
-mirror highlights of the attic bulb on the underside of the roof.
+from one that reads as plastic. Where ambientCG publishes no size, the manifest's `note` says what
+it was measured from (boards, tiles or flutes counted in the map). A room that needs a size the
+scan was not taken at says so with `RoomDef.wall_scale` / `floor_scale`; no room does today.
+`Mats.of` also takes `matte`, which drops the packed ORM map for a flat roughness — the OSB roof
+deck under the attic bulb put two mirror highlights on the underside of the roof otherwise.
+
+Every slot was chosen for the house this is — a suburban American colonial — and
+`ATTRIBUTION.md` records why each scan won and which were rejected. A surface that has no CC0
+scan is generated from one: `roof_shingles` is laid out by `tools/fetch_textures.py` from an
+asphalt granule scan, because no CC0 asphalt shingle exists.
+
+### Roughness is asked for in absolute terms: `Mats.finish`
+
+ORMMaterial3D multiplies the roughness map by a scalar, and the scans' means run from 0.02
+(polished granite) to 0.92 (terry), so `Mats.of(slot, tint, 0.35)` is a different surface on every
+slot. A prop whose finish is a fact about the object — satin plastic, a glossy enamel, chrome —
+uses `Mats.finish(slot, tint, roughness)`, which divides by the mean the fetcher measured
+(`assets/textures/<slot>/meta.json`). Above the scan's own mean it takes the roughness flat and
+keeps the normal map, and a metal scan stays metal. Colours: a slot that replaced a flat colour
+is levelled to an albedo of 0.92 (`neutralize`), so the tint is the colour the prop was designed
+in; `Props.mat` is left for what has no surface to texture — screens, lenses, lamps, leaves.
 
 ### The ground is one texture and two things that hide it
 

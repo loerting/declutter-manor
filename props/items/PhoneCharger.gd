@@ -20,7 +20,7 @@ const METAL := Color(0.72, 0.73, 0.75)
 
 func build(_def: ItemDef) -> Node3D:
 	var root := Node3D.new()
-	var plastic := Props.mat(WHITE, 0.3)
+	var plastic := Mats.finish("plastic", WHITE, 0.3)
 	var path := PackedVector3Array()
 	var count := int(TURNS * POINTS_PER_TURN)
 	for i in range(count + 1):

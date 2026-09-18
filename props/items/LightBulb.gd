@@ -26,7 +26,7 @@ func build(def: ItemDef) -> Node3D:
 	root.add_child(Props.mi(Props.rounded_box(SIZE, EASE, 2, 8), Mats.of("paper", CARD, 0.8), Vector3(0, SIZE.y * 0.5, 0)))
 	var band := Vector3(SIZE.x + Props.PROUD * 2.0, SIZE.y * PANEL, SIZE.z + Props.PROUD * 2.0)
 	# Starting above the carton's bottom: from it, the band's underside lay in the carton's.
-	root.add_child(Props.mi(Props.box(band), Props.mat(Params.colour(def.params, "tint", BLUE), 0.45), Vector3(0, Props.PROUD * 2.0 + band.y * 0.5, 0)))
+	root.add_child(Props.mi(Props.box(band), Mats.finish("paper", Params.colour(def.params, "tint", BLUE), 0.45), Vector3(0, Props.PROUD * 2.0 + band.y * 0.5, 0)))
 	var front := SIZE.z * 0.5 + Props.PROUD * 2.0
 	var middle := SIZE.y * 0.5 + GLOBE_Y
 	var globe: Array = [[Props.cyl(GLOBE, GLOBE, Props.PROUD * 2.0, 24), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, middle, front))]]

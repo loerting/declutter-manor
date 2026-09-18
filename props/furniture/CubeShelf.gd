@@ -45,7 +45,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for r in range(1, rows):
 		for c in range(columns):
 			_board(piece, boards, Vector3(CUBE, DIVIDER, DEPTH), Vector3(_middle(width, c), FRAME + r * (CUBE + DIVIDER) - DIVIDER * 0.5, cz))
-	var finish := Props.mat(WHITE, 0.45) if white else Mats.of("oak", OAK, 0.7)
+	var finish := Mats.finish("plastic", WHITE, 0.45) if white else Mats.of("oak", OAK, 0.7)
 	piece.add_child(Props.mi(Props.bake(boards), finish))
 
 	var bins: Array = []

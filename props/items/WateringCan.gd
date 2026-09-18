@@ -36,7 +36,7 @@ const GALVANISED := Color(0.72, 0.73, 0.72)
 
 func build(def: ItemDef) -> Node3D:
 	var tint := Params.colour(def.params, "tint", GALVANISED)
-	var metal := Props.mat(tint, 0.42, 0.55)
+	var metal := Mats.finish("painted_metal", tint, 0.42)
 	var parts: Array = []
 	# Up the outside and over the dome to the neck, up the neck, and down its inside to the floor of the well.
 	var rings: Array = []

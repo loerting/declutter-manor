@@ -45,7 +45,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		width = maxf(width, CORNER * 4.0)
 		rings.append(_section(z, width, _thickness(z)))
 	var board := Props.loft(rings, true, true)
-	piece.add_child(Props.mi(board, Props.mat(BOARD, 0.35)))
+	piece.add_child(Props.mi(board, Mats.finish("plastic", BOARD, 0.35)))
 	var tread_len := LENGTH - WIDTH * 0.5 - TREAD.x * 2.0
 	piece.add_child(Props.mi(Props.box(Vector3(WIDTH - TREAD.x * 2.0, TREAD.y, tread_len)), Mats.of("concrete", TREAD_TINT, 1.0),
 			Vector3(0, TOP + TREAD.y * 0.5, TREAD.x + tread_len * 0.5)))
@@ -64,7 +64,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	stand.append(Props.part(BASE, Vector3(0, BASE.y * 0.5, FULCRUM_Z)))
 	stand.append(Props.part(Vector3(WIDTH - 0.02, BRACKET.y, BRACKET.z), Vector3(0, BRACKET.y * 0.5, BRACKET_Z)))
 	stand.append([Props.cyl(ROLLER, ROLLER, PLATE_X * 2.0 + PLATE.z, 16), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0, under - ROLLER, FULCRUM_Z))])
-	piece.add_child(Props.mi(Props.bake(stand), Props.mat(STAND, 0.35, 0.7)))
+	piece.add_child(Props.mi(Props.bake(stand), Mats.finish("metal_brushed", STAND, 0.3)))
 
 	piece.add_anchor(&"tip", Transform3D(Basis.IDENTITY, Vector3(0, TOP + TREAD.y, LENGTH - NOSE_REACH)), piece)
 	piece.add_box(Vector3(WIDTH, THICK.y, LENGTH), Vector3(0, TOP - THICK.y * 0.5, LENGTH * 0.5))

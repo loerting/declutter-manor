@@ -61,7 +61,7 @@ func build(def: ItemDef) -> Node3D:
 
 	var wood := Params.flag(def.params, "wood", true)
 	var handle_mat := Mats.of("walnut", Params.colour(def.params, "handle", WOOD), 0.5) if wood \
-			else Props.mat(Params.colour(def.params, "handle", BLACK), 0.8)
+			else Mats.finish("plastic", Params.colour(def.params, "handle", BLACK), 0.8)
 	var path := PackedVector3Array()
 	for i in range(19):
 		var t := PI * HANDLE_TURN * float(i) / 18.0

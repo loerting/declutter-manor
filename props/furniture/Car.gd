@@ -67,8 +67,8 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	car.name = "Car"
 	car.position = Vector3(0, 0, NOSE_CLEAR)
 	piece.add_child(car)
-	var paint := Props.mat(Params.colour(def.params, "tint", BLUE), 0.25, 0.5)
-	var trim := Props.mat(TRIM, 0.6)
+	var paint := Mats.finish("painted_metal", Params.colour(def.params, "tint", BLUE), 0.2)
+	var trim := Mats.finish("plastic", TRIM, 0.6)
 
 	car.add_child(Props.mi(_loft(BODY, BODY_TUMBLE, true), paint))
 	car.add_child(Props.mi(_loft(CABIN, CABIN_TUMBLE, false), Props.mat(GLASS, 0.05, 0.3)))
@@ -113,7 +113,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var plates: Array = []
 	for u: float in [-BUMPER_PROUD - PLATE.z * 0.5, LENGTH + BUMPER_PROUD + PLATE.z * 0.5]:
 		plates.append(Props.part(PLATE, Vector3(0, 0.36, u)))
-	car.add_child(Props.mi(Props.bake(plates), Props.mat(PLATE_WHITE, 0.4)))
+	car.add_child(Props.mi(Props.bake(plates), Mats.finish("painted_metal", PLATE_WHITE, 0.4)))
 
 	var tyres: Array = []
 	var rims: Array = []

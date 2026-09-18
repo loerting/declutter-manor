@@ -35,7 +35,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		[Props.lathe(PackedVector2Array(COLUMN), 32), Transform3D(Basis.from_scale(Vector3(1, 1, COLUMN_OVAL)), Vector3(0, 0, column_z))],
 	]
 	piece.add_child(Props.mi(Props.bake(parts), porcelain))
-	var chrome := Mats.of("metal_brushed", CHROME, 0.15)
+	var chrome := Mats.finish("metal_polished", CHROME, 0.06)
 	piece.add_child(Props.mi(Props.cyl(STRAINER.x, STRAINER.x, STRAINER.y, 20), chrome,
 			Vector3(0, BASIN_BOTTOM + BASIN[8].y + STRAINER.y * 0.5, basin_z)))
 	# The spout: a tap laid on its back, its base on the wall and its spout turned down over the bowl.

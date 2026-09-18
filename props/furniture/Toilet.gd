@@ -53,7 +53,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	water.scale = Vector3(1, 1, OVAL)
 	piece.add_child(water)
 	var top := CISTERN_FROM + CISTERN.y + CISTERN_LID.y
-	piece.add_child(Props.mi(Props.cyl(BUTTON.x, BUTTON.x, BUTTON.y, 24), Mats.of("metal_brushed", CHROME, 0.15),
+	piece.add_child(Props.mi(Props.cyl(BUTTON.x, BUTTON.x, BUTTON.y, 24), Mats.finish("metal_polished", CHROME, 0.06),
 			Vector3(0, top + BUTTON.y * 0.3, CISTERN_LID.z * 0.5)))
 
 	piece.add_box(Vector3(BOWL[6].x * 2.0, rim + SEAT.z + LID_THICK, BOWL[6].x * 2.0 * OVAL),

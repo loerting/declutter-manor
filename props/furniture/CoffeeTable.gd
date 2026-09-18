@@ -86,7 +86,7 @@ func _add_tray(piece: FurnitureNode, at: Vector3) -> void:
 		parts.append([Props.rounded_box(Vector3(TRAY_WALL, TRAY_SIZE.y, TRAY_SIZE.z - TRAY_WALL * 2.0 + JOINT_EASE * 2.0),
 				TRAY_EASE, 4, 12), _at(Vector3(side * (half.x - TRAY_WALL * 0.5), TRAY_SIZE.y * 0.5, 0))])
 	piece.add_child(Props.mi(Props.bake(parts), Mats.of("walnut", TRAY_WALNUT, 0.55), at))
-	var brass := Mats.of("metal_brushed", Props.BRASS, 0.35)
+	var brass := Mats.finish("metal_polished", Props.BRASS, 0.25)
 	var pull := Props.union(Props.bar_pull(HANDLE_LENGTH, Vector3.ZERO, Vector3.RIGHT))
 	# A pull stands out along its +Z; turned a quarter about Y it stands out of an end.
 	for side: float in [-1.0, 1.0]:

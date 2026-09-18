@@ -43,7 +43,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.initialize(def, Vector2(CABINET.x + SIDE_ROOM * 2.0, CABINET.z))
 	var cz := CABINET.z * 0.5
 	var front := CABINET.z
-	var paint := Props.mat(PAINT, 0.4, 0.2)
+	var paint := Mats.finish("painted_metal", PAINT, 0.4)
 	piece.add_child(Props.mi(Props.rounded_box(CABINET, EASE, 2, 8), paint, Vector3(0, CABINET.y * 0.5, cz)))
 	var panels: Array = []
 	for span: Vector2 in [Vector2(0.05, SPLIT - 0.01), Vector2(SPLIT + 0.01, CABINET.y - 0.05)]:
@@ -63,7 +63,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for y: float in [trunk_bottom + 0.004, trunk_bottom + trunk.y * 0.5]:
 		duct.append(Props.part(Vector3(trunk.x + SEAM * 0.5, SEAM, trunk.z + SEAM * 0.5), Vector3(0, y + SEAM * 0.5, trunk_z)))
 	duct.append(Props.part(Vector3(PLENUM.x + SEAM * 0.5, SEAM, PLENUM.z + SEAM * 0.5), Vector3(0, CABINET.y + SEAM * 0.5, cz)))
-	piece.add_child(Props.mi(Props.bake(duct), Props.mat(GALVANISED, 0.45, 0.5)))
+	piece.add_child(Props.mi(Props.bake(duct), Mats.finish("metal_brushed", GALVANISED, 0.45)))
 	piece.add_box(CABINET, Vector3(0, CABINET.y * 0.5, cz))
 	piece.add_box(PLENUM, Vector3(0, CABINET.y + PLENUM.y * 0.5, cz))
 	piece.add_box(trunk, Vector3(0, trunk_bottom + trunk.y * 0.5, trunk_z))
@@ -72,12 +72,12 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var pvc: Array = []
 	for z: float in [FLUE_Z.x, FLUE_Z.y]:
 		pvc.append([Props.tube(_elbow(Vector3(side - 0.02, FLUE_Y, z), FLUE_OUT, ceiling, FLUE), FLUE, 16), Transform3D.IDENTITY])
-	piece.add_child(Props.mi(Props.bake(pvc), Props.mat(PVC, 0.35)))
+	piece.add_child(Props.mi(Props.bake(pvc), Mats.finish("plastic", PVC, 0.35)))
 	var gas := PackedVector3Array([Vector3(side - 0.02, GAS_Y, GAS_Z), Vector3(side + 0.05, GAS_Y, GAS_Z)])
 	gas.append_array(_arc(Vector3(side + 0.05, GAS_Y, GAS_Z), 0.03))
 	gas.append(Vector3(side + 0.08, ceiling, GAS_Z))
-	piece.add_child(Props.mi(Props.tube(gas, GAS, 10), Props.mat(IRON, 0.5, 0.4)))
-	piece.add_child(Props.mi(Props.box(VALVE), Props.mat(YELLOW, 0.4), Vector3(side + 0.08 + GAS + VALVE.x * 0.5, GAS_Y + 0.35, GAS_Z)))
+	piece.add_child(Props.mi(Props.tube(gas, GAS, 10), Mats.finish("painted_metal", IRON, 0.5)))
+	piece.add_child(Props.mi(Props.box(VALVE), Mats.finish("painted_metal", YELLOW, 0.4), Vector3(side + 0.08 + GAS + VALVE.x * 0.5, GAS_Y + 0.35, GAS_Z)))
 	return piece
 
 ## Out of the side along +X, round a bend and straight up to the ceiling.

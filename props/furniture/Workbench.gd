@@ -73,7 +73,8 @@ const RING_WALL := 0.0057
 const HANG_OUT := 0.034
 
 const BUTCHER := Color(0.95, 0.8, 0.62)
-const PINE := Color(1.0, 0.92, 0.76)
+## the pine scan carries its own colour; this only takes the orange out of it
+const PINE := Color(1.0, 0.97, 0.92)
 const HARDBOARD := Color(0.6, 0.45, 0.3)
 const VISE_BLUE := Color(0.18, 0.3, 0.44)
 const STEEL := Color(0.72, 0.73, 0.75)
@@ -85,7 +86,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var reach := jaw_face + VISE_GAP + VISE_MOVING.z + VISE_SCREW.y + VISE_HANDLE.x
 	piece.initialize(def, Vector2(WIDTH, reach))
 	var cz := DEPTH * 0.5
-	var pine := Mats.of("oak", PINE, 0.7, 1.4)
+	var pine := Mats.of("pine", PINE, 0.7)
 	piece.add_child(Props.mi(Props.rounded_box(Vector3(WIDTH, TOP, DEPTH), TOP_EASE, 4, 16), Mats.of("oak", BUTCHER, 0.8, 0.6),
 			Vector3(0, HEIGHT - TOP * 0.5, cz)))
 	piece.add_box(Vector3(WIDTH, TOP, DEPTH), Vector3(0, HEIGHT - TOP * 0.5, cz))
@@ -111,7 +112,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		frame.append(Props.part(Vector3(PEGBOARD.x, STRIP, STANDOFF), Vector3(0, y, STANDOFF * 0.5)))
 	piece.add_child(Props.mi(Props.bake(frame), pine))
 
-	piece.add_child(Props.mi(_pegboard(), Props.mat(HARDBOARD, 0.8), Vector3(0, PEG_Y, STANDOFF)))
+	piece.add_child(Props.mi(_pegboard(), Mats.finish("paper", HARDBOARD, 0.8), Vector3(0, PEG_Y, STANDOFF)))
 	piece.add_box(Vector3(PEGBOARD.x, PEGBOARD.y, PEG_THICK), Vector3(0, PEG_Y + PEGBOARD.y * 0.5, STANDOFF + PEG_THICK * 0.5))
 	var board_front := STANDOFF + PEG_THICK
 	_vise(piece, jaw_face)
@@ -128,7 +129,7 @@ func _vise(piece: FurnitureNode, jaw_face: float) -> void:
 		Props.part(VISE_MOVING, Vector3(x, HEIGHT + VISE_BODY.y + VISE_JAW.y - 0.01 - VISE_MOVING.y * 0.5,
 				jaw_face + VISE_GAP + VISE_MOVING.z * 0.5)),
 	]
-	piece.add_child(Props.mi(Props.bake(body), Props.mat(VISE_BLUE, 0.5, 0.2)))
+	piece.add_child(Props.mi(Props.bake(body), Mats.finish("painted_metal", VISE_BLUE, 0.5)))
 	var jaw_y := HEIGHT + VISE_BODY.y + VISE_JAW.y - 0.01 - VISE_PLATE.y * 0.5 - 0.004
 	var bar_y := HEIGHT + VISE_BAR.y * 0.5 + 0.012
 	var screw_z := jaw_face + VISE_GAP + VISE_MOVING.z
@@ -177,7 +178,7 @@ func _rack(piece: FurnitureNode, board_front: float) -> void:
 		var bx := RACK_X + end * (half - RACK_PLATE)
 		parts.append([Props.extrude(bracket, Vector3(bx, 0, 0), Vector3.BACK, Vector3.UP, Vector3.RIGHT, -RACK_PLATE * 0.5, RACK_PLATE * 0.5),
 				Transform3D.IDENTITY])
-	piece.add_child(Props.mi(Props.bake(parts), Props.mat(BLACK, 0.45, 0.3)))
+	piece.add_child(Props.mi(Props.bake(parts), Mats.finish("painted_metal", BLACK, 0.45)))
 	piece.add_anchor(&"screwdrivers", Transform3D(Basis.IDENTITY, Vector3(_rack_hole_x(0), RACK_Y + HANDLE_LENGTH, row)), piece)
 
 func _rack_hole_x(k: int) -> float:

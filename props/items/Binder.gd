@@ -25,7 +25,7 @@ const LABEL_CARD := Color(0.98, 0.98, 0.96)
 
 func build(def: ItemDef) -> Node3D:
 	var root := Node3D.new()
-	var plastic := Props.mat(Params.colour(def.params, "tint", NAVY), 0.45)
+	var plastic := Mats.finish("plastic", Params.colour(def.params, "tint", NAVY), 0.45)
 	root.add_child(Props.mi(Props.extrude(_cover_outline(), Vector3.ZERO, Vector3.RIGHT, Vector3.BACK, Vector3.UP,
 			0.0, HEIGHT), plastic))
 	var paper_z0 := -DEPTH * 0.5 + COVER + PAPER_FROM_SPINE

@@ -50,7 +50,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var front := DEPTH
 	piece.initialize(def, Vector2(WIDTH, DEPTH + DOOR_THICK + HANDLE_OUT + HANDLE_RADIUS))
 	var steel := Mats.of("metal_brushed", STEEL, 0.3)
-	var liner := Props.mat(LINER, 0.4)
+	var liner := Mats.finish("plastic", LINER, 0.4)
 	var hx := WIDTH * 0.5
 	var inner_x := hx - WALL
 	var cz := DEPTH * 0.5
@@ -74,7 +74,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for sx: float in [-1.0, 1.0]:
 		for z: float in [0.08, DEPTH - 0.06]:
 			feet.append([Props.cyl(0.016, 0.018, FOOT, 12), Transform3D(Basis.IDENTITY, Vector3(sx * (hx - 0.06), FOOT * 0.5, z))])
-	piece.add_child(Props.mi(Props.bake(feet), Props.mat(GASKET, 0.8)))
+	piece.add_child(Props.mi(Props.bake(feet), Mats.finish("rubber", GASKET, 0.8)))
 	var shelves: Array = []
 	for y: float in SHELVES_Y:
 		# Short of the door's bins, which come into the cabinet when it shuts.

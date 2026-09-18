@@ -39,7 +39,7 @@ const SILVER := Color(0.8, 0.8, 0.82)
 func build(def: ItemDef) -> Node3D:
 	var root := Node3D.new()
 	var shape := clampi(Params.integer(def.params, "shape", 0), 0, CABINS.size() - 1)
-	var paint := Props.mat(Params.colour(def.params, "tint", RED), 0.25, 0.3)
+	var paint := Mats.finish("plastic", Params.colour(def.params, "tint", RED), 0.25)
 	var half := Vector2(HALF_WIDTH, LENGTH * 0.5)
 	var wheel_y := WHEEL.x
 	root.add_child(Props.mi(_blob(half, BODY_BOTTOM, func(_p: Vector2) -> float: return BODY_TOP), paint))
@@ -64,8 +64,8 @@ func build(def: ItemDef) -> Node3D:
 			tyres.append([Props.cyl(WHEEL.x, WHEEL.x, WHEEL.y, 20), Transform3D(axle, Vector3(sx * WHEEL_X, wheel_y, sz * WHEEL_Z))])
 			hubs.append([Props.cyl(HUB.x, HUB.x, HUB.y, 16), Transform3D(axle,
 					Vector3(sx * (WHEEL_X + WHEEL.y * 0.5 + HUB.y * 0.3), wheel_y, sz * WHEEL_Z))])
-	root.add_child(Props.mi(Props.bake(tyres), Props.mat(TYRE, 0.8)))
-	root.add_child(Props.mi(Props.bake(hubs), Props.mat(SILVER, 0.25, 0.9)))
+	root.add_child(Props.mi(Props.bake(tyres), Mats.finish("rubber", TYRE, 0.8)))
+	root.add_child(Props.mi(Props.bake(hubs), Mats.finish("metal_polished", SILVER, 0.2)))
 	return root
 
 func variant(index: int) -> Dictionary:

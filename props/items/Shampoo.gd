@@ -38,11 +38,11 @@ func build(def: ItemDef) -> Node3D:
 				cap_bottom * row.x))
 	# The neck carries on up inside the cap.
 	rings.append(_ring(Vector2(NECK, NECK), 2.0, cap_bottom + CAP.y * 0.5))
-	root.add_child(Props.mi(Props.loft(rings), Props.mat(Params.colour(def.params, "tint", TEAL), 0.32)))
+	root.add_child(Props.mi(Props.loft(rings), Mats.finish("plastic", Params.colour(def.params, "tint", TEAL), 0.32)))
 	var cap := PackedVector2Array([Vector2(0.0, 0.0), Vector2(CAP.x, 0.0), Vector2(CAP.x, CAP.y - CAP_LID),
 			Vector2(CAP.x + 0.0008, CAP.y - CAP_LID), Vector2(CAP.x + 0.0008, CAP.y - 0.002), Vector2(CAP.x - 0.002, CAP.y),
 			Vector2(0.0, CAP.y)])
-	root.add_child(Props.mi(Props.lathe(cap, SIDES), Props.mat(Params.colour(def.params, "cap", WHITE), 0.4),
+	root.add_child(Props.mi(Props.lathe(cap, SIDES), Mats.finish("plastic", Params.colour(def.params, "cap", WHITE), 0.4),
 			Vector3(0, cap_bottom, 0)))
 	return root
 

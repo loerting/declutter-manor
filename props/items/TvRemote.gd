@@ -41,10 +41,10 @@ func build(_def: ItemDef) -> Node3D:
 	var radius := func(theta: float) -> float: return Props.superellipse(theta, HALF, OUTLINE)
 	var bottom := func(p: Vector2) -> float: return -BACK_CURVE * (1.0 - minf(1.0, pow(p.x / HALF.x, 2.0)))
 	var top := func(_p: Vector2) -> float: return THICK - BACK_CURVE
-	body.add_child(Props.mi(Props.moulded(radius, bottom, top, EDGE, HALF, 96), Props.mat(BODY, 0.55)))
+	body.add_child(Props.mi(Props.moulded(radius, bottom, top, EDGE, HALF, 96), Mats.finish("plastic", BODY, 0.55)))
 
 	var face := THICK - BACK_CURVE - KEY_SINK
-	var rubber := Props.mat(KEY, 0.75)
+	var rubber := Mats.finish("rubber", KEY, 0.75)
 	var keys: Array = []
 	for i in range(PAD_SIZE.x):
 		for j in range(PAD_SIZE.y):
@@ -58,7 +58,7 @@ func build(_def: ItemDef) -> Node3D:
 			Transform3D(Basis.IDENTITY, Vector3(RING_AT.x, face, RING_AT.y))])
 	keys.append([_dome(OK_RADIUS), Transform3D(Basis.IDENTITY, Vector3(RING_AT.x, face, RING_AT.y))])
 	body.add_child(Props.mi(Props.bake(keys), rubber))
-	body.add_child(Props.mi(_dome(POWER_RADIUS), Props.mat(POWER, 0.6), Vector3(POWER_AT.x, face, POWER_AT.y)))
+	body.add_child(Props.mi(_dome(POWER_RADIUS), Mats.finish("rubber", POWER, 0.6), Vector3(POWER_AT.x, face, POWER_AT.y)))
 	# The IR window is set into the end, flush with its curve at the middle.
 	body.add_child(Props.mi(Props.rounded_box(IR_SIZE, 0.001, 4, 12), Props.mat(IR, 0.15),
 			Vector3(0, (THICK - BACK_CURVE) * 0.5, -HALF.y + IR_SIZE.z * 0.5 - IR_PROUD)))

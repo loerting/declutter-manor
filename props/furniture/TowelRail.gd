@@ -35,7 +35,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		parts.append([Props.cyl(POST_RADIUS, POST_RADIUS, REACH, 12), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(x, y, REACH * 0.5))])
 		parts.append([Props.lathe(PackedVector2Array([Vector2(ROSE.x, 0.0), Vector2(ROSE.x, ROSE.y * 0.5),
 				Vector2(POST_RADIUS * 1.5, ROSE.y), Vector2(0.0, ROSE.y)]), 20), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(x, y, 0))])
-	piece.add_child(Props.mi(Props.bake(parts), Mats.of("metal_brushed", CHROME, 0.15)))
+	piece.add_child(Props.mi(Props.bake(parts), Mats.finish("metal_polished", CHROME, 0.06)))
 	piece.add_box(Vector3(width, BAR_RADIUS * 2.0, REACH + BAR_RADIUS), Vector3(0, y, (REACH + BAR_RADIUS) * 0.5))
 	piece.add_anchor(&"bar", Transform3D(Basis.IDENTITY, Vector3(-width * TOWEL_SHARE, height + TOWEL_THICK, REACH)), piece)
 	return piece

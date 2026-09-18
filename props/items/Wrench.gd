@@ -46,7 +46,7 @@ func build(def: ItemDef) -> Node3D:
 			for cut: PackedVector2Array in Geometry2D.clip_polygons(piece, hole):
 				parts.append([Props.extrude(cut, Vector3.ZERO, Vector3.BACK, Vector3.RIGHT, Vector3.UP, 0.0, s * THICK), Transform3D.IDENTITY])
 	var root := Node3D.new()
-	root.add_child(Props.mi(Props.bake(parts), Mats.of("metal_brushed", CHROME, 0.25)))
+	root.add_child(Props.mi(Props.bake(parts), Mats.finish("metal_polished", CHROME, 0.12)))
 	return root
 
 func variant(index: int) -> Dictionary:

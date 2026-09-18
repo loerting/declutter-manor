@@ -28,9 +28,9 @@ const LAWN_CLEARANCE := 0.02
 @export var step_count := 4
 @export var step_width := 1.2
 
-@export var liner_slot := "porcelain"
+@export var liner_slot := "pool_plaster"
 @export var liner_tint := Color(0.66, 0.86, 0.95)
-@export var coping_slot := "concrete"
+@export var coping_slot := "concrete_broom"
 @export var coping_tint := Color(0.78, 0.76, 0.72)
 ## Deep enough to read as water rather than as tinted glass, clear enough to show the liner.
 ## The first pass was 0.29,0.62,0.66 at 0.62 alpha over a white liner, which came out as milk.

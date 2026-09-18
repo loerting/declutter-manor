@@ -137,9 +137,9 @@ static func _finish(finish: String) -> Material:
 		"oak":
 			return Mats.of("oak", OAK, 0.7)
 		"black":
-			return Props.mat(BLACK, 0.45)
+			return Mats.finish("painted_wood", BLACK, 0.45)
 		"white":
-			return Props.mat(WHITE, 0.5)
+			return Mats.finish("painted_wood", WHITE, 0.5)
 	return Mats.of("walnut", WALNUT, 0.7)
 
 ## The print: its bands laid top to bottom edge to edge, and each figure a head over a body standing

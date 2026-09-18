@@ -27,7 +27,7 @@ func build(def: ItemDef) -> Node3D:
 	# go: each corner ring twice, so the corners are edges and not rounded by the shading.
 	var rings: Array = [outer_bottom, outer_top, outer_top, inner_top, inner_top, inner_bottom, inner_bottom, outer_bottom]
 	var root := Node3D.new()
-	root.add_child(Props.mi(Props.loft(rings, false, false), Props.mat(tint, 0.85)))
+	root.add_child(Props.mi(Props.loft(rings, false, false), Mats.finish("plastic", tint, 0.85)))
 	return root
 
 func variant(index: int) -> Dictionary:

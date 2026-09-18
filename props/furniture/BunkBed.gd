@@ -39,7 +39,8 @@ const PILLOW_THICK := 0.11
 const TOY_BACK := 0.45
 const TOY_FROM := 0.11
 
-const PINE := Color(1.0, 0.9, 0.72)
+## the pine scan carries its own colour; this only takes the orange out of it, as a clear coat does
+const PINE := Color(1.0, 0.97, 0.92)
 const SHEET := Color(0.96, 0.96, 0.95)
 const COVERS: Array[Color] = [Color(0.36, 0.52, 0.72), Color(0.9, 0.66, 0.26)]
 
@@ -81,7 +82,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		wood.append(_board(Vector3(UPRIGHT.x, GUARD_TOP, UPRIGHT.y), Vector3(x, GUARD_TOP * 0.5, ladder_z)))
 	for y: float in RUNGS:
 		wood.append([Props.cyl(RUNG_RADIUS, RUNG_RADIUS, LADDER_WIDTH, 12), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3((near + far) * 0.5, y, ladder_z))])
-	piece.add_child(Props.mi(Props.bake(wood), Mats.of("oak", PINE, 0.7, 1.4)))
+	piece.add_child(Props.mi(Props.bake(wood), Mats.of("pine", PINE, 0.7)))
 
 	var sheet: Array = []
 	for i in range(FRAMES.size()):

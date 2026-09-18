@@ -44,13 +44,13 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var jacket := PackedVector2Array([Vector2(0.0, 0.0), Vector2(RADIUS - 0.02, 0.0), Vector2(RADIUS - 0.012, 0.03),
 			Vector2(RADIUS, 0.05), Vector2(RADIUS, HEIGHT - 0.05), Vector2(RADIUS - 0.03, HEIGHT - 0.008),
 			Vector2(RADIUS - 0.06, HEIGHT), Vector2(0.0, HEIGHT)])
-	piece.add_child(Props.mi(Props.lathe(jacket, SEGMENTS), Props.mat(JACKET, 0.35), at))
+	piece.add_child(Props.mi(Props.lathe(jacket, SEGMENTS), Mats.finish("painted_metal", JACKET, 0.35), at))
 	var front := cz + RADIUS
-	piece.add_child(Props.mi(Props.rounded_box(CONTROL, 0.006, 2, 8), Props.mat(BLACK, 0.4),
+	piece.add_child(Props.mi(Props.rounded_box(CONTROL, 0.006, 2, 8), Mats.finish("plastic", BLACK, 0.4),
 			Vector3(0, CONTROL_Y, front + CONTROL.z * 0.5 - 0.02)))
-	piece.add_child(Props.mi(Props.cyl(KNOB.x, KNOB.x, KNOB.y, 20), Props.mat(RED, 0.4),
+	piece.add_child(Props.mi(Props.cyl(KNOB.x, KNOB.x, KNOB.y, 20), Mats.finish("plastic", RED, 0.4),
 			Vector3(0, CONTROL_Y + 0.02, front + CONTROL.z - 0.02 + KNOB.y * 0.5), Vector3(90, 0, 0)))
-	piece.add_child(Props.mi(Props.box(COVER), Props.mat(Color(0.3, 0.3, 0.32), 0.5, 0.3), Vector3(0, 0.12, front - 0.01)))
+	piece.add_child(Props.mi(Props.box(COVER), Mats.finish("painted_metal", Color(0.3, 0.3, 0.32), 0.5), Vector3(0, 0.12, front - 0.01)))
 
 	var top := HEIGHT
 	var flue: Array = [[Props.lathe(PackedVector2Array([Vector2(HOOD.x, top + HOOD.y), Vector2(FLUE + 0.01, top + HOOD.y + HOOD.z)]), SEGMENTS),
@@ -61,7 +61,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		var a := TAU * float(k) / 3.0 + PI * 0.5
 		flue.append(Props.part(Vector3(0.012, HOOD.y + 0.01, 0.003), at + Vector3(cos(a) * HOOD.x * 0.9, top + HOOD.y * 0.5 - 0.005, sin(a) * HOOD.x * 0.9),
 				Basis(Vector3.UP, -a)))
-	piece.add_child(Props.mi(Props.bake(flue), Props.mat(GALVANISED, 0.45, 0.5)))
+	piece.add_child(Props.mi(Props.bake(flue), Mats.finish("metal_brushed", GALVANISED, 0.45)))
 
 	var copper: Array = []
 	for side: float in [-1.0, 1.0]:
@@ -72,8 +72,8 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	copper.append([Props.tube(PackedVector3Array([relief, relief + out * 0.05, relief + out * 0.07 + Vector3(0, -0.02, 0),
 			relief + out * 0.07 + Vector3(0, -0.06, 0), Vector3(relief.x + out.x * 0.07, DISCHARGE_TO, relief.z + out.z * 0.07)]), PIPE, 10),
 			Transform3D.IDENTITY])
-	piece.add_child(Props.mi(Props.bake(copper), Mats.of("metal_brushed", COPPER, 0.5)))
-	piece.add_child(Props.mi(Props.box(Vector3(0.04, 0.05, 0.04)), Props.mat(BRASS, 0.35, 0.6), relief + out * 0.03))
-	piece.add_child(Props.mi(Props.box(SHUTOFF), Props.mat(BLUE, 0.4), at + Vector3(-PIPE_X, top + 0.25, PIPE + SHUTOFF.z * 0.5)))
+	piece.add_child(Props.mi(Props.bake(copper), Mats.finish("metal_polished", COPPER, 0.35)))
+	piece.add_child(Props.mi(Props.box(Vector3(0.04, 0.05, 0.04)), Mats.finish("metal_polished", BRASS, 0.3), relief + out * 0.03))
+	piece.add_child(Props.mi(Props.box(SHUTOFF), Mats.finish("plastic", BLUE, 0.4), at + Vector3(-PIPE_X, top + 0.25, PIPE + SHUTOFF.z * 0.5)))
 	piece.add_box(Vector3(RADIUS * 2.0, HEIGHT, RADIUS * 2.0), Vector3(0, HEIGHT * 0.5, cz))
 	return piece

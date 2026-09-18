@@ -61,9 +61,9 @@ func build(_def: ItemDef) -> Node3D:
 		path.append(Vector3(p.x, lerpf(top, FITTING, p.y), p.z))
 	var smooth := Props.smooth_path(path, 2)
 	var root := Node3D.new()
-	root.add_child(Props.mi(Props.tube(smooth, TUBE, SEGMENTS), Props.mat(GREEN, 0.5)))
+	root.add_child(Props.mi(Props.tube(smooth, TUBE, SEGMENTS), Mats.finish("plastic", GREEN, 0.5)))
 
-	var brass := Props.mat(BRASS, 0.35, 0.7)
+	var brass := Mats.finish("metal_polished", BRASS, 0.3)
 	var n := smooth.size()
 	var tip := smooth[n - 1]
 	var nozzle := Node3D.new()

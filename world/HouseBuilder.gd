@@ -58,8 +58,13 @@ const PLINTH_PROUD := 0.025
 ## How far the band is let into the wall behind it, so the siding above has something to land on
 ## rather than a hairline crack.
 const PLINTH_BITE := 0.01
-const PLINTH_SLOT := "concrete"
-const PLINTH_TINT := Color(0.66, 0.65, 0.62)
+const PLINTH_SLOT := "foundation"
+## The formed-concrete scan is a shaded interior wall (0.33 albedo); exposed foundation in daylight
+## reads as the light grey of the driveway.
+const PLINTH_TINT := Color(1.45, 1.43, 1.40)
+## Outside steps are poured with the walk and brushed like it, not formed like the foundation.
+const STEP_SLOT := "concrete_broom"
+const STEP_TINT := Color(0.85, 0.85, 0.85)
 ## Outside steps: the tallest riser allowed and the going. A door whose floor is above the
 ## ground outside it gets a flight from these, sized to the rise it actually has.
 const STEP_RISER_MAX := 0.17
@@ -69,6 +74,10 @@ const STEP_SIDE := 0.30
 const STEP_BURY := 0.30
 ## A garage door gets an apron ramp instead of steps: a car cannot take a step.
 const RAMP_RUN := 1.0
+
+## "Weathered wood", the best-selling architectural shingle colour: a brown-grey near 0.2 albedo
+## over the scan's neutral 0.4.
+const SHINGLE_TINT := Color(0.62, 0.56, 0.50)
 
 # --- Trim ----------------------------------------------------------------------------------------
 
@@ -86,9 +95,11 @@ const GUTTER_WALL := 0.014
 const DOWNSPOUT_R := 0.038
 ## The door reads as a door because it contrasts with the wall around it, not because of its
 ## panel lines alone. It is painted steel, not timber: it was on `painted_wood` until the author
-## asked why the garage door was made of wood (2026-09-09), and the plank grain was the answer.
-const GARAGE_DOOR_SLOT := "metal_brushed"
-const GARAGE_DOOR_TINT := Color(1.06, 1.04, 0.99)
+## asked why the garage door was made of wood (2026-09-09), and the plank grain was the answer;
+## then on brushed stainless, which no garage door is. The paint scan is levelled to mid grey,
+## so white is a tint above one.
+const GARAGE_DOOR_SLOT := "painted_metal"
+const GARAGE_DOOR_TINT := Color(1.30, 1.28, 1.24)
 const TRIM_DEPTH := 0.03
 ## How far the casing is let into the wall face; the rest of TRIM_DEPTH stands out from it.
 const TRIM_PROUD := 0.005
@@ -213,7 +224,9 @@ static func _build_room(parent: Node3D, plan: FloorPlan, storey: StoreyDef, room
 
 	var slab_plane := _tucked(plan, storey, room, true)
 	var top := room.floor_y(storey.base_y)
-	var floor_mat := Mats.of(room.floor_slot, room.floor_tint, 0.65, room.floor_scale, true)
+	# Each floor scan's own roughness: one multiplier for every floor tuned the oak and put a sheen
+	# on the carpet.
+	var floor_mat := Mats.of(room.floor_slot, room.floor_tint, 1.0, room.floor_scale, true)
 	var deck := plan.deck_for(room.id)
 	if deck != null:
 		# A deck has no slab: boards on a beam on posts, all of it built from this same polygon.
@@ -545,7 +558,7 @@ static func _face_material(plan: FloorPlan, storey: StoreyDef, room_id: StringNa
 		# PlanProbe reports it. The magenta is so it is impossible to miss in a render too.
 		push_error("HouseBuilder: wall names unknown room '%s'" % room_id)
 		return Props.mat(Color(1, 0, 1))
-	return Mats.of(room.wall_slot, Color(1.32, 1.34, 1.36), 0.95, room.wall_scale, true)
+	return Mats.of(room.wall_slot, room.wall_tint, 0.95, room.wall_scale, true)
 
 static func _side_name(room_id: StringName) -> String:
 	return "outside" if room_id == &"" else String(room_id)
@@ -856,7 +869,7 @@ static func _build_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, wal
 	# get a flat ramp hidden underneath instead (`ramp_collider`) and lose their trimesh
 	# collision, or the body would climb them tread by tread, stuttering up the flight instead
 	# of striding over it (2026-09-13).
-	surface(holder, mesh, [Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true)],
+	surface(holder, mesh, [Mats.of(STEP_SLOT, STEP_TINT, 1.0, 1.0, true)],
 			"Ramp" if is_ramp else "Steps", true, Layers.WORLD if is_ramp else Layers.SURFACE)
 	# `down` is named for the extrusion, whose profile runs negative downward: in the wall's local
 	# space, where +Z points at the ground, it is the world's up. Passing `-down` as `up` built the
@@ -933,10 +946,10 @@ static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef, undersid
 	var holder := Node3D.new()
 	holder.name = "Roof"
 	parent.add_child(holder)
-	var tiles := Mats.of(roof.slot, Color(0.92, 0.90, 0.90), 0.95, 1.0, true)
-	# Sawn roof boards are not varnished: on the scan's own roughness the bulb below put two
-	# mirror highlights on the underside, the one thing in the attic that read as plastic.
-	var boards := Mats.of(roof.underside_slot, roof.underside_tint, 0.88, 0.55, true, true)
+	var tiles := Mats.of(roof.slot, SHINGLE_TINT, 0.95, 1.0, true)
+	# The OSB deck is matte: on a finished wood scan's own roughness the bulb below put two mirror
+	# highlights on the underside, the one thing in the attic that read as plastic.
+	var boards := Mats.of(roof.underside_slot, roof.underside_tint, 0.88, 1.0, true, true)
 	var fascia := Mats.of(roof.fascia_slot, TRIM_TINT, 0.75)
 	var gable := Mats.of(plan.siding_slot, plan.siding_tint, 0.85, 1.0, true)
 

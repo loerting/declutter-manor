@@ -14,17 +14,20 @@ enum Zone { INTERIOR, GARAGE, EXTERIOR }
 @export var floor_slot := "floor_wood"
 ## The scans are near-neutral; outdoor concrete in full sun clips to white at the default.
 @export var floor_tint := Color.WHITE
-## As `wall_scale`, for the floor. The kitchen is the case it exists for: the stone scan is a
-## 1.2 m worktop slab, and a kitchen floor laid in 1.2 m tiles reads as one endless slab.
+## As `wall_scale`, for the floor. No room uses it today; the kitchen did while it was floored in
+## a 1.2 m worktop slab.
 @export var floor_scale := 1.0
 @export var ceiling_slot := "ceiling_plaster"
 ## The finish on every wall face that looks into this room.
 @export var wall_slot := "wall_plaster"
+## The drywall scan is a shaded beige (0.55 albedo); painted drywall under a ceiling light reads
+## as the off-white it is at a third brighter. A room on another finish sets its own: the attic's
+## OSB at this tint glared orange.
+@export var wall_tint := Color(1.32, 1.34, 1.36)
 ## Multiplies the slot's real-world tile size for this room's walls only. Textures are sized in
 ## metres from their source's published dimensions (`Mats`), and that is what keeps a scene from
-## reading as plastic — so this is a deliberate deviation, not a knob to turn by eye. The attic
-## is the case it exists for: its knee walls are boarded, and the siding scan is a 1.2 m panel,
-## which put one board across a wall 0.9 m tall.
+## reading as plastic — so this is a deliberate deviation, not a knob to turn by eye. No room uses
+## it today; the attic did while its knee walls were boarded in the 1.2 m siding panel.
 @export var wall_scale := 1.0
 
 @export var has_ceiling := true

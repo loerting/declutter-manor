@@ -32,7 +32,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		Props.ring_rounded_rect(BASE.x - WALL * 2.0, BASE.y - WALL * 2.0, CORNER - WALL, FLOOR, STEPS, STEPS),
 	]
 	var mesh := Props.loft(rings)
-	piece.add_child(Props.mi(mesh, Props.mat(PLASTIC, 0.5), Vector3(0, 0, outer.y * 0.5)))
+	piece.add_child(Props.mi(mesh, Mats.finish("plastic", PLASTIC, 0.5), Vector3(0, 0, outer.y * 0.5)))
 	piece.add_box(Vector3(TOP.x, HEIGHT, TOP.y), Vector3(0, HEIGHT * 0.5, outer.y * 0.5))
 	piece.add_anchor(&"floor", Transform3D(Basis.IDENTITY, Vector3(0, FLOOR, outer.y * 0.5)), piece)
 	return piece

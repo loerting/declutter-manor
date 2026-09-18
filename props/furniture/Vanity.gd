@@ -72,10 +72,10 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.add_child(Props.mi(Props.box(Vector3(width - 0.02, PLINTH, case_depth - PLINTH_SETBACK)),
 			Mats.of("painted_wood", Color(0.62, 0.62, 0.6), 0.8), Vector3(0, PLINTH * 0.5, (case_depth - PLINTH_SETBACK) * 0.5)))
 	piece.add_child(Props.mi(Props.rounded_box(Vector3(width + STONE_OVERHANG * 2.0, STONE, DEPTH), 0.006, 4, 20),
-			Mats.of("worktop_stone", STONE_COLOUR, 0.35), Vector3(0, under + STONE * 0.5, DEPTH * 0.5)))
+			Mats.finish("vanity_stone", STONE_COLOUR, 0.15), Vector3(0, under + STONE * 0.5, DEPTH * 0.5)))
 
 	var porcelain := Mats.of("porcelain", PORCELAIN, 0.2)
-	var chrome := Mats.of("metal_brushed", CHROME, 0.15)
+	var chrome := Mats.finish("metal_polished", CHROME, 0.06)
 	var basin_mesh := Props.lathe(PackedVector2Array(BASIN), 48, true)
 	var rim := BASIN[4].x
 	var basin_z := DEPTH * 0.5 + BASIN_FORWARD

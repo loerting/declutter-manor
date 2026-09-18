@@ -54,7 +54,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.initialize(def, Vector2(width, front + DOOR.z + HANDLE.z))
 	var washer_x := -width * 0.5 + CABINET.x * 0.5
 	var dryer_x := washer_x + CABINET.x + GAP
-	var enamel := Props.mat(WHITE, 0.25)
+	var enamel := Mats.finish("painted_metal", WHITE, 0.25)
 	piece.add_child(Props.mi(_cabinet(washer_x, true), enamel))
 	piece.add_child(Props.mi(_cabinet(dryer_x, false), enamel))
 	var inside := Mats.of("metal_brushed", STAINLESS, 0.45)
@@ -74,7 +74,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 				feet.append([Props.cyl(FOOT_RADIUS, FOOT_RADIUS, FEET + 0.004, 12), Transform3D(Basis.IDENTITY,
 						Vector3(x + sx * (CABINET.x * 0.5 - 0.06), (FEET + 0.004) * 0.5, z))])
 		piece.add_box(Vector3(CABINET.x, CABINET.y, CABINET.z), Vector3(x, CABINET.y * 0.5, front * 0.5))
-	piece.add_child(Props.mi(Props.bake(trim), Props.mat(PANEL_GREY, 0.35)))
+	piece.add_child(Props.mi(Props.bake(trim), Mats.finish("plastic", PANEL_GREY, 0.35)))
 	piece.add_child(Props.mi(Props.bake(feet), Mats.of("rubber", DARK, 0.9)))
 	piece.add_child(Props.mi(Props.bake(dark), Props.mat(DARK, 0.1)))
 
@@ -134,14 +134,14 @@ func _door(at: Vector3) -> Node3D:
 	var frame := PackedVector2Array([Vector2(DOOR.y, 0.0), Vector2(DOOR.x, 0.0), Vector2(DOOR.x, DOOR.z * 0.6),
 			Vector2(DOOR.x - 0.02, DOOR.z), Vector2(DOOR.y + 0.012, DOOR.z), Vector2(DOOR.y, DOOR.z * 0.7)])
 	var turn := Basis(Vector3.RIGHT, PI * 0.5)
-	var rim := Props.mi(Props.lathe(frame, SIDES, true), Props.mat(FRAME, 0.3, 0.4), at)
+	var rim := Props.mi(Props.lathe(frame, SIDES, true), Mats.finish("plastic", FRAME, 0.3), at)
 	rim.basis = turn
 	door.add_child(rim)
 	var glass := Props.mi(Props.cyl(DOOR.y + 0.002, DOOR.y + 0.002, DOOR.z * 0.4, SIDES), Props.glass(Color(0.1, 0.12, 0.14), 0.05),
 			at + Vector3(0, 0, DOOR.z * 0.45))
 	glass.basis = turn
 	door.add_child(glass)
-	door.add_child(Props.mi(Props.rounded_box(HANDLE, 0.006, 2, 8), Props.mat(FRAME, 0.3, 0.4),
+	door.add_child(Props.mi(Props.rounded_box(HANDLE, 0.006, 2, 8), Mats.finish("plastic", FRAME, 0.3),
 			at + Vector3(DOOR.x - HANDLE.x * 0.5, 0, DOOR.z + HANDLE.z * 0.5)))
 	return door
 

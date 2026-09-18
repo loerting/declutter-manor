@@ -36,6 +36,12 @@ const SLAB := 0.35
 ## like a box on a table; this is what puts three steps at every outside door and a plinth
 ## under the siding (`HouseBuilder.PLINTH_TOP`).
 const FLOOR_ABOVE_GRADE := 0.45
+## Paving, gravel and deck boards are in full daylight, which the scans were not lit for.
+const OUTDOOR_TINT := Color(0.85, 0.85, 0.85)
+## Builder beige: over the neutral carpet scan, 0.70, 0.66, 0.58 on the floor.
+const CARPET_TINT := Color(1.10, 1.00, 0.86)
+## OSB a few years under a roof has greyed from the mill's orange.
+const OSB_TINT := Color(0.80, 0.76, 0.72)
 ## The garage slab sits a hair above the wall footing (`HouseBuilder.FOUNDATION`), so the garage
 ## door comes down to it and the driveway needs only a shallow ramp.
 const GARAGE_DROP := SLAB - 0.02
@@ -113,7 +119,6 @@ static func build() -> FloorPlan:
 	var main_roof := RoofDef.gable(HOUSE, eave, true, PITCH)
 	var garage_roof := RoofDef.gable(GARAGE, ground.ceiling_y(), true, 28.0)
 	garage_roof.abut_start = true   # meets the house's east wall; no gable, no overhang there
-	main_roof.underside_tint = Color(0.74, 0.68, 0.58)
 	plan.roofs = [main_roof, garage_roof]
 	# Inside the front door, looking down the hall into the house — the first thing the player
 	# sees is the centre-hall plan this house is organised around, not a wall.
@@ -136,27 +141,28 @@ static func _room(id: StringName, x0: float, z0: float, x1: float, z1: float, fl
 	r.floor_slot = floor
 	return r
 
-## A stone floor laid as tiles rather than as one slab: the scan is a worktop, so its published
-## 1.2 m has to be scaled down to a tile the room is actually paved in.
-static func _tiled(r: RoomDef, scale: float) -> RoomDef:
-	r.floor_scale = scale
+## Wall-to-wall plush, as an American bedroom is floored.
+static func _carpeted(r: RoomDef) -> RoomDef:
+	r.floor_slot = "carpet"
+	r.floor_tint = CARPET_TINT
+	return r
+
+## The unfinished half of a basement: its walls are the poured foundation, form seams and tie
+## holes showing, not drywall.
+static func _unfinished(r: RoomDef) -> RoomDef:
+	r.wall_slot = "foundation"
 	return r
 
 static func _outdoor(id: StringName, x0: float, z0: float, x1: float, z1: float, floor: String) -> RoomDef:
 	var r := _room(id, x0, z0, x1, z1, floor)
-	_outside(r, floor)
+	_outside(r)
 	return r
 
 ## Paving lies on the ground, a storey's floor height below the finished floor.
-static func _outside(r: RoomDef, floor: String) -> void:
+static func _outside(r: RoomDef) -> void:
 	r.zone = RoomDef.Zone.EXTERIOR
 	r.floor_drop = FLOOR_ABOVE_GRADE
-	# The gravel scan is nearly white (mean 218/255); at 0.85 it read as a slab of concrete in
-	# the aerial, which is the whole reason the side garden did not look like a garden.
-	match floor:
-		"concrete": r.floor_tint = Color(0.62, 0.62, 0.60)
-		"gravel": r.floor_tint = Color(0.50, 0.47, 0.42)
-		_: r.floor_tint = Color(0.85, 0.85, 0.85)
+	r.floor_tint = OUTDOOR_TINT
 	r.has_ceiling = false
 	r.light_energy = 0.0
 
@@ -165,7 +171,7 @@ static func _outside(r: RoomDef, floor: String) -> void:
 ## deck looks like and what stops `HouseBuilder` putting steps in the doorway. The steps are on
 ## the far side, off the deck.
 static func _deck() -> RoomDef:
-	var r := _outdoor(&"deck", DECK.position.x, DECK.position.y, DECK.end.x, DECK.end.y, "floor_wood")
+	var r := _outdoor(&"deck", DECK.position.x, DECK.position.y, DECK.end.x, DECK.end.y, "deck_boards")
 	r.floor_drop = 0.0
 	return r
 
@@ -180,8 +186,8 @@ static func _driveway() -> RoomDef:
 	r.name_key = "room.driveway"
 	r.polygon = PackedVector2Array([Vector2(15.5, 0.5), Vector2(23.5, 0.5), Vector2(23.5, 6),
 			Vector2(9, 6), Vector2(9, 4), Vector2(15.5, 4)])
-	r.floor_slot = "concrete"
-	_outside(r, "concrete")
+	r.floor_slot = "concrete_broom"
+	_outside(r)
 	return r
 
 # --- Basement --------------------------------------------------------------------------------
@@ -192,9 +198,9 @@ static func _basement(s: StoreyDef) -> void:
 	s.rooms = [
 		_room(&"rec_room", 4, 6, HALL_EAST, 12.5, "rug_wool"),
 		_room(&"laundry", 4, 12.5, 7.5, 15.5, "concrete"),
-		_room(&"utility", 7.5, 12.5, HALL_EAST, 15.5, "concrete"),
-		_room(&"workshop", HALL_EAST, 6, 17, 10.5, "concrete"),
-		_room(&"storage", HALL_EAST, 10.5, 17, 15.5, "concrete"),
+		_unfinished(_room(&"utility", 7.5, 12.5, HALL_EAST, 15.5, "concrete")),
+		_unfinished(_room(&"workshop", HALL_EAST, 6, 17, 10.5, "concrete")),
+		_unfinished(_room(&"storage", HALL_EAST, 10.5, 17, 15.5, "concrete")),
 	]
 	var w := WallDeriver.derive(s.rooms)
 	WallDeriver.pierce_between(w, &"rec_room", &"laundry", Opening.door(0.0))
@@ -216,19 +222,20 @@ static func _ground(s: StoreyDef) -> void:
 		_room(&"office", 4, 6, 8, 9.5),
 		_room(&"living", 4, 9.5, 8, 15.5),
 		_room(&"dining", HALL_EAST, 6, 17, 9.5),
-		_tiled(_room(&"kitchen", HALL_EAST, 9.5, 14.5, 15.5, "worktop_stone"), 0.75),
+		# the hall's oak runs on through the kitchen, which is how a kitchen off a centre hall is floored
+		_room(&"kitchen", HALL_EAST, 9.5, 14.5, 15.5),
 		# Carried 1.5 m past the garage's back wall. Ended level with it, four walls met at one point
 		# on the facade; ended 0.5 or 1.0 m past it, the stub of outside wall was too short for
 		# `HouseBuilder._build_plinth` to mitre, and its plinth lapped the garage's by 35 mm
 		# (`dev/SeamProbe.tscn`, 2026-09-13). A mudroom this deep holds a bench and a coat wall.
-		_room(&"mudroom", 14.5, 9.5, 17, 13, "concrete"),
+		_room(&"mudroom", 14.5, 9.5, 17, 13, "tile_stone"),
 		# off the mudroom, which is where a half bath goes in a house with a garage entry
-		_room(&"powder", 14.5, 13, 17, 15.5, "porcelain"),
+		_room(&"powder", 14.5, 13, 17, 15.5, "tile_stone"),
 		garage,
 		_driveway(),
 		_deck(),
 		_outdoor(&"pool_area", POOL_AREA.position.x, POOL_AREA.position.y,
-				POOL_AREA.end.x, POOL_AREA.end.y, "concrete"),
+				POOL_AREA.end.x, POOL_AREA.end.y, "concrete_broom"),
 		_outdoor(&"side_garden", 0.5, 6, 4, 15.5, "gravel"),
 	]
 	var w := WallDeriver.derive(s.rooms)
@@ -261,12 +268,12 @@ static func _ground(s: StoreyDef) -> void:
 static func _upper(s: StoreyDef) -> void:
 	s.rooms = [
 		_room(&"landing", 8, 6, HALL_EAST, 12.5),
-		_room(&"hall_bath", 8, 12.5, HALL_EAST, 15.5, "porcelain"),
-		_room(&"kids_room", 4, 6, 8, 10.5, "rug_wool"),
-		_room(&"guest_room", 4, 10.5, 8, 15.5, "rug_wool"),
-		_room(&"closet", HALL_EAST, 6, 13.5, 10.5),
-		_room(&"master_bath", 13.5, 6, 17, 10.5, "porcelain"),
-		_room(&"master_bed", HALL_EAST, 10.5, 17, 15.5),
+		_room(&"hall_bath", 8, 12.5, HALL_EAST, 15.5, "tile_hex"),
+		_carpeted(_room(&"kids_room", 4, 6, 8, 10.5)),
+		_carpeted(_room(&"guest_room", 4, 10.5, 8, 15.5)),
+		_carpeted(_room(&"closet", HALL_EAST, 6, 13.5, 10.5)),
+		_room(&"master_bath", 13.5, 6, 17, 10.5, "tile_stone"),
+		_carpeted(_room(&"master_bed", HALL_EAST, 10.5, 17, 15.5)),
 	]
 	var w := WallDeriver.derive(s.rooms)
 	# The landing's west wall has the attic ladder against it and its east wall has the stairwell:
@@ -293,12 +300,13 @@ static func _upper(s: StoreyDef) -> void:
 # --- Attic ------------------------------------------------------------------------------------------
 
 static func _attic(s: StoreyDef) -> void:
-	var attic := _room(&"attic", ATTIC.position.x, ATTIC.position.y, ATTIC.end.x, ATTIC.end.y)
+	# decked and knee-walled in OSB, under an OSB roof deck: a storage attic, not a finished room
+	var attic := _room(&"attic", ATTIC.position.x, ATTIC.position.y, ATTIC.end.x, ATTIC.end.y, "osb")
 	attic.has_ceiling = false   # the roof is the ceiling, boards and all
 	attic.ceiling_slot = ""
-	attic.wall_slot = "painted_wood"
-	# tongue-and-groove boarding, not the 1.2 m exterior panel the scan was taken from
-	attic.wall_scale = 0.28
+	attic.wall_slot = "osb"
+	attic.wall_tint = OSB_TINT
+	attic.floor_tint = OSB_TINT
 	attic.light_energy = 2.2
 	attic.light_range = 12.0
 	s.rooms = [attic]

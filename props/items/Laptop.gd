@@ -26,7 +26,7 @@ const BLACK := Color(0.04, 0.04, 0.045)
 func build(_def: ItemDef) -> Node3D:
 	var root := Node3D.new()
 	var metal := Mats.of("metal_brushed", ALUMINIUM, 0.55)
-	var dark := Props.mat(BLACK, 0.7)
+	var dark := Mats.finish("plastic", BLACK, 0.7)
 	var base_y := FOOT_HEIGHT
 	root.add_child(Props.mi(_slab(Vector2(SIZE.x, SIZE.z), BASE_THICK, SCOOP), metal, Vector3(0, base_y, 0)))
 	var lid_y := base_y + BASE_THICK + SEAM

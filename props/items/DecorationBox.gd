@@ -39,7 +39,7 @@ func build(def: ItemDef) -> Node3D:
 		_ring(TOP + Vector2(FLANGE.x, FLANGE.x) * 2.0, HEIGHT),
 		_ring(TOP, HEIGHT + 0.004),
 	]
-	root.add_child(Props.mi(Props.loft(tub), Props.mat(Params.colour(def.params, "tint", GREEN), 0.45)))
+	root.add_child(Props.mi(Props.loft(tub), Mats.finish("plastic", Params.colour(def.params, "tint", GREEN), 0.45)))
 	var outer := TOP + Vector2(FLANGE.x + SKIRT.x, FLANGE.x + SKIRT.x) * 2.0
 	var skirt_bottom := HEIGHT - SKIRT.y
 	var top := HEIGHT + LID_TOP
@@ -51,7 +51,7 @@ func build(def: ItemDef) -> Node3D:
 		_ring(panel, top),
 		_ring(panel - Vector2(PANEL.y, PANEL.y) * 2.0, top + PANEL.y),
 	]
-	var lid_mat := Props.mat(Params.colour(def.params, "lid", RED), 0.42)
+	var lid_mat := Mats.finish("plastic", Params.colour(def.params, "lid", RED), 0.42)
 	root.add_child(Props.mi(Props.loft(lid), lid_mat))
 	var latches: Array = []
 	for side: float in [-1.0, 1.0]:

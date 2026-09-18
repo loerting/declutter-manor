@@ -42,7 +42,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		var x := -total * 0.5 + WIDTH * 0.5 + (WIDTH + GAP) * float(k)
 		_lounger(Vector3(x, 0, 0), frame, sling)
 		piece.add_box(Vector3(WIDTH, BED_TOP, LENGTH), Vector3(x, BED_TOP * 0.5, LENGTH * 0.5))
-	piece.add_child(Props.mi(Props.bake(frame), Props.mat(FRAME, 0.4, 0.2)))
+	piece.add_child(Props.mi(Props.bake(frame), Mats.finish("painted_metal", FRAME, 0.4)))
 	piece.add_child(Props.mi(Props.bake(sling), Mats.of("sofa_fabric", tint, 1.0)))
 	var first := -total * 0.5 + WIDTH * 0.5
 	piece.add_anchor(&"lounger", Transform3D(Basis.IDENTITY, Vector3(first, BED_TOP - SLING_DROP + SLING * 0.5, (HINGE_Z + LENGTH) * 0.5)), piece)

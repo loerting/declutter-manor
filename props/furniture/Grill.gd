@@ -67,8 +67,8 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var hinge := Vector3(0, CART_BOTTOM + CART.y + FIREBOX.y, FIREBOX_Z)
 	var depth := FIREBOX_Z + HOOD.x + HOOD_HANDLE.y + HOOD_HANDLE.x
 	piece.initialize(def, Vector2(CART.x + SHELF.x * 2.0, depth))
-	var enamel := Props.mat(ENAMEL, 0.4, 0.4)
-	var steel := Props.mat(STAINLESS, 0.3, 0.8)
+	var enamel := Mats.finish("painted_metal", ENAMEL, 0.4)
+	var steel := Mats.finish("metal_brushed", STAINLESS, 0.3)
 
 	# The cabinet: sides, back, bottom and top as panels, and two doors in its front.
 	var cz := CART_Z + CART.z * 0.5
@@ -92,7 +92,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		cast.append(Props.part(Vector3(FIREBOX_WALL, FIREBOX.y, FIREBOX.z - FIREBOX_WALL * 2.0),
 				Vector3(side * (FIREBOX.x - FIREBOX_WALL) * 0.5, fb_y + FIREBOX.y * 0.5, fb_z)))
 	piece.add_child(Props.mi(Props.bake(black), enamel))
-	piece.add_child(Props.mi(Props.bake(cast), Props.mat(Color(0.2, 0.2, 0.21), 0.6, 0.5)))
+	piece.add_child(Props.mi(Props.bake(cast), Mats.finish("painted_metal", Color(0.2, 0.2, 0.21), 0.6)))
 
 	var grate_y := fb_y + FIREBOX.y - GRATE_DROP
 	var iron: Array = []
@@ -102,7 +102,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		iron.append(Props.part(Vector3(GRATE_BAR.x, GRATE_BAR.y, FIREBOX.z - FIREBOX_WALL * 2.0), Vector3(x, grate_y - GRATE_BAR.y * 0.5, fb_z)))
 	for z: float in [fb_z - FIREBOX.z * 0.3, fb_z + FIREBOX.z * 0.3]:
 		iron.append(Props.part(Vector3(inner_x * 2.0, GRATE_BAR.y, GRATE_BAR.x), Vector3(0, grate_y - GRATE_BAR.y * 1.5, z)))
-	piece.add_child(Props.mi(Props.bake(iron), Props.mat(IRON, 0.7, 0.4)))
+	piece.add_child(Props.mi(Props.bake(iron), Mats.finish("painted_metal", IRON, 0.7)))
 
 	var metal: Array = []
 	# The front panel over the firebox's front wall, with the door pull and the knobs.
@@ -135,7 +135,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for k in range(HOOKS):
 		metal.append([_s_hook(Vector3(first_hook + HOOK_STEP * float(k), rail_y, rail_z), hook_bottom), Transform3D.IDENTITY])
 	piece.add_child(Props.mi(Props.bake(metal), steel))
-	piece.add_child(Props.mi(Props.bake(knobs), Props.mat(KNOB_TINT, 0.45)))
+	piece.add_child(Props.mi(Props.bake(knobs), Mats.finish("plastic", KNOB_TINT, 0.45)))
 	piece.add_anchor(&"hooks", Transform3D(Basis.IDENTITY, Vector3(first_hook, hook_bottom + HOOK_WIRE + LOOP_WIRE, rail_z)), piece)
 
 	var wheels: Array = []

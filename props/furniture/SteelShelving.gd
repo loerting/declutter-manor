@@ -36,7 +36,8 @@ const TOP_BOX := 0.34
 const TAPE := Vector2(0.05, 0.0008)
 
 const GREY := Color(0.34, 0.35, 0.37)
-const PARTICLE := Color(0.86, 0.72, 0.54)
+## the particleboard scan is its own colour; a hair lighter, as the raw board is
+const PARTICLE := Color(0.95, 0.92, 0.88)
 const CARDBOARD := Color(0.7, 0.54, 0.36)
 const TAPE_TINT := Color(0.82, 0.68, 0.46)
 
@@ -72,8 +73,8 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		decks.append([Props.rounded_box(deck, DECK_EASE, 2, 8), Transform3D(Basis.IDENTITY, Vector3(0, top - DECK * 0.5, depth * 0.5))])
 		piece.add_box(Vector3(width, BEAM.x, depth), Vector3(0, top - BEAM.x * 0.5, depth * 0.5))
 		piece.add_anchor(StringName("level_%d" % (k + 1)), Transform3D(Basis.IDENTITY, Vector3(0, top, depth * 0.5)), piece)
-	piece.add_child(Props.mi(Props.bake(steel), Props.mat(Params.colour(def.params, "tint", GREY), 0.45)))
-	piece.add_child(Props.mi(Props.bake(decks), Mats.of("oak", PARTICLE, 1.1, 0.35)))
+	piece.add_child(Props.mi(Props.bake(steel), Mats.finish("painted_metal", Params.colour(def.params, "tint", GREY), 0.45)))
+	piece.add_child(Props.mi(Props.bake(decks), Mats.of("particleboard", PARTICLE, 1.0)))
 
 	var boxes: Array = []
 	var tape: Array = []
@@ -97,7 +98,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 			x += size.x + BOX_GAP
 			n += 1
 	if not boxes.is_empty():
-		piece.add_child(Props.mi(Props.bake(boxes), Mats.of("paper", CARDBOARD, 1.0)))
+		piece.add_child(Props.mi(Props.bake(boxes), Mats.of("cardboard", CARDBOARD, 1.0)))
 		piece.add_child(Props.mi(Props.bake(tape), Props.mat(TAPE_TINT, 0.3)))
 	return piece
 

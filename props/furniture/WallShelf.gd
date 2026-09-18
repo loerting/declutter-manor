@@ -28,7 +28,7 @@ const SCREW_RADIUS := 0.0045
 const SCREW_PROUD := 0.002
 
 const OAK := Color(0.92, 0.82, 0.68)
-const PINE := Color(1.0, 0.93, 0.78)
+const PINE := Color(1.0, 0.97, 0.92)
 const STEEL := Color(0.05, 0.05, 0.055)
 
 func build(def: FurnitureDef) -> FurnitureNode:
@@ -39,7 +39,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var piece := FurnitureNode.new()
 	piece.initialize(def, Vector2(width, depth))
 	piece.mounted = true
-	var wood := Mats.of("oak", PINE if pine else OAK, 0.7 if pine else 0.6, 1.4 if pine else 1.0)
+	var wood := Mats.of("pine", PINE, 0.7) if pine else Mats.of("oak", OAK, 0.6)
 	piece.add_child(Props.mi(Props.rounded_box(Vector3(width, BOARD, depth), EASE, 4, 20), wood,
 			Vector3(0, height - BOARD * 0.5, depth * 0.5)))
 
@@ -62,7 +62,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 				Transform3D(Basis.looking_at(along, Vector3.UP), (low + high) * 0.5)])
 		for y: float in [under - UPRIGHT * 0.45, under - UPRIGHT * 0.85]:
 			screws.append([screw, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(x, y, BAR.y))])
-	var steel := Props.mat(STEEL, 0.55, 0.4)
+	var steel := Mats.finish("painted_metal", STEEL, 0.55)
 	piece.add_child(Props.mi(Props.bake(parts), steel))
 	piece.add_child(Props.mi(Props.bake(screws), steel))
 

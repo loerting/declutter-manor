@@ -60,14 +60,14 @@ func build(def: ItemDef) -> Node3D:
 	var floor_at := func(_p: Vector2) -> float: return 0.0
 	var top_at := func(p: Vector2) -> float: return thick * (1.0 - 0.25 * pow(p.y / half.y, 2.0))
 	root.add_child(Props.mi(Props.moulded(radius, floor_at, top_at, FOB_EDGE, half, 64, 12),
-			Props.mat(Params.colour(def.params, "fob", BLACK), 0.45), fob_centre))
+			Mats.finish("plastic", Params.colour(def.params, "fob", BLACK), 0.45), fob_centre))
 	var buttons: Array = []
 	for i in range(3):
 		var z := -BUTTON_PITCH + BUTTON_PITCH * float(i)
 		buttons.append([Props.lathe(PackedVector2Array([Vector2(BUTTON_RADIUS, 0), Vector2(BUTTON_RADIUS, BUTTON_HEIGHT * 0.7),
 				Vector2(BUTTON_RADIUS * 0.75, BUTTON_HEIGHT + 0.0008), Vector2(0, BUTTON_HEIGHT + 0.0008)]), 18),
 				Transform3D(Basis.IDENTITY, fob_centre + Vector3(0, float(top_at.call(Vector2(0, z))) - 0.0008, z + 0.004))])
-	root.add_child(Props.mi(Props.bake(buttons), Props.mat(BUTTON, 0.7)))
+	root.add_child(Props.mi(Props.bake(buttons), Mats.finish("rubber", BUTTON, 0.7)))
 
 	var key_head := RING_AT + Vector3(KEY_X, 0, sqrt(KEY_FROM_RING * KEY_FROM_RING - KEY_X * KEY_X))
 	var cap := Props.mi(Props.cyl(KEY_HEAD_RADIUS, KEY_HEAD_RADIUS, KEY_HEAD_THICK, 24),

@@ -67,7 +67,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	chrome.append([Props.cyl(HEAD.x, HEAD.x, HEAD.y, 32), Transform3D(Basis.IDENTITY, Vector3(0, HEAD.z, ARM))])
 	chrome.append([Props.cyl(MIXER.x, MIXER.x, MIXER.y, 28), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, MIXER.z, MIXER.y * 0.5))])
 	chrome.append(Props.part(LEVER, Vector3(0, MIXER.z, MIXER.y + LEVER.z * 0.5)))
-	piece.add_child(Props.mi(Props.bake(chrome), Mats.of("metal_brushed", CHROME, 0.15)))
+	piece.add_child(Props.mi(Props.bake(chrome), Mats.finish("metal_polished", CHROME, 0.06)))
 
 	piece.add_box(Vector3(width, TRAY, depth), Vector3(0, TRAY * 0.5, depth * 0.5))
 	piece.add_box(Vector3(screen, SCREEN_HEIGHT, CHANNEL.x), Vector3(screen_x, TRAY + SCREEN_HEIGHT * 0.5, screen_z))

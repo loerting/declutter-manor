@@ -30,10 +30,12 @@ enum Kind { GABLE, HIP, SHED }
 @export var abut_start := false
 @export var abut_end := false
 
-@export var slot := "roof_tiles"
-## What the attic sees looking up.
-@export var underside_slot := "oak"
-@export var underside_tint := Color(0.55, 0.50, 0.42)
+@export var slot := "roof_shingles"
+## What the attic sees looking up: the OSB roof deck nailed to the rafters. The same face is the
+## underside of the overhang outside, where a house has soffit; read darker, as aged OSB is, it
+## passes as the shadow under the eave instead of a bright orange strip.
+@export var underside_slot := "osb"
+@export var underside_tint := Color(0.60, 0.57, 0.53)
 ## The triangle of wall between the eave and the slope at a gable end is siding, and it takes
 ## the plan's siding slot and tint rather than carrying its own: it is the same wall, continued
 ## upwards, and two copies of one colour drift apart the first time the house is repainted.

@@ -42,7 +42,7 @@ func build(def: ItemDef) -> Node3D:
 	var rings: Array = []
 	for row: Vector2 in HANDLE_ROWS:
 		rings.append(_fluted(HANDLE_RADIUS * row.y, handle_from + HANDLE_LENGTH * row.x, row.x > 0.2 and row.x < 0.9))
-	root.add_child(Props.mi(Props.loft(rings), Props.mat(RED, 0.3)))
+	root.add_child(Props.mi(Props.loft(rings), Mats.finish("plastic", RED, 0.3)))
 	var grip := PackedVector2Array()
 	for row: Vector2 in GRIP:
 		grip.append(Vector2(HANDLE_RADIUS * row.y + GRIP_PROUD, handle_from + HANDLE_LENGTH * row.x))

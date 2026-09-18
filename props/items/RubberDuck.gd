@@ -37,8 +37,8 @@ func build(def: ItemDef) -> Node3D:
 	for side: float in [-1.0, 1.0]:
 		yellow.append([Props.ellipsoid(WING * s, 8, 16), Transform3D(Basis(Vector3.BACK, deg_to_rad(side * WING_TILT_DEG)),
 				Vector3(side * WING_AT.x, WING_AT.y, WING_AT.z) * s)])
-	root.add_child(Props.mi(Props.bake(yellow), Props.mat(YELLOW, 0.35)))
-	root.add_child(Props.mi(Props.ellipsoid(BILL * s, 8, 16), Props.mat(ORANGE, 0.4), BILL_AT * s, Vector3(BILL_TILT_DEG, 0, 0)))
+	root.add_child(Props.mi(Props.bake(yellow), Mats.finish("plastic", YELLOW, 0.35)))
+	root.add_child(Props.mi(Props.ellipsoid(BILL * s, 8, 16), Mats.finish("plastic", ORANGE, 0.4), BILL_AT * s, Vector3(BILL_TILT_DEG, 0, 0)))
 	var eyes: Array = []
 	for side: float in [-1.0, 1.0]:
 		var direction := Vector3(side * EYE_DIRECTION.x, EYE_DIRECTION.y, EYE_DIRECTION.z).normalized()

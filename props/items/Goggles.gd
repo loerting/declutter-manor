@@ -71,7 +71,7 @@ func build(def: ItemDef) -> Node3D:
 	frame.append([Props.sweep_bar(smooth, Vector3.UP, half, STRAP.y * 0.4, 1), Transform3D.IDENTITY])
 	for side: float in [-1.0, 1.0]:
 		frame.append([Props.rounded_box(BUCKLE, 0.002, 2, 8), Transform3D(Basis.IDENTITY, Vector3(side * (ends + BUCKLE.x * 0.2), BUCKLE.y * 0.5, 0))])
-	root.add_child(Props.mi(Props.bake(frame), Props.mat(frame_tint, 0.35)))
+	root.add_child(Props.mi(Props.bake(frame), Mats.finish("plastic", frame_tint, 0.35)))
 	root.add_child(Props.mi(Props.bake(lenses), Props.glass(lens_tint, 0.05)))
 	return root
 

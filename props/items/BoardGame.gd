@@ -41,13 +41,13 @@ func build(def: ItemDef) -> Node3D:
 	var base := Vector3(width - WALL * 2.0, HEIGHT - WALL, depth - WALL * 2.0)
 	root.add_child(Props.mi(Props.rounded_box(base, EASE, 2, 8), Mats.of("paper", CARD, 1.0), Vector3(0, base.y * 0.5, 0)))
 	var lid := Vector3(width, LID_DROP, depth)
-	root.add_child(Props.mi(Props.rounded_box(lid, EASE, 2, 8), Props.mat(tint, 0.42), Vector3(0, HEIGHT - lid.y * 0.5, 0)))
+	root.add_child(Props.mi(Props.rounded_box(lid, EASE, 2, 8), Mats.finish("paper", tint, 0.42), Vector3(0, HEIGHT - lid.y * 0.5, 0)))
 	var print_parts: Array = [
 		Props.part(Vector3(width * BAND.x, Props.PROUD * 2.0, depth * BAND.y), Vector3(0, HEIGHT, depth * BAND_FORWARD)),
 		[Props.cyl(width * EMBLEM * 0.5, width * EMBLEM * 0.5, Props.PROUD * 2.0, 20),
 				Transform3D(Basis.IDENTITY, Vector3(width * EMBLEM_AT.x, HEIGHT, depth * EMBLEM_AT.y))],
 	]
-	root.add_child(Props.mi(Props.bake(print_parts), Props.mat(band_tint, 0.42)))
+	root.add_child(Props.mi(Props.bake(print_parts), Mats.finish("paper", band_tint, 0.42)))
 	return root
 
 func variant(index: int) -> Dictionary:

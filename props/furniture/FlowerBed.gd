@@ -54,8 +54,8 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for side: float in [-1.0, 1.0]:
 		edging.append([Props.rounded_box(Vector3(EDGING.x, EDGING.y, depth - EDGING.x), 0.006, 2, 8),
 				Transform3D(Basis.IDENTITY, Vector3(side * (hx - EDGING.x * 0.5), EDGING.y * 0.5, (depth - EDGING.x) * 0.5))])
-	piece.add_child(Props.mi(Props.bake(edging), Mats.of("oak", TIMBER, 0.9)))
-	piece.add_child(Props.mi(Props.box(Vector3(width - EDGING.x * 2.0, MULCH_TOP, depth - EDGING.x)), Mats.of("soil", MULCH, 1.0),
+	piece.add_child(Props.mi(Props.bake(edging), Mats.of("pine", TIMBER, 0.9)))
+	piece.add_child(Props.mi(Props.box(Vector3(width - EDGING.x * 2.0, MULCH_TOP, depth - EDGING.x)), Mats.of("mulch", MULCH, 1.0),
 			Vector3(0, MULCH_TOP * 0.5, (depth - EDGING.x) * 0.5)))
 
 	var rng := RandomNumberGenerator.new()

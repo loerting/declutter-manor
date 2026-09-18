@@ -49,7 +49,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for sx: float in [-1.0, 1.0]:
 		parts.append([Props.rounded_box(Vector3(RIM.x, RIM.y, SIZE.z - RIM.x * 2.0), 0.005, 2, 8),
 				Transform3D(Basis.IDENTITY, Vector3(sx * (hx - RIM.x * 0.5), SIZE.y - RIM.y * 0.5, cz))])
-	piece.add_child(Props.mi(Props.bake(parts), Props.mat(RESIN, 0.5)))
+	piece.add_child(Props.mi(Props.bake(parts), Mats.finish("plastic", RESIN, 0.5)))
 
 	# The basket: a floor, four low walls, and two hooks over the rim's front.
 	var basket_z := SIZE.z + BASKET.z * 0.5
@@ -64,7 +64,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		var path := PackedVector3Array([Vector3(x, BASKET_Y + BASKET.y * 0.5, SIZE.z + BASKET_WALL * 0.5), Vector3(x, top + HOOK.x, SIZE.z + HOOK.x),
 				Vector3(x, top + HOOK.x * 2.0, SIZE.z - RIM.x * 0.5), Vector3(x, top - HOOK.y + HOOK.x * 2.0, SIZE.z - RIM.x - HOOK.x)])
 		basket.append([Props.tube(Props.smooth_path(path, 3), HOOK.x, 8), Transform3D.IDENTITY])
-	piece.add_child(Props.mi(Props.bake(basket), Props.mat(BASKET_TINT, 0.5)))
+	piece.add_child(Props.mi(Props.bake(basket), Mats.finish("plastic", BASKET_TINT, 0.5)))
 
 	piece.add_anchor(&"noodles", Transform3D(Basis.IDENTITY, Vector3(-NOODLE_STEP * 0.5, FLOOR.x, cz - NOODLE_STEP * 0.5)), piece)
 	piece.add_anchor(&"basket", Transform3D(Basis.IDENTITY, Vector3(-BASKET_STEP * 0.5, BASKET_Y + BASKET_WALL, basket_z)), piece)

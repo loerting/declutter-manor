@@ -35,7 +35,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	# Across the handles, which stand out of the sides.
 	piece.initialize(def, Vector2((RADIUS + HANDLE_REACH + HANDLE_RADIUS) * 2.0, RADIUS * 2.0))
 	var centre := Vector3(0, 0, RADIUS)
-	piece.add_child(Props.mi(Props.lathe(_profile(), SEGMENTS, true), Mats.of("shade_linen", STRAW, 1.0), centre))
+	piece.add_child(Props.mi(Props.lathe(_profile(), SEGMENTS, true), Mats.of("wicker", STRAW, 1.0), centre))
 	var rope := Mats.of("rug_wool", ROPE, 1.0)
 	for side: float in [-1.0, 1.0]:
 		piece.add_child(Props.mi(Props.tube(_handle(side), HANDLE_RADIUS, HANDLE_SEGMENTS), rope, centre))

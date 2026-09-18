@@ -34,7 +34,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 				Transform3D(Basis.IDENTITY, Vector3(side * (width - FRAME.x) * 0.5, cy, FRAME.y * 0.5))])
 		parts.append([Props.rounded_box(Vector3(width - FRAME.x * 2.0, FRAME.x, FRAME.y), 0.003, 4, 12),
 				Transform3D(Basis.IDENTITY, Vector3(0, cy + side * (height - FRAME.x) * 0.5, FRAME.y * 0.5))])
-	piece.add_child(Props.mi(Props.bake(parts), Props.mat(FRAME_COLOUR, 0.45, 0.6)))
+	piece.add_child(Props.mi(Props.bake(parts), Mats.finish("painted_metal", FRAME_COLOUR, 0.45)))
 	piece.add_child(Props.mi(Props.box(Vector3(width - FRAME.x * 1.5, height - FRAME.x * 1.5, GLASS_THICK)),
 			Props.mat(SILVER, 0.02, 1.0), Vector3(0, cy, GLASS_BACK + GLASS_THICK * 0.5)))
 	piece.add_box(Vector3(width, height, FRAME.y), Vector3(0, cy, FRAME.y * 0.5))

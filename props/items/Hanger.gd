@@ -57,7 +57,7 @@ func build(def: ItemDef) -> Node3D:
 		var a := deg_to_rad(HOOK_TURN_DEG) * float(s) / float(steps)
 		hook.append(Vector3(cos(a) * HOOK_RADIUS, HOOK_Y + sin(a) * HOOK_RADIUS, 0))
 	metal.append([Props.tube(hook, WIRE, 8), Transform3D.IDENTITY])
-	root.add_child(Props.mi(Props.bake(metal), Mats.of("metal_brushed", CHROME, 0.2)))
+	root.add_child(Props.mi(Props.bake(metal), Mats.finish("metal_polished", CHROME, 0.1)))
 	return root
 
 func variant(index: int) -> Dictionary:

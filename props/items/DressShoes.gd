@@ -58,8 +58,8 @@ func build(def: ItemDef) -> Node3D:
 			last.opening_z = -0.2
 			last.opening_half = Vector2(0.115, 0.2)
 			last.heel = Vector2(0.012, 0.2)
-	var leather := Props.mat(Params.colour(def.params, "tint", BLACK), 0.28)
-	return last.pair(Params.number(def.params, "length", DEFAULT_LENGTH), leather, Props.mat(SOLE, 0.6), Props.mat(LACE, 0.7))
+	var leather := Mats.finish("leather", Params.colour(def.params, "tint", BLACK), 0.28)
+	return last.pair(Params.number(def.params, "length", DEFAULT_LENGTH), leather, Mats.finish("rubber", SOLE, 0.6), Props.mat(LACE, 0.7))
 
 func variant(index: int) -> Dictionary:
 	return VARIANTS[index % VARIANTS.size()]

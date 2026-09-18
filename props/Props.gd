@@ -1273,6 +1273,8 @@ const BOOK_CLOTH: Array[Color] = [
 const STEEL := Color(0.75, 0.76, 0.78)
 const LEAF := Color(0.32, 0.52, 0.30)
 const BRASS := Color(0.78, 0.62, 0.32)
+## Brushed nickel: the cabinet pull and hinge finish of an American kitchen since the 2000s.
+const NICKEL := Color(0.80, 0.79, 0.76)
 const LINEN := Color(0.88, 0.84, 0.76)
 const HOSE := Color(0.25, 0.55, 0.30)
 
@@ -1453,7 +1455,7 @@ static func book(color: Color, bw: float, bh: float, pos: Vector3, rot := Vector
 
 static func floor_lamp() -> Node3D:
 	var root := Node3D.new(); root.name = "FloorLamp"
-	var metal := Mats.of("metal_brushed", BRASS, 0.35)
+	var metal := Mats.finish("metal_polished", BRASS, 0.25)
 	root.add_child(mi(lathe(PackedVector2Array([Vector2(0.14, 0), Vector2(0.145, 0.012), Vector2(0.13, 0.026), Vector2(0.03, 0.034)])), metal))
 	root.add_child(mi(cyl(0.012, 0.014, 1.30), metal, Vector3(0, 0.69, 0)))
 	# socket, harp and shade fitter: the shade is actually carried by something
@@ -1489,8 +1491,8 @@ static func floor_lamp() -> Node3D:
 ## real holes cut through it and each slot is a five-sided well sunk into the body.
 static func toaster() -> Node3D:
 	var root := Node3D.new(); root.name = "Toaster"
-	var body := Mats.of("metal_brushed", Color(0.88, 0.89, 0.91), 0.30)
-	var dark := Mats.of("metal_brushed", CHARCOAL, 0.80)
+	var body := Mats.finish("metal_polished", Color(0.88, 0.89, 0.91), 0.12)
+	var dark := Mats.finish("plastic", CHARCOAL, 0.5)
 	var deck_y := 0.180          # top of the shell / underside of the deck plate
 	var deck_t := 0.004
 	var deck_x := 0.262
@@ -1534,7 +1536,7 @@ static func toaster() -> Node3D:
 ## and the bowl is genuinely hollowed rather than a squashed ball stuck on a stick.
 static func spoon() -> Node3D:
 	var root := Node3D.new(); root.name = "Spoon"
-	var silver := Mats.of("metal_brushed", Color(0.92, 0.93, 0.95), 0.25, 0.5)
+	var silver := Mats.finish("metal_polished", Color(0.92, 0.93, 0.95), 0.12, 0.5)
 	var secs := [
 		[-0.100, 0.0064, 0.0022, 0.0024, 0.0000],
 		[-0.095, 0.0062, 0.0058, 0.0028, 0.0003],
@@ -1557,7 +1559,7 @@ static func spoon() -> Node3D:
 ## outline, so there is no join between the head and the tines to give the trick away.
 static func fork() -> Node3D:
 	var root := Node3D.new(); root.name = "Fork"
-	var silver := Mats.of("metal_brushed", Color(0.92, 0.93, 0.95), 0.25, 0.5)
+	var silver := Mats.finish("metal_polished", Color(0.92, 0.93, 0.95), 0.12, 0.5)
 	# Past the neck the half-width holds at the head's full 17.6 mm: that is the envelope the
 	# dish is measured against, so all four tines curve as one spoon-like surface.
 	var secs := [
@@ -1702,7 +1704,7 @@ static func garden_hose() -> Node3D:
 	var dir := (tip - path[path.size() - 4]).normalized()
 	var nozzle := Node3D.new()
 	nozzle.transform = Transform3D(aim_y(dir), tip)
-	var brass := Mats.of("metal_brushed", BRASS, 0.35)
+	var brass := Mats.finish("metal_polished", BRASS, 0.3)
 	nozzle.add_child(mi(lathe(PackedVector2Array([
 		Vector2(0.0128, -0.012), Vector2(0.0165, 0.004), Vector2(0.0165, 0.028),
 		Vector2(0.011, 0.034), Vector2(0.010, 0.086), Vector2(0.0065, 0.092)])), brass))
@@ -1743,14 +1745,14 @@ static func picture_frame(color: Color, size: Vector2) -> Node3D:
 	root.add_child(mi(box(Vector3(2.0 * ix + 0.014, 2.0 * iy + 0.014, 0.0015)), Mats.of("paper", CREAM.lightened(0.3), 0.9), Vector3(0, 0, -depth * 0.5 + 0.010)))
 	# the print itself: stone veining tinted right through reads as an abstract
 	# framed artwork, where a flat colour panel just reads as a blank screen
-	root.add_child(mi(box(Vector3(2.0 * ix - 0.05, 2.0 * iy - 0.05, 0.0015)), Mats.of("worktop_stone", color * 1.5, 0.85, 0.35), Vector3(0, 0, -depth * 0.5 + 0.012)))
+	root.add_child(mi(box(Vector3(2.0 * ix - 0.05, 2.0 * iy - 0.05, 0.0015)), Mats.of("book_cloth", color * 1.5, 0.85, 0.35), Vector3(0, 0, -depth * 0.5 + 0.012)))
 	return root
 
 static func kitchen_counter() -> Node3D:
 	var root := Node3D.new(); root.name = "Counter"
 	var cab := Mats.of("painted_wood", Color(0.93, 0.94, 0.90), 0.7)
-	var top := Mats.of("worktop_stone", Color(0.93, 0.93, 0.95), 0.35)
-	var metal := Mats.of("metal_brushed", BRASS, 0.35)
+	var top := Mats.finish("worktop_stone", Color.WHITE, 0.12)
+	var metal := Mats.finish("metal_brushed", NICKEL, 0.3)
 	# recessed plinth, so the carcass does not sit flat on the floor like a solid block
 	root.add_child(mi(box(Vector3(1.72, 0.09, 0.50)), Mats.of("painted_wood", Color(0.62, 0.62, 0.60), 0.8), Vector3(0, 0.045, -0.04)))
 	root.add_child(mi(box(Vector3(1.80, 0.75, 0.58)), cab, Vector3(0, 0.465, 0)))
@@ -1821,7 +1823,7 @@ static func drawer(front: Vector2, depth: float, face: Material = null) -> Node3
 	if face == null:
 		face = Mats.of("painted_wood", FRONT_WHITE, 0.65)
 	var ply := Mats.of("oak", Color(0.86, 0.80, 0.70), 0.85)
-	var metal := Mats.of("metal_brushed", BRASS, 0.35)
+	var metal := Mats.finish("metal_brushed", NICKEL, 0.3)
 	root.add_child(mi(rounded_box(Vector3(front.x, front.y, FRONT_PANEL), 0.004), face,
 			Vector3(0, 0, -FRONT_PANEL * 0.5)))
 	root.add_child(mi(union(bar_pull(minf(front.x - 0.14, 0.22), Vector3.ZERO, Vector3.RIGHT)),
@@ -1863,7 +1865,7 @@ static func cabinet_door(size: Vector2, hinge_left: bool, face: Material = null,
 	var root := Node3D.new(); root.name = "Door"
 	if face == null:
 		face = Mats.of("painted_wood", FRONT_WHITE, 0.65)
-	var metal := Mats.of("metal_brushed", BRASS, 0.35)
+	var metal := Mats.finish("metal_brushed", NICKEL, 0.3)
 	var sx := 1.0 if hinge_left else -1.0
 	var cx := sx * size.x * 0.5
 	root.add_child(mi(rounded_box(Vector3(size.x, size.y, FRONT_PANEL), 0.004, 4, 20), face,
@@ -1899,7 +1901,7 @@ static func basin(inner: Vector3, wall: float, radius: float) -> Node3D:
 ## and a lever on top. Its base is at the origin; the spout points +Z.
 static func tap(height: float, reach: float) -> Node3D:
 	var root := Node3D.new(); root.name = "Tap"
-	var chrome := Mats.of("metal_brushed", Color(0.9, 0.91, 0.93), 0.15)
+	var chrome := Mats.finish("metal_polished", Color(0.9, 0.91, 0.93), 0.06)
 	var parts: Array = [[lathe(PackedVector2Array([Vector2(0.028, 0.0), Vector2(0.028, 0.008), Vector2(0.02, 0.014),
 			Vector2(0.018, height * 0.55), Vector2(0.0, height * 0.55)]), 24), Transform3D.IDENTITY]]
 	var spout := smooth_path(PackedVector3Array([Vector3(0, height * 0.4, 0), Vector3(0, height * 0.85, 0.0),
@@ -1917,7 +1919,7 @@ static func tap(height: float, reach: float) -> Node3D:
 static func base_carcass(width: float, bays: int, height := 0.72, depth := 0.58, sink_bay := 0) -> Node3D:
 	var root := Node3D.new(); root.name = "Carcass"
 	var box_mat := Mats.of("painted_wood", Color(0.90, 0.91, 0.87), 0.7)
-	var stone := Mats.of("worktop_stone", Color(0.93, 0.93, 0.95), 0.35)
+	var stone := Mats.finish("worktop_stone", Color.WHITE, 0.12)
 	var y0 := PLINTH_HEIGHT
 	var y1 := y0 + height
 	var p := CARCASS_PANEL

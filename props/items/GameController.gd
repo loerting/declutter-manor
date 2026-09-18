@@ -50,9 +50,9 @@ func build(def: ItemDef) -> Node3D:
 	# The grips hang lowest, by less than their full drop once the edge is rolled over.
 	body.position = Vector3(0, -shell.get_aabb().position.y, 0)
 	root.add_child(body)
-	body.add_child(Props.mi(shell, Props.mat(tint, 0.5)))
+	body.add_child(Props.mi(shell, Mats.finish("plastic", tint, 0.5)))
 
-	var dark := Props.mat(GREY if tint.v > 0.5 else NEAR_BLACK, 0.6)
+	var dark := Mats.finish("plastic", GREY if tint.v > 0.5 else NEAR_BLACK, 0.6)
 	var parts: Array = []
 	for at: Vector2 in STICK_AT:
 		parts.append([_stick(), Transform3D(Basis.IDENTITY, _on_face(at))])
@@ -72,7 +72,7 @@ func build(def: ItemDef) -> Node3D:
 	body.add_child(guide)
 	var offsets := [Vector2(0, FACE_SPREAD), Vector2(FACE_SPREAD, 0), Vector2(-FACE_SPREAD, 0), Vector2(0, -FACE_SPREAD)]
 	for i in range(4):
-		body.add_child(Props.mi(_button(FACE_RADIUS), Props.mat(FACE_COLOURS[i], 0.35), _on_face(FACE_AT + (offsets[i] as Vector2))))
+		body.add_child(Props.mi(_button(FACE_RADIUS), Mats.finish("plastic", FACE_COLOURS[i], 0.35), _on_face(FACE_AT + (offsets[i] as Vector2))))
 	return root
 
 func variant(index: int) -> Dictionary:

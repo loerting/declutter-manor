@@ -116,7 +116,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		var x := shelf_x + side * SHELF.x * 0.5
 		chrome.append([Props.tube(PackedVector3Array([Vector3(x, SHELF_Y + SHELF_LIP, 0.0), Vector3(x, SHELF_Y + SHELF_LIP, SHELF.y),
 				Vector3(x, SHELF_Y, SHELF.y), Vector3(x, SHELF_Y, 0.0)]), ROD, 8), Transform3D.IDENTITY])
-	piece.add_child(Props.mi(Props.bake(chrome), Mats.of("metal_brushed", CHROME, 0.15)))
+	piece.add_child(Props.mi(Props.bake(chrome), Mats.finish("metal_polished", CHROME, 0.06)))
 	piece.add_child(Props.mi(_curtain(end, front), Mats.of("pillow_fabric", CURTAIN, 0.95)))
 
 	piece.add_box(Vector3(LENGTH, HEIGHT, WIDTH), Vector3(0, HEIGHT * 0.5, cz))

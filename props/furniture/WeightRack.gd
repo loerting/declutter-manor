@@ -47,7 +47,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		var at := end * ((DEPTH * 0.5 - TUBE * 0.5) - (LEG_TOP_IN - TUBE * 0.5) * RAIL_Y / under)
 		parts.append(Props.part(Vector3(WIDTH - TUBE * 2.0, TUBE, TUBE), Vector3(0, RAIL_Y, cz + at)))
 	parts.append(Props.part(TRAY, Vector3(0, HEIGHT - TRAY.y * 0.5, cz)))
-	piece.add_child(Props.mi(Props.union(parts), Props.mat(STEEL, 0.5, 0.5)))
+	piece.add_child(Props.mi(Props.union(parts), Mats.finish("painted_metal", STEEL, 0.5)))
 	var stops: Array = []
 	for place: float in [-PLACE_X, PLACE_X]:
 		for side: float in [-1.0, 1.0]:

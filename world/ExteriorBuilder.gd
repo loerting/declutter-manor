@@ -7,11 +7,11 @@ class_name ExteriorBuilder
 ## the geometry comes from that zone's own polygon, so neither can drift away from the room the
 ## player walks in.
 
-## Boards and beams share one wood; the frame is the same wood read darker, the way a deck's
-## underside always is.
-const BOARD_TINT := Color(0.86, 0.80, 0.70)
-const FRAME_TINT := Color(0.52, 0.46, 0.39)
-const FRAME_SLOT := "painted_wood"
+## The boards are the zone's floor slot; the frame is pressure-treated pine read darker, the way a
+## deck's underside always is.
+const BOARD_TINT := Color(0.95, 0.93, 0.90)
+const FRAME_TINT := Color(0.62, 0.58, 0.50)
+const FRAME_SLOT := "pine"
 ## Deck steps use the going and the riser limit the house's own outside steps use, so a flight
 ## off the deck and a flight off the back door are the same stair.
 const STEP_BURY := 0.25

@@ -96,7 +96,7 @@ func build(def: ItemDef) -> Node3D:
 		Props._tri(st, Vector3.ZERO, outer[c * levels], outer[n * levels], Vector3.DOWN)
 		Props._tri(st, Vector3(0, FLOOR, 0), inner[c * levels + 1], inner[n * levels + 1], Vector3.UP)
 	var root := Node3D.new()
-	root.add_child(Props.mi(Props.with_tangents(st.commit()), Props.mat(Params.colour(def.params, "tint", WHITE), 0.5)))
+	root.add_child(Props.mi(Props.with_tangents(st.commit()), Mats.finish("plastic", Params.colour(def.params, "tint", WHITE), 0.5)))
 	return root
 
 func variant(index: int) -> Dictionary:

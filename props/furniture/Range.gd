@@ -59,8 +59,8 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var piece := FurnitureNode.new()
 	piece.initialize(def, Vector2(WIDTH, DEPTH + DOOR_THICK + 0.04))
 	var steel := Mats.of("metal_brushed", STEEL, 0.35)
-	var enamel := Props.mat(ENAMEL, 0.3)
-	var iron := Props.mat(IRON, 0.7, 0.3)
+	var enamel := Mats.finish("painted_metal", ENAMEL, 0.3)
+	var iron := Mats.finish("painted_metal", IRON, 0.7)
 	var hx := WIDTH * 0.5
 	var front := DEPTH
 

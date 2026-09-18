@@ -13,9 +13,11 @@ extends Resource
 @export var pools: Array[PoolDef] = []
 
 ## Outside finishes, used by every wall face whose side is outdoors. The tint is what gives the
-## house a colour: the CC0 scan is near-neutral so one texture serves any colourway.
-@export var siding_slot := "painted_wood"
-@export var siding_tint := Color(0.80, 0.82, 0.73)
+## house a colour: the CC0 scan is levelled to a neutral 0.72 so one texture serves any colourway.
+## This one is "clay", a warm khaki and the archetypal vinyl siding colour: 0.62, 0.58, 0.48 on
+## the wall.
+@export var siding_slot := "siding"
+@export var siding_tint := Color(0.86, 0.81, 0.67)
 @export var ground_slot := "lawn"
 ## Plan-space extent of the lot, used for terrain and for the probe's bounds checks.
 @export var lot := Rect2(0, 0, 26, 19)

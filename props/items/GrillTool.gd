@@ -68,10 +68,10 @@ func variant(index: int) -> Dictionary:
 	return {"kind": KINDS[index % KINDS.size()]}
 
 static func _steel() -> Material:
-	return Props.mat(STEEL, 0.3, 0.8)
+	return Mats.finish("metal_brushed", STEEL, 0.3)
 
 static func _grip() -> Material:
-	return Props.mat(NYLON, 0.55)
+	return Mats.finish("plastic", NYLON, 0.55)
 
 static func _tongs(root: Node3D) -> void:
 	var tip_z := -LENGTH * 0.5

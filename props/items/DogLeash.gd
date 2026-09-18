@@ -18,7 +18,7 @@ const BRASS := Color(0.78, 0.62, 0.32)
 func build(_def: ItemDef) -> Node3D:
 	var root := Node3D.new()
 	var rope := Mats.of("rug_wool", ROPE, 0.9, 0.25)
-	var brass := Mats.of("metal_brushed", BRASS, 0.35)
+	var brass := Mats.finish("metal_polished", BRASS, 0.3)
 	var top := DROP + SPLICE.y + LOOP_HALF.y * 2.0
 	var join := top - LOOP_HALF.y * 2.0
 	var parts: Array = []

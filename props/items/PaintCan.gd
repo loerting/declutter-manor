@@ -57,7 +57,7 @@ func build(def: ItemDef) -> Node3D:
 	var label := PackedVector2Array([Vector2(RADIUS + Props.PROUD, LABEL.x), Vector2(RADIUS + Props.PROUD, LABEL.y)])
 	root.add_child(Props.mi(Props.lathe(label, SEGMENTS), Mats.of("paper", PAPER, 0.9)))
 	var band := PackedVector2Array([Vector2(RADIUS + Props.PROUD * 2.0, BAND.x), Vector2(RADIUS + Props.PROUD * 2.0, BAND.y)])
-	root.add_child(Props.mi(Props.lathe(band, SEGMENTS), Props.mat(Params.colour(def.params, "label", ORANGE), 0.5)))
+	root.add_child(Props.mi(Props.lathe(band, SEGMENTS), Mats.finish("paper", Params.colour(def.params, "label", ORANGE), 0.5)))
 
 	# Paint left in the groove, and one run of it down over the chime and the label.
 	var bead := PackedVector2Array()
@@ -90,7 +90,7 @@ func build(def: ItemDef) -> Node3D:
 		metal.append(Props.part(EAR, Vector3(side * (RADIUS + EAR.z * 0.5), EAR_Y, 0), Basis(Vector3.UP, PI * 0.5)))
 	root.add_child(Props.mi(Props.bake(metal), Mats.of("metal_brushed", TIN, 0.45)))
 	var grip_at := Vector3(0, EAR_Y - BAIL_DROP, hang)
-	root.add_child(Props.mi(Props.cyl(GRIP.x, GRIP.x, GRIP.y, 12), Props.mat(GRIP_BLACK, 0.6), grip_at, Vector3(0, 0, 90)))
+	root.add_child(Props.mi(Props.cyl(GRIP.x, GRIP.x, GRIP.y, 12), Mats.finish("plastic", GRIP_BLACK, 0.6), grip_at, Vector3(0, 0, 90)))
 	return root
 
 func variant(index: int) -> Dictionary:

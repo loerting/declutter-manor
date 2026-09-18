@@ -8,6 +8,54 @@ metadata:
   modified: 2026-09-16T13:34:43.399Z
 ---
 
+## NOW (2026-09-18): neighbourhood + garden, designed; retexture COMMITTED
+
+**Next:** the author approved (2026-09-18) a two-pass plan: pass 1 = the lot/garden (deepen the lot
+to a real ~0.2 acre US lot, open front lawn, foundation beds, curved walk driveway->stoop, curb,
+planting strip + street trees, sidewalk, street, mailbox, 6 ft cedar dog-ear privacy fence from the
+house corners back with a gate = also the player's bound, AC unit, bins, shed/play set, generated
+trees). Pass 2 = the neighbourhood: neighbour shells instanced from the manor's exterior (mirrored,
+siding/roof colour, one elevation change each: shutters/porch/brick wainscot - anti-monotony rules
+say a mirror alone is not a different house), windows with blinds, across-street 3 houses most
+detailed, back neighbours upper floors only, tree-card ring + haze at the edge. Author: "make the
+option that makes it as realistically american as possible"; trees yes.
+
+**Retro prototype is NOT in the retexture commit**: its hunks in Mats.gd/Props.gd were kept out of
+the index (Graphics.gd, HouseView.gd, GameWorld.gd, core/Retro.gd, retro.gdshader and
+screenshots/retro stay unstaged/untracked). Still the author's call.
+
+### The retexture (committed after f8668e8)
+
+**Committed and pushed first:** everything up to the retexture is `f8668e8` (U4 ledger, play-test
+fixes, UI pass, pool, compass). Every "NOT COMMITTED" note below this section is history.
+
+The author asked for the whole game retextured from ambientCG "as a visual design expert" so it
+reads as an actual American home. Done as a design pass, recorded in `ATTRIBUTION.md` (brief,
+winners with reasons, rejected scans):
+- 23 -> 43 slots in `assets/textures.json`. New: siding (WoodSiding009), roof_shingles
+  (GENERATED from Asphalt033 by `fetch_textures.build_shingles` - no CC0 asphalt shingle exists
+  anywhere), carpet, tile_hex, tile_stone, pine, particleboard, osb, vanity_stone,
+  metal_polished, painted_metal, plastic, leather, wicker, cardboard, bark, concrete_broom,
+  foundation, mulch, deck_boards, pool_plaster. floor_wood/worktop_stone/concrete/lawn/gravel/
+  terracotta/painted_wood repointed. roof_tiles deleted. Walls/ceilings deliberately unchanged.
+- `Mats.finish(slot, tint, roughness)`: absolute roughness via `assets/textures/<slot>/meta.json`
+  means (fetcher writes them); above the scan mean it goes matte-flat but a metal scan stays metal.
+  ~160 call sites converted; 48 `Props.mat` flats left on purpose (screens, lenses, leaves, glow).
+- Fetcher: `source.json` stamp (repointing a slot re-fetches), numeric `neutralize` (0.92 for
+  slots that replaced flat colours), `contrast`, `dielectric`, `generated` src.
+- Plan: kitchen floored in oak, mudroom/powder/master bath tile_stone, hall bath hex, bedrooms +
+  master + closet `_carpeted` (CARPET_TINT), workshop/storage/utility `_unfinished` (foundation
+  walls), attic OSB (`RoomDef.wall_tint` new; attic OSB_TINT), deck boards, broom driveway.
+  Siding tint "clay" (FloorPlan default), SHINGLE_TINT "weathered wood", garage door painted_metal,
+  outside steps STEP_SLOT concrete_broom, cabinet pulls brushed NICKEL (Props palette).
+- Verified: run_tests 129/0, PlanProbe 0, PortraitProbe 0, check_export PASS (meta.json ships;
+  PCK 332 MB, previous size not known), before/after renders of 33 views + 24 props in the
+  session scratchpad. Material warm-up +~150 ms. NOT run: Diag/FurnitureProbe/WalkProbe/
+  InteractProbe (no geometry or logic changed).
+- **Open:** (1) roof overhang underside = attic OSB (one slab face); a real soffit needs the
+  slab's underside split at the wall line. (2) Author has not seen it: needs human verification,
+  especially siding colour, carpet tone, granite choice. (3) Committed 2026-09-18.
+
 **2026-09-14: the author approved the house** ("finally now we have a working prototype … a good
 designed house with defined rooms, working physics and lighting") and asked for one more fix, then
 Phase 3. That fix, staged with the rest:
@@ -1145,3 +1193,12 @@ item, criticised as too thin) and PowerWash Simulator (select a part -> it is hi
   "Tracked set", filter "Under way" -> "In progress". Not "sorted in": that is German "einsortiert".
 - Green: Hud, Way, Interact 0; run_tests 129/0. Not re-run: Home, Drop, Pacing, Furniture (untouched code paths).
 - Next: author's play-test; commit when asked.
+
+## Retro (PS1) prototype (2026-09-18) - BUILT, NOT COMMITTED, author deciding
+- `--retro[=lines]` switch, no effect when off: core/Retro.gd + core/retro.gdshader (pixel blocks, 32 levels, Bayer
+  dither, CanvasLayer 0 under the HUD), Mats._retro (scan albedo resized to 64 texels/m, nearest, no normal/ORM),
+  Graphics (no SSAO/SSIL/glow, hard shadows), Props primitives capped via Retro.sides/steps (lathe, tube,
+  ring_circle, arc, rounded_box, cyl, ellipsoid, ring_rounded_rect corners). Hand-rolled loops (ShoeLast etc.) NOT capped.
+- Diag clean both ways (holed_slab/wall_slab flags pre-exist). Renders: screenshots/retro/*_now|_retro.png, *_ab.png.
+- Finding: reads as "modern render at low res", not PS1. Photo scans downsampled turn to mush (floor planks gone);
+  SDFGI light dominates; boxy architecture barely changes. A real style needs authored textures + lighting, not switches.

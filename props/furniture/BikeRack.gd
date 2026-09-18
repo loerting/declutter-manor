@@ -37,7 +37,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 				var a := PI * float(i) / 12.0
 				loop.append(Vector3(lx, FOOT.y + BAR + sin(a) * LOOP.y, WHEEL_Z + cos(a) * LOOP.x * 0.5))
 			parts.append([Props.tube(loop, WIRE, 8), Transform3D.IDENTITY])
-	piece.add_child(Props.mi(Props.bake(parts), Props.mat(STEEL, 0.45, 0.5)))
+	piece.add_child(Props.mi(Props.bake(parts), Mats.finish("painted_metal", STEEL, 0.45)))
 	piece.add_box(Vector3(WIDTH, FOOT.y + BAR * 2.0, LOOP.x + BAR * 2.0), Vector3(0, (FOOT.y + BAR * 2.0) * 0.5, WHEEL_Z))
 	piece.add_anchor(&"slots", Transform3D(Basis.IDENTITY, Vector3(SLOT_X[0], 0, WHEEL_Z)), piece)
 	return piece

@@ -43,7 +43,7 @@ func build(def: ItemDef) -> Node3D:
 	# The foot ring has no size: it closes the dome to a point.
 	var sack := Props.loft(rings.slice(1), true, true)
 	var tint := Params.colour(def.params, "tint", FOREST)
-	root.add_child(Props.mi(sack, Props.mat(tint, 0.5)))
+	root.add_child(Props.mi(sack, Mats.finish("pillow_fabric", tint, 0.5)))
 	var seam_r := RADIUS * _profile(SEAM_AT) + SEAM * 0.5
 	var seam_ring := PackedVector3Array()
 	for k in range(SIDES + 1):
@@ -56,7 +56,7 @@ func build(def: ItemDef) -> Node3D:
 	trim.append([Props.tube(Props.smooth_path(cord, 4), CORD, 6), Transform3D.IDENTITY])
 	var toggle_at := neck + Vector3(0.006, -0.022, CORD_OUT * 0.62)
 	trim.append([Props.cyl(TOGGLE.x, TOGGLE.x, TOGGLE.y, 12), Transform3D(Basis.looking_at(Vector3(0.1, -0.5, 1.0)) * Basis(Vector3.RIGHT, PI * 0.5), toggle_at)])
-	root.add_child(Props.mi(Props.bake(trim), Props.mat(BLACK, 0.6)))
+	root.add_child(Props.mi(Props.bake(trim), Mats.finish("plastic", BLACK, 0.6)))
 	return root
 
 func variant(index: int) -> Dictionary:

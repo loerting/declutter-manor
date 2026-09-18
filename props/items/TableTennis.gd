@@ -37,7 +37,7 @@ func build(def: ItemDef) -> Node3D:
 	var root := Node3D.new()
 	match Params.text(def.params, "kind", "bat"):
 		"ball":
-			root.add_child(Props.mi(Props.ellipsoid(Vector3.ONE * BALL, 8, 16), Props.mat(ORANGE, 0.4), Vector3(0, BALL, 0)))
+			root.add_child(Props.mi(Props.ellipsoid(Vector3.ONE * BALL, 8, 16), Mats.finish("plastic", ORANGE, 0.4), Vector3(0, BALL, 0)))
 		"net":
 			_net(root)
 		_:
@@ -65,7 +65,7 @@ static func _net(root: Node3D) -> void:
 				Transform3D(Basis.IDENTITY, Vector3(0, (table + NET.x + Props.PROUD) * 0.5, side * post_z))])
 		steel.append(Props.part(Vector3(CLAMP_WIDTH, table, clamp_length),
 				Vector3(0, table * 0.5 + Props.PROUD * 4.0, side * (post_z - clamp_length * 0.5))))
-	root.add_child(Props.mi(Props.bake(steel), Props.mat(STEEL, 0.5, 0.3)))
+	root.add_child(Props.mi(Props.bake(steel), Mats.finish("painted_metal", STEEL, 0.5)))
 	root.add_child(Props.mi(Props.box(Vector3(NET.y, NET.x - NET_TAPE, post_z * 2.0)), Props.mat(NET_TINT, 0.9),
 			Vector3(0, table + (NET.x - NET_TAPE) * 0.5, 0)))
 	root.add_child(Props.mi(Props.box(Vector3(NET.y * 3.0, NET_TAPE, post_z * 2.0)), Props.mat(WHITE, 0.6),

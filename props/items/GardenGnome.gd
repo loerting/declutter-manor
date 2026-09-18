@@ -61,7 +61,7 @@ func build(def: ItemDef) -> Node3D:
 	var boots: Array = []
 	for side: float in [-1.0, 1.0]:
 		boots.append([Props.ellipsoid(BOOT, 8, 16), Transform3D(Basis.IDENTITY, Vector3(side * BOOT_AT.x, BOOT_AT.y, BOOT_AT.z))])
-	root.add_child(Props.mi(Props.bake(boots), Props.mat(BOOTS, PAINT_ROUGH)))
+	root.add_child(Props.mi(Props.bake(boots), Mats.finish("plastic", BOOTS, PAINT_ROUGH)))
 
 	var arms: Array = [[Props.lathe(PackedVector2Array(COAT_PROFILE), RINGS * 2), Transform3D.IDENTITY]]
 	for side: float in [-1.0, 1.0]:
@@ -69,8 +69,8 @@ func build(def: ItemDef) -> Node3D:
 		for p: Vector3 in ARM_PATH:
 			path.append(Vector3(side * p.x, p.y, p.z))
 		arms.append([Props.tube(Props.smooth_path(path, 4), ARM, 10), Transform3D.IDENTITY])
-	root.add_child(Props.mi(Props.bake(arms), Props.mat(coat, PAINT_ROUGH)))
-	root.add_child(Props.mi(Props.cyl(BELT.x, BELT.x, BELT.y, RINGS * 2), Props.mat(BLACK, PAINT_ROUGH), Vector3(0, BELT.z, 0)))
+	root.add_child(Props.mi(Props.bake(arms), Mats.finish("plastic", coat, PAINT_ROUGH)))
+	root.add_child(Props.mi(Props.cyl(BELT.x, BELT.x, BELT.y, RINGS * 2), Mats.finish("plastic", BLACK, PAINT_ROUGH), Vector3(0, BELT.z, 0)))
 	root.add_child(Props.mi(Props.box(BUCKLE), Props.mat(GOLD, 0.35, 0.6), Vector3(0, BELT.z, BELT.x)))
 
 	var skin: Array = [[Props.ellipsoid(Vector3.ONE * HEAD, 12, RINGS), Transform3D(Basis.IDENTITY, Vector3(0, HEAD_Y, 0))],
@@ -78,7 +78,7 @@ func build(def: ItemDef) -> Node3D:
 	for side: float in [-1.0, 1.0]:
 		var hand: Vector3 = ARM_PATH[ARM_PATH.size() - 1]
 		skin.append([Props.ellipsoid(Vector3.ONE * HAND, 8, 14), Transform3D(Basis.IDENTITY, Vector3(side * hand.x, hand.y, hand.z))])
-	root.add_child(Props.mi(Props.bake(skin), Props.mat(SKIN, PAINT_ROUGH)))
+	root.add_child(Props.mi(Props.bake(skin), Mats.finish("plastic", SKIN, PAINT_ROUGH)))
 	var eyes: Array = []
 	for side: float in [-1.0, 1.0]:
 		eyes.append([Props.ellipsoid(Vector3.ONE * EYE, 6, 10), Transform3D(Basis.IDENTITY, Vector3(side * EYE_AT.x, EYE_AT.y, EYE_AT.z))])
@@ -88,8 +88,8 @@ func build(def: ItemDef) -> Node3D:
 	for side: float in [-1.0, 1.0]:
 		beard.append([Props.ellipsoid(MOUSTACHE, 8, 14), Transform3D(Basis(Vector3.BACK, side * 0.3),
 				Vector3(side * MOUSTACHE_AT.x, MOUSTACHE_AT.y, MOUSTACHE_AT.z))])
-	root.add_child(Props.mi(Props.bake(beard), Props.mat(BEARD_WHITE, 0.6)))
-	root.add_child(Props.mi(Props.loft(_hat_rings()), Props.mat(hat, PAINT_ROUGH)))
+	root.add_child(Props.mi(Props.bake(beard), Mats.finish("plastic", BEARD_WHITE, 0.6)))
+	root.add_child(Props.mi(Props.loft(_hat_rings()), Mats.finish("plastic", hat, PAINT_ROUGH)))
 
 	match carries:
 		"shovel":
@@ -128,7 +128,7 @@ static func _shovel(root: Node3D) -> void:
 	var hand: Vector3 = ARM_PATH[ARM_PATH.size() - 1]
 	var grip := Vector3(-hand.x - 0.004, hand.y + 0.03, hand.z + 0.006)
 	var foot := Vector3(-0.06, BASE_PROFILE[3].y + SHOVEL_BLADE.y, 0.05)
-	var wood := Props.mat(Color(0.55, 0.38, 0.2), PAINT_ROUGH)
+	var wood := Mats.finish("plastic", Color(0.55, 0.38, 0.2), PAINT_ROUGH)
 	root.add_child(Props.mi(Props.tube(PackedVector3Array([grip, foot]), SHOVEL_HANDLE, 8), wood))
 	var blade_basis := Props.aim_y(grip - foot)
 	var blade := Props.part(SHOVEL_BLADE, foot - blade_basis.y * SHOVEL_BLADE.y * 0.5, blade_basis)
@@ -138,7 +138,7 @@ static func _shovel(root: Node3D) -> void:
 static func _lantern(root: Node3D) -> void:
 	var hand: Vector3 = ARM_PATH[ARM_PATH.size() - 1]
 	var top := Vector3(hand.x + 0.004, hand.y - HAND, hand.z + 0.012)
-	var frame := Props.mat(BLACK, 0.4, 0.5)
+	var frame := Mats.finish("painted_metal", BLACK, 0.4)
 	var body := top - Vector3(0, LANTERN.y * 0.5 + 0.006, 0)
 	var parts: Array = [
 		Props.part(Vector3(LANTERN.x + 0.004, 0.004, LANTERN.z + 0.004), body + Vector3(0, LANTERN.y * 0.5, 0)),

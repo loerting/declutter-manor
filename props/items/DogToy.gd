@@ -72,7 +72,7 @@ static func _rope() -> Node3D:
 
 static func _bone() -> Node3D:
 	var root := Node3D.new()
-	var rubber := Props.mat(RUBBER, 0.55)
+	var rubber := Mats.finish("rubber", RUBBER, 0.55)
 	var y := BONE_KNOB
 	var parts: Array = [[Props.cyl(BONE_SHAFT.x, BONE_SHAFT.x, BONE_SHAFT.y, 16), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0, y, 0))]]
 	var knob := _ball_mesh(BONE_KNOB, 16)

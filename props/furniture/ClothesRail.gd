@@ -85,8 +85,8 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		chrome.append(Props.part(Vector3(STRAP.x, under - RAIL_Y, STRAP.y), Vector3(sx, (under + RAIL_Y) * 0.5, RAIL_OUT - RAIL_RADIUS - STRAP.y * 0.5)))
 		chrome.append([Props.cyl(RAIL_RADIUS + STRAP.y, RAIL_RADIUS + STRAP.y, STRAP.x, 16), Transform3D(Basis(Vector3.BACK, PI * 0.5),
 				Vector3(sx, RAIL_Y, RAIL_OUT))])
-	piece.add_child(Props.mi(Props.bake(steel), Props.mat(STEEL, 0.55, 0.4)))
-	piece.add_child(Props.mi(Props.bake(chrome), Mats.of("metal_brushed", CHROME, 0.2)))
+	piece.add_child(Props.mi(Props.bake(steel), Mats.finish("painted_metal", STEEL, 0.55)))
+	piece.add_child(Props.mi(Props.bake(chrome), Mats.finish("metal_polished", CHROME, 0.1)))
 
 	var cloth: Array[Array] = []
 	for c in CLOTH: cloth.append([])
@@ -107,7 +107,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for i in range(CLOTH.size()):
 		if not cloth[i].is_empty():
 			piece.add_child(Props.mi(Props.bake(cloth[i]), Mats.of("sofa_fabric", CLOTH[i], 0.95, 0.6)))
-	piece.add_child(Props.mi(Props.bake(hooks), Mats.of("metal_brushed", CHROME, 0.2)))
+	piece.add_child(Props.mi(Props.bake(hooks), Mats.finish("metal_polished", CHROME, 0.1)))
 
 	var wool: Array[Array] = []
 	for c in WOOL: wool.append([])

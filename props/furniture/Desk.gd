@@ -75,7 +75,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 static func _lamp() -> Node3D:
 	var root := Node3D.new()
 	root.position = Vector3(LAMP_AT.x, HEIGHT, LAMP_AT.y)
-	var brass := Mats.of("metal_brushed", Props.BRASS, 0.35)
+	var brass := Mats.finish("metal_polished", Props.BRASS, 0.25)
 	var parts: Array = []
 	parts.append([Props.lathe(PackedVector2Array([Vector2(LAMP_BASE.x, 0), Vector2(LAMP_BASE.x, LAMP_BASE.y * 0.4),
 			Vector2(LAMP_BASE.x * 0.7, LAMP_BASE.y), Vector2(0.015, LAMP_BASE.y * 1.2), Vector2(0, LAMP_BASE.y * 1.2)]), 28),
@@ -92,7 +92,7 @@ static func _lamp() -> Node3D:
 		Vector2(LAMP_SHADE.x * 0.55 - LAMP_SHADE_WALL, LAMP_SHADE.y * 0.8 - LAMP_SHADE_WALL),
 		Vector2(LAMP_SHADE.x - LAMP_SHADE_WALL, 0.0), Vector2(LAMP_SHADE.x, 0.0),
 		Vector2(LAMP_SHADE.x * 0.55, LAMP_SHADE.y * 0.8), Vector2(0.012, LAMP_SHADE.y)])
-	var hood := Props.mi(Props.lathe(shade, 32, true), Props.mat(SHADE, 0.3), tip - Vector3(0, LAMP_SHADE.y * 0.6, 0))
+	var hood := Props.mi(Props.lathe(shade, 32, true), Mats.finish("painted_metal", SHADE, 0.3), tip - Vector3(0, LAMP_SHADE.y * 0.6, 0))
 	hood.scale = Vector3(1, 1, LAMP_SHADE.z / LAMP_SHADE.x)
 	root.add_child(hood)
 	root.add_child(Props.mi(Props.sphere(0.018), Props.mat(Color(1, 0.97, 0.9), 0.4), tip - Vector3(0, LAMP_SHADE.y * 0.45, 0)))

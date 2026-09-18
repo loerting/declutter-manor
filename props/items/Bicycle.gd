@@ -45,10 +45,10 @@ const CHROME := Color(0.8, 0.81, 0.83)
 
 func build(def: ItemDef) -> Node3D:
 	var root := Node3D.new()
-	var paint := Props.mat(Params.colour(def.params, "tint", RED), 0.3, 0.4)
+	var paint := Mats.finish("painted_metal", Params.colour(def.params, "tint", RED), 0.3)
 	var rubber := Mats.of("rubber", BLACK, 0.8)
-	var chrome := Mats.of("metal_brushed", CHROME, 0.25)
-	var black := Props.mat(BLACK, 0.5)
+	var chrome := Mats.finish("metal_polished", CHROME, 0.12)
+	var black := Mats.finish("plastic", BLACK, 0.5)
 	var front := Vector3(0, WHEEL, 0)
 	var rear := Vector3(0, WHEEL, -WHEELBASE)
 

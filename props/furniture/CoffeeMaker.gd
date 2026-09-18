@@ -32,7 +32,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var piece := FurnitureNode.new()
 	piece.initialize(def, Vector2(BASE.x, BASE.z))
 	piece.mounted = true
-	var plastic := Props.mat(PLASTIC, 0.45)
+	var plastic := Mats.finish("plastic", PLASTIC, 0.45)
 	var body: Array = [
 		[Props.rounded_box(BASE, ROUND * 0.5, 4, 20), Transform3D(Basis.IDENTITY, Vector3(0, on + BASE.y * 0.5, BASE.z * 0.5))],
 		[Props.rounded_box(TOWER, ROUND, 4, 20), Transform3D(Basis.IDENTITY, Vector3(0, on + TOWER.y * 0.5, TOWER.z * 0.5))],

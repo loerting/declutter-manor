@@ -84,7 +84,7 @@ func build(def: ItemDef) -> Node3D:
 		loop.append(Vector3(cos(t) * LOOP_RADIUS, _length + sin(t) * LOOP_RADIUS - LOOP_WIRE, top.w - top.z * 0.6))
 	root.add_child(Props.mi(Props.tube(loop, LOOP_WIRE, 8), fabric))
 
-	var button_mat := Props.mat(Params.colour(def.params, "buttons", HORN), 0.45)
+	var button_mat := Mats.finish("plastic", Params.colour(def.params, "buttons", HORN), 0.45)
 	for i in range(BUTTON_COUNT):
 		var share := lerpf(BUTTON_FROM, BUTTON_TO, float(i) / float(BUTTON_COUNT - 1))
 		var b := _body(share)

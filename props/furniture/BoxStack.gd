@@ -73,7 +73,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 			y += size.y
 		piece.add_box(Vector3(column_width, y, depth), Vector3(x + column_width * 0.5, y * 0.5, OFF_WALL + reach + depth * 0.5))
 		x += column_width + GAP
-	piece.add_child(Props.mi(Props.bake(boxes), Mats.of("paper", CARDBOARD, 1.0)))
+	piece.add_child(Props.mi(Props.bake(boxes), Mats.of("cardboard", CARDBOARD, 1.0)))
 	piece.add_child(Props.mi(Props.bake(tape), Props.mat(TAPE_TINT, 0.3)))
 	piece.add_child(Props.mi(Props.bake(labels), Mats.of("paper", LABEL_TINT, 1.0)))
 	return piece

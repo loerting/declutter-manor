@@ -179,7 +179,7 @@ static func _lamp(at: Vector3) -> Node3D:
 	for k in range(2):
 		brass.append([Props.cyl(0.0022, 0.0022, rim * 2.0, 8), Transform3D(Basis(Vector3.UP, PI * 0.5 * float(k)) * Basis(Vector3.BACK, PI * 0.5),
 				Vector3(0, spider_y, 0))])
-	root.add_child(Props.mi(Props.bake(brass), Mats.of("metal_brushed", BRASS, 0.35)))
+	root.add_child(Props.mi(Props.bake(brass), Mats.finish("metal_polished", BRASS, 0.25)))
 	# Counter-clockwise in (radius, height): out along its bottom edge, up the outside, in over the top edge
 	# and down the inside, so the shade is a real sheet with two faces and an edge.
 	var shade := PackedVector2Array([Vector2(SHADE.x - SHADE_WALL, 0.0), Vector2(SHADE.x, 0.0), Vector2(SHADE.y, SHADE.z),

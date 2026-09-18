@@ -30,7 +30,8 @@ const POT_WALL := 0.012
 const SOIL_DROP := 0.03
 const TOP_X := -0.25
 
-const CEDAR := Color(0.66, 0.45, 0.31)
+## western red cedar, read over the pine scan
+const CEDAR := Color(0.62, 0.42, 0.32)
 const CLAY := Color(1.0, 0.9, 0.86)
 const SOIL := Color(0.5, 0.42, 0.36)
 
@@ -64,7 +65,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		var x := sx * (hx - LEG * 0.5)
 		wood.append([Props.extrude(bracket, Vector3.ZERO, Vector3.BACK, Vector3.UP, Vector3.RIGHT, x - RAIL.y * 0.5, x + RAIL.y * 0.5), Transform3D.IDENTITY])
 	wood.append(Props.part(Vector3(SIZE.x - LEG * 2.0, RAIL.x, RAIL.y), Vector3(0, BACK_RAIL_Y, LEG * 0.5)))
-	piece.add_child(Props.mi(Props.bake(wood), Mats.of("oak", CEDAR, 0.85)))
+	piece.add_child(Props.mi(Props.bake(wood), Mats.of("pine", CEDAR, 0.85)))
 
 	var clay: Array = []
 	var soil: Array = []

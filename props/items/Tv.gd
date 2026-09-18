@@ -26,11 +26,11 @@ const FOOT := Color(0.28, 0.28, 0.3)
 func build(_def: ItemDef) -> Node3D:
 	var root := Node3D.new()
 	var centre := Vector3(0, LIFT + PANEL.y * 0.5, 0)
-	root.add_child(Props.mi(Props.rounded_box(PANEL, 0.004, 6, 24), Props.mat(SHELL, 0.45), centre))
+	root.add_child(Props.mi(Props.rounded_box(PANEL, 0.004, 6, 24), Mats.finish("plastic", SHELL, 0.45), centre))
 	var screen := Props.mat(SCREEN, 0.06)
 	root.add_child(Props.mi(Props.box(Vector3(PANEL.x - BEZEL * 2.0, PANEL.y - BEZEL * 2.0, 0.002)), screen,
 			centre + Vector3(0, 0, PANEL.z * 0.5 - 0.001 + SCREEN_PROUD)))
-	root.add_child(Props.mi(Props.rounded_box(HOUSING, 0.012, 6, 24), Props.mat(SHELL, 0.6),
+	root.add_child(Props.mi(Props.rounded_box(HOUSING, 0.012, 6, 24), Mats.finish("plastic", SHELL, 0.6),
 			Vector3(0, LIFT + HOUSING.y * 0.5 + HOUSING_DROP, -PANEL.z * 0.5 - HOUSING.z * 0.5 + 0.006)))
 	var metal := Mats.of("metal_brushed", FOOT, 0.5)
 	var blade := _foot()

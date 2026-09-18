@@ -39,8 +39,8 @@ func build(def: ItemDef) -> Node3D:
 	var root := Node3D.new()
 	var glass := Props.glass(GLASS, 0.02)
 	var scent := Props.glass(Params.colour(def.params, "tint", AMBER), 0.05)
-	var cap := Props.mat(Params.colour(def.params, "cap", BLACK), 0.2)
-	var gold := Props.mat(GOLD, 0.25, 0.9)
+	var cap := Mats.finish("plastic", Params.colour(def.params, "cap", BLACK), 0.2)
+	var gold := Mats.finish("metal_polished", GOLD, 0.2)
 	match Params.integer(def.params, "shape", 0):
 		1:
 			root.add_child(Props.mi(Props.lathe(PackedVector2Array(BULB), SEGMENTS), glass))

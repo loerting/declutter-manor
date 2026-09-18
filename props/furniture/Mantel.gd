@@ -71,7 +71,8 @@ const HEARTH_STONE := Color(0.17, 0.17, 0.18)
 const POWDER_COAT := Color(0.035, 0.035, 0.038)
 const FIREBOX_LINER := Color(0.46, 0.38, 0.34)
 const GLASS_TINT := Color(0.02, 0.02, 0.025, 0.32)
-const BARK := Color(0.34, 0.27, 0.22)
+## over the oak bark scan: split firewood that has seasoned grey-brown
+const BARK := Color(0.72, 0.62, 0.62)
 const EMBER := Color(0.16, 0.06, 0.03)
 ## Switched to its dimmest setting: a glow in the bed that reads as embers, not a lit panel.
 const EMBER_GLOW := Color(0.6, 0.16, 0.04)
@@ -86,9 +87,9 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	_add_surround(painted)
 	_add_panels(painted)
 	# Painted MDF: a flat eggshell coat with no grain showing through it.
-	piece.add_child(Props.mi(Props.bake(painted), Props.mat(PAINT, PAINT_ROUGHNESS)))
+	piece.add_child(Props.mi(Props.bake(painted), Mats.finish("painted_wood", PAINT, PAINT_ROUGHNESS)))
 	piece.add_child(Props.mi(Props.moulded_block(HEARTH_HALF, HEARTH_FRONT, _hearth_rows()),
-			Mats.of("worktop_stone", HEARTH_STONE, 0.45)))
+			Mats.finish("vanity_stone", HEARTH_STONE, 0.3)))
 	_add_insert(piece)
 
 	var body_h := HEIGHT - SHELF_THICK
@@ -163,7 +164,7 @@ func _add_insert(piece: FurnitureNode) -> void:
 	var cy := (top + bottom) * 0.5
 	var outer := Vector2(OPENING_HALF_WIDTH - TRIM_CLEAR, (top - bottom) * 0.5)
 	var sight := outer - Vector2.ONE * TRIM_WIDTH
-	var coat := Props.mat(POWDER_COAT, 0.55)
+	var coat := Mats.finish("painted_metal", POWDER_COAT, 0.55)
 
 	var metal: Array = []
 	for rail: Array in Props.frame_rails(sight, _trim_profile()):
@@ -203,7 +204,7 @@ func _add_log_set(piece: FurnitureNode, floor_y: float, mid_z: float) -> void:
 	piece.add_child(Props.mi(Props.rounded_box(bed, 0.01), ember,
 			Vector3(0, floor_y + bed.y * 0.5, mid_z)))
 	var bed_top := floor_y + bed.y
-	var bark := Mats.of("oak", BARK, 1.0)
+	var bark := Mats.of("bark", BARK, 1.0)
 	var logs: Array = []
 	var back_r := 0.034
 	var front_r := 0.03

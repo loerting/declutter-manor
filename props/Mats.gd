@@ -16,6 +16,7 @@ class_name Mats
 const DIR := "res://assets/textures/"
 
 static var _specs: Dictionary = {}
+static var _meta: Dictionary = {}
 static var _cache: Dictionary = {}
 static var _warned := false
 ## Furniture and items are generated on worker threads (`Generation`), and every one of them asks
@@ -37,6 +38,40 @@ static func _tex(slot: String, map: String) -> Texture2D:
 	if not ResourceLoader.exists(path):
 		return null
 	return load(path) as Texture2D
+
+## The measured means of a slot's roughness and metallic maps (`tools/fetch_textures.py`,
+## `write_meta`). A slot fetched before the fetcher wrote them reads as a mid-rough dielectric.
+static func _stats(slot: String) -> Dictionary:
+	if _meta.has(slot):
+		return _meta[slot]
+	var stats := {"roughness": 0.5, "metallic": 0.0}
+	var f := FileAccess.open(DIR + slot + "/meta.json", FileAccess.READ)
+	if f != null:
+		var parsed: Variant = JSON.parse_string(f.get_as_text())
+		if parsed is Dictionary:
+			stats.merge(parsed, true)
+	_meta[slot] = stats
+	return stats
+
+## The material for a slot at an absolute roughness, rather than a multiple of the scan's own.
+## ORMMaterial3D multiplies the roughness map by a scalar, and the scans' means run from 0.02
+## (polished granite) to 0.92 (terry), so `of(slot, tint, 0.35)` means a different surface on
+## every slot. This is for a finish that is a fact about the object - a satin plastic, a glossy
+## enamel - whatever the scan happened to be. Up to the scan's own mean, the map is scaled and
+## keeps its variation; above it the multiplier would pass one, which `of` clamps, so the
+## surface takes the roughness flat (`matte`) and keeps its normal map.
+static func finish(slot: String, tint: Color, roughness: float, scale_mul := 1.0,
+		world_space := false) -> Material:
+	_lock.lock()
+	_load_specs()
+	var mean: float = maxf(float(_stats(slot)["roughness"]), 0.01)
+	var m: Material
+	if roughness <= mean:
+		m = _of(slot, tint, roughness / mean, scale_mul, world_space, false, false)
+	else:
+		m = _of(slot, tint, roughness, scale_mul, world_space, true, false)
+	_lock.unlock()
+	return m
 
 ## Returns the material for a manifest slot.
 ##  `tint`       modulates the albedo, so one wood or fabric serves several colourways;
@@ -94,7 +129,10 @@ static func _of(slot: String, tint: Color, rough_mul: float, scale_mul: float, w
 	# ORMMaterial3D multiplies the map by these, so they must not sit at zero or the
 	# packed roughness/metallic channels are thrown away.
 	m.roughness = clampf(rough_mul, 0.0, 1.0)
-	m.metallic = 0.0 if matte else 1.0
+	# Without the map, a metal scan is still metal: polished chrome asked for a satin finish
+	# would otherwise come out as grey plastic.
+	var metal_scan := float(_stats(slot)["metallic"]) > 0.5
+	m.metallic = (1.0 if metal_scan else 0.0) if matte else 1.0
 	m.ao_light_affect = 0.5
 
 	# Mipmaps kill the moire that unfiltered textures show at a distance, but on their own

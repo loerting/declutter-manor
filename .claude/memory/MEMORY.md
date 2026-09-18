@@ -1,6 +1,6 @@
 # Memory Index
 
-- [Current status](current-status.md) — READ FIRST: U3 committed 0b62a36; U4 ledger, the 9 play-test fixes, the UI readability pass and the number cull (named refusals, figures written once, floor on the arrows and W/S, sorted items stay put), the 3.6 m pool, the one-marker compass (hand only) and the put-away wording all green, NOT committed; editor restart needed
+- [Current status](current-status.md) — READ FIRST: retexture committed; next = garden pass then neighbourhood pass (plan in the file). Retro prototype uncommitted, author deciding
 
 - [Game vision](game-vision-declutter-manor.md) — the committed concept and the decisions of 2026-09-09
 - [Workflow](declutter-manor-workflow.md) — in-window implementation, delegate on volume only; CLAUDE.md Phase 0

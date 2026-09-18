@@ -72,7 +72,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 			case.append([leg, _leg_xform(sx, sz)])
 	piece.add_child(Props.mi(Props.bake(case), wood))
 
-	var console := Props.mi(Props.rounded_box(CONSOLE, 0.006, 6, 24), Props.mat(PLASTIC, 0.35),
+	var console := Props.mi(Props.rounded_box(CONSOLE, 0.006, 6, 24), Mats.finish("plastic", PLASTIC, 0.35),
 			Vector3(0, bottom + PANEL + CONSOLE.y * 0.5, CARCASS_DEPTH - CONSOLE.z * 0.5 - 0.03))
 	piece.add_child(console)
 	var light := Props.mat(LIGHT, 0.3)

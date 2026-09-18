@@ -48,7 +48,7 @@ func build(def: ItemDef) -> Node3D:
 	for k in range(EASE_STEPS + 1):
 		var a := PI * 0.5 * float(k) / EASE_STEPS
 		rings.append(_ring(size, EASE * (1.0 - cos(a)), lift + size.y - EASE + EASE * sin(a)))
-	root.add_child(Props.mi(Props.loft(rings), Props.mat(Params.colour(def.params, "tint", NAVY), 0.28)))
+	root.add_child(Props.mi(Props.loft(rings), Mats.finish("plastic", Params.colour(def.params, "tint", NAVY), 0.28)))
 
 	# The zip band: a flat hoop round the shell at the seam, standing proud of it. Its rings run from +X
 	# up toward +Y, so it is stacked toward -Z (`Props.loft`).
@@ -69,7 +69,7 @@ func build(def: ItemDef) -> Node3D:
 			for fork: float in [-1.0, 1.0]:
 				trim.append(Props.part(Vector3(FORK, WHEEL.x + FORK, FORK * 2.0),
 						at + Vector3(fork * (WHEEL.y + FORK) * 0.5, WHEEL.x * 1.5 + FORK * 0.5, 0)))
-	root.add_child(Props.mi(Props.bake(trim), Props.mat(TRIM, 0.55)))
+	root.add_child(Props.mi(Props.bake(trim), Mats.finish("plastic", TRIM, 0.55)))
 	var wheels: Array = []
 	for sx: float in [-1.0, 1.0]:
 		for sz: float in [-1.0, 1.0]:

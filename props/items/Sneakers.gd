@@ -18,7 +18,7 @@ const LENGTHS: Array[float] = [0.29, 0.21]
 
 func build(def: ItemDef) -> Node3D:
 	var upper := Mats.of("sofa_fabric", Params.colour(def.params, "tint", WHITE), 0.9, 0.5)
-	return ShoeLast.new().pair(Params.number(def.params, "length", ShoeLast.LENGTH), upper, Props.mat(SOLE_RUBBER, 0.8),
+	return ShoeLast.new().pair(Params.number(def.params, "length", ShoeLast.LENGTH), upper, Mats.finish("rubber", SOLE_RUBBER, 0.8),
 			Props.mat(LACE, 0.8))
 
 func variant(index: int) -> Dictionary:

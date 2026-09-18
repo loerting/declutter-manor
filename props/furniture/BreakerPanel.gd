@@ -24,7 +24,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var piece := FurnitureNode.new()
 	piece.initialize(def, Vector2(BOX.x, BOX.z + COVER.z + LATCH.z))
 	piece.mounted = true
-	var steel := Props.mat(STEEL, 0.45, 0.4)
+	var steel := Mats.finish("painted_metal", STEEL, 0.45)
 	var parts: Array = [
 		[Props.rounded_box(BOX, 0.006, 2, 8), Transform3D(Basis.IDENTITY, Vector3(0, bottom + BOX.y * 0.5, BOX.z * 0.5))],
 		[Props.rounded_box(COVER, 0.003, 2, 8), Transform3D(Basis.IDENTITY, Vector3(0, bottom + BOX.y * 0.5, BOX.z + COVER.z * 0.5))],

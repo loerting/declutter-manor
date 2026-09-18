@@ -37,7 +37,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.mounted = true
 	piece.add_child(Props.mi(Props.rounded_box(BOARD, EASE, 6, 24), Mats.of("oak", OAK, 0.6),
 			Vector3(0, CENTRE_Y, BOARD.z * 0.5)))
-	var brass := Mats.of("metal_brushed", Props.BRASS, 0.4)
+	var brass := Mats.finish("metal_polished", Props.BRASS, 0.3)
 	var screw := Props.lathe(PackedVector2Array([Vector2(SCREW_RADIUS, 0), Vector2(SCREW_RADIUS * 0.85, SCREW_PROUD * 0.7),
 			Vector2(SCREW_RADIUS * 0.45, SCREW_PROUD), Vector2(0, SCREW_PROUD)]), 16)
 	for side: float in [-1.0, 1.0]:
@@ -45,7 +45,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 		head.rotation = Vector3(PI * 0.5, 0, 0)
 		piece.add_child(head)
 
-	var iron := Props.mat(IRON, 0.5, 0.6)
+	var iron := Mats.finish("painted_metal", IRON, 0.5)
 	var parts: Array = []
 	for x: float in HOOK_X:
 		var path := Props.smooth_path(PackedVector3Array([

@@ -39,7 +39,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.initialize(def, Vector2(TOP.x, depth))
 	var cz := depth * 0.5
 	var top_y := TOP.y
-	piece.add_child(Props.mi(Props.rounded_box(Vector3(TOP.x, BOARD, TOP.z), 0.002, 2, 8), Props.mat(BLUE, 0.55),
+	piece.add_child(Props.mi(Props.rounded_box(Vector3(TOP.x, BOARD, TOP.z), 0.002, 2, 8), Mats.finish("painted_wood", BLUE, 0.55),
 			Vector3(0, top_y - BOARD * 0.5, cz)))
 	piece.add_box(Vector3(TOP.x, BOARD, TOP.z), Vector3(0, top_y - BOARD * 0.5, cz))
 	var lines: Array = [Props.part(Vector3(TOP.x - LINE * 2.0, Props.PROUD * 2.0, CENTRE_LINE), Vector3(0, top_y, cz))]
@@ -62,7 +62,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 			piece.add_box(Vector3(LEG, leg_h, LEG), at)
 		steel.append(Props.part(Vector3(LEG * 0.8, LEG * 0.8, TOP.z - LEG_IN.y * 2.0), Vector3(x, STRETCHER, cz)))
 		steel.append(Props.part(Vector3(LEG * 0.8, LEG * 0.8, TOP.z - LEG_IN.y * 2.0), Vector3(x, leg_h - 0.01, cz)))
-	piece.add_child(Props.mi(Props.bake(steel), Props.mat(STEEL, 0.5, 0.3)))
+	piece.add_child(Props.mi(Props.bake(steel), Mats.finish("painted_metal", STEEL, 0.5)))
 
 	piece.add_anchor(&"top", Transform3D(Basis.IDENTITY, Vector3(0, top_y, cz)), piece)
 	piece.add_anchor(&"net", Transform3D(Basis.IDENTITY, Vector3(0, top_y - NET_CLAMP, cz)), piece)

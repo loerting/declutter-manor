@@ -52,7 +52,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var cz := DEPTH * 0.5
 	var canvas := Mats.of("book_cloth", tint, 0.9)
 	var oak := Mats.of("oak", OAK, 0.7)
-	var brass := Props.mat(BRASS, 0.35, 0.7)
+	var brass := Mats.finish("metal_polished", BRASS, 0.3)
 	piece.add_child(Props.mi(Props.bake(_tray(Vector3.ZERO, BODY, true)), canvas))
 	var paper := Mats.of("paper", PAPER, 1.0)
 	piece.add_child(Props.mi(Props.bake(_lining(Vector3.ZERO, BODY, true)), paper))
@@ -69,7 +69,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var straps: Array = []
 	for side: float in [-1.0, 1.0]:
 		straps.append(_handle(side))
-	piece.add_child(Props.mi(Props.bake(straps), Mats.of("rubber", LEATHER, 0.7)))
+	piece.add_child(Props.mi(Props.bake(straps), Mats.finish("leather", LEATHER, 0.5)))
 
 	# The lid, built upside down from its hinge line: a tray whose open side faces the box.
 	var hinge := Vector3(0, BODY, 0)
