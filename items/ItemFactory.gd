@@ -60,6 +60,7 @@ const FAMILIES: Dictionary[StringName, Script] = {
 	&"photo_album": preload("res://props/items/PhotoAlbum.gd"),
 	&"garden_gnome": preload("res://props/items/GardenGnome.gd"),
 	&"grill_tool": preload("res://props/items/GrillTool.gd"),
+	&"table_tennis": preload("res://props/items/TableTennis.gd"),
 	&"deck_cushion": preload("res://props/items/DeckCushion.gd"),
 	&"pool_noodle": preload("res://props/items/PoolNoodle.gd"),
 	&"goggles": preload("res://props/items/Goggles.gd"),

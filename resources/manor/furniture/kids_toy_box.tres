@@ -24,4 +24,5 @@ id = &"kids_toy_box"
 generator = &"toy_box"
 room = &"kids_room"
 wall = 3
+out = 0.03
 slots = Array[ExtResource("2_psg")]([SubResource("Resource_kids_toy_box_0")])

@@ -108,6 +108,7 @@ func _ready() -> void:
 	cam.position = centre + Vector3(sin(a) * cos(e), sin(e), cos(a) * cos(e)) * dist
 	cam.look_at(centre)
 	if shot != "":
+		await WorldBuilder.windowed(self)
 		# force_draw, because a process frame is not a drawn frame: an uncomposited window
 		# ticks without rendering and the capture below is then a black PNG. See HouseView.
 		for i in range(12):
@@ -126,22 +127,29 @@ func _piece(id: String) -> Node3D:
 	push_error("PropView: the manor has no piece '%s'" % id)
 	return Node3D.new()
 
-## Every slot of every group, with a copy of the first family the group accepts that can be built.
+## Every slot of every group, with a copy of the first family the group accepts that can be built, or with the
+## items it names one by one, as the table tennis gear's groups do.
 func _fill(piece: FurnitureNode) -> void:
+	var content := WorldBuilder.catalogue(ManorPlan.build())
 	for slots: PlaceSlots in _slot_nodes(piece):
-		var family: StringName = &""
+		var defs: Array[ItemDef] = []
 		for accepted: StringName in slots.group.accepts:
-			if ItemFactory.knows(accepted):
-				family = accepted
+			var named := content.find_item(accepted)
+			if named != null:
+				defs.append(named)
+		if defs.is_empty():
+			for accepted: StringName in slots.group.accepts:
+				if not ItemFactory.knows(accepted):
+					continue
+				for i in range(slots.group.capacity):
+					var copy := ItemDef.make(&"_fill", accepted, &"")
+					copy.params = ItemFactory.variant(accepted, i)
+					defs.append(copy)
 				break
-		if family == &"":
-			continue
-		for i in range(slots.group.capacity):
-			var item := ItemDef.make(&"_fill", family, &"")
-			item.params = ItemFactory.variant(family, i)
-			var visual := ItemFactory.build_visual(item)
+		for i in range(mini(defs.size(), slots.group.capacity)):
+			var visual := ItemFactory.build_visual(defs[i])
 			slots.add_child(visual)
-			visual.transform = slots.slot_local(i, item)
+			visual.transform = slots.slot_local(i, defs[i])
 
 func _slot_nodes(node: Node) -> Array[PlaceSlots]:
 	var out: Array[PlaceSlots] = []

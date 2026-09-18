@@ -12,7 +12,15 @@ extends Node3D
 ##     way.outline  in the home room there is no marker, a pin is on the home, and exactly one outline shows:
 ##                  on the drawer or door the slots are behind, or on the piece that holds them, drawn round
 ##                  the place the item goes
-##     way.names    with the guidance set to names only, no marker, no pin and no outline, anywhere
+##     way.through  from another room, on another floor where there is one, the same pin and the same one outline show,
+##                  and the outline is drawn through the house
+##     way.held     carrying two items bound for two other rooms, the marker is for the one in hand, and follows the
+##                  hand to the other; both homes keep their pin
+##     way.sought   looking for a set outlines every member that is neither home nor in hand, and nothing else, in
+##                  its own kind; the census counts them in the rooms they lie in; looking for it again puts it down;
+##                  a set that becomes complete is no longer looked for, and says so
+##     way.names    with the guidance set to names only, no marker, no pin and no home outline, anywhere; a set looked
+##                  for is still outlined
 ##
 ## Exit code is the number of violations.
 
@@ -58,10 +66,13 @@ func _ready() -> void:
 	for i in range(3):
 		await get_tree().physics_frame
 	Inventory.reset(Balance.FINALE_SLOT_COST)
+	SetTracker.begin(_content)
 	var t0 := Time.get_ticks_msec()
 	_check_routes()
 	_check_outlines()
+	_check_held()
 	_measure()
+	_check_sought()
 	_check_names()
 	print("")
 	print("WayProbe: %d violation(s) in %d ms" % [_violations, Time.get_ticks_msec() - t0])
@@ -125,10 +136,8 @@ func _follow(from: RoomDef, def: ItemDef, home: StringName) -> int:
 	return MAX_STEPS
 
 func _way_to(home: StringName) -> WayHome.Way:
-	for way: WayHome.Way in _way.ways():
-		if way.room == home:
-			return way
-	return null
+	var way := _way.way()
+	return way if way != null and way.room == home else null
 
 ## Where following a marker gets to: up or down the flight whose end it aims at, or onto the place it aims at —
 ## in front of a doorway, past it, round a corner.
@@ -148,11 +157,11 @@ func _step(from: Vector3, aim: Vector3) -> Vector3:
 func _seen(eye: Vector3, aim: Vector3) -> bool:
 	var height := maxf(eye.y - Balance.EYE_HEIGHT, aim.y) + RAY_HEIGHT
 	var query := PhysicsRayQueryParameters3D.create(Vector3(eye.x, height, eye.z), Vector3(aim.x, height, aim.z),
-			Layers.bit(Layers.WORLD))
+			Layers.body_mask())
 	query.exclude = _furniture
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
-		print("    hit %s at %s" % [(hit["collider"] as Node).name, hit["position"]])
+		print("    hit %s at %s" % [(hit["collider"] as Node).get_path(), hit["position"]])
 	return hit.is_empty()
 
 func _check_outlines() -> void:
@@ -186,6 +195,115 @@ func _check_outlines() -> void:
 		var at := slots.global_position
 		_ok("way.outline", holds and bounds.grow(OUTLINE_NEAR).has_point(at),
 				"'%s': outlined %s (holds the slots: %s), %s round %s" % [def.id, target.name, holds, bounds, at])
+		var away := _away_from(home)
+		_eye.global_position = _middle(away)
+		_way.refresh()
+		pinned = false
+		for pin: WayHome.Pin in _way.pins():
+			pinned = pinned or pin.group == def.home
+		var through := outline.hulls()[0].material_override as ShaderMaterial
+		_ok("way.through", pinned and _way.shown_outlines() == [outline] and through != null
+				and through.shader == Outline.THROUGH and outline.hulls()[0].material_overlay != null,
+				"'%s' from %s: pinned %s, outlines %s, drawn through the house %s" % [def.id, away.id, pinned,
+				_way.shown_outlines(), through != null and through.shader == Outline.THROUGH])
+
+## A room away from `home`: on another floor where there is one, else the first other room.
+func _away_from(home: StringName) -> RoomDef:
+	var home_storey := _plan.storey_of(home)
+	var fallback: RoomDef = null
+	for room: RoomDef in _plan.all_rooms():
+		if room.id == home:
+			continue
+		if _plan.storey_of(room.id) != home_storey:
+			return room
+		if fallback == null:
+			fallback = room
+	return fallback
+
+## The first set with at least three members: one taken in hand, one put home, the rest left where they lie.
+func _check_sought() -> void:
+	for held: ItemDef in Inventory.carried():
+		Inventory.release(held)
+	var census := ClutterCensus.new()
+	census.initialize(self, _plan)
+	add_child(census)
+	var s: SetDef = null
+	for candidate: SetDef in _content.sets:
+		if s == null and _content.members(candidate.id).size() >= 3:
+			s = candidate
+	var nodes: Array[ItemNode] = []
+	for item: ItemNode in ProgressSave.items_in(self):
+		if item.def.set_id == s.id:
+			nodes.append(item)
+	nodes[0].set_carried(true)
+	EventBus.item_placed.emit(nodes[1].def.id, nodes[1].def.home)
+	var changes: Array[StringName] = []
+	var on_change := func(id: StringName) -> void: changes.append(id)
+	_way.tracked_changed.connect(on_change)
+	_way.track(s.id)
+	var expected: Array[ItemNode] = nodes.slice(2)
+	var outlined: Array[Node3D] = []
+	for outline: Outline in _way.shown_outlines():
+		if outline.kind == Outline.Kind.SOUGHT:
+			outlined.append(outline.target)
+	var rooms: Dictionary = {}
+	for item: ItemNode in expected:
+		var room := _plan.room_at(item.global_position, ProgressSave.ROOM_SLACK)
+		if room != null:
+			rooms[room.id] = int(rooms.get(room.id, 0)) + 1
+	var same := outlined.size() == expected.size()
+	for item: ItemNode in expected:
+		same = same and outlined.has(item) and _way.outline_on(item).hulls().size() > 0
+	_ok("way.sought", _way.tracked() == s.id and same and census.rooms_of(s.id) == rooms,
+			"'%s' looked for: outlined %d of %d expected, rooms %s, census %s" % [s.id, outlined.size(), expected.size(),
+			rooms, census.rooms_of(s.id)])
+	_way.track(s.id)
+	var any := 0
+	for outline: Outline in _way.shown_outlines():
+		any += 1 if outline.kind == Outline.Kind.SOUGHT else 0
+	_ok("way.sought", _way.tracked() == &"" and any == 0, "'%s' looked for again: tracked '%s', %d outlines" % [s.id,
+			_way.tracked(), any])
+	_way.track(s.id)
+	for item: ItemNode in nodes:
+		EventBus.item_placed.emit(item.def.id, item.def.home)
+	_way.refresh()
+	_ok("way.sought", _way.tracked() == &"" and changes == [s.id, &"", s.id, &""],
+			"'%s' completed: tracked '%s', told %s" % [s.id, _way.tracked(), changes])
+	_way.tracked_changed.disconnect(on_change)
+	nodes[0].set_carried(false)
+	SetTracker.begin(_content)
+	# Looked for again for the names check: the player's own request stands with the guidance off.
+	_way.track(s.id)
+
+func _check_held() -> void:
+	var here := _plan.all_rooms()[0]
+	var bound: Array[ItemDef] = []
+	var rooms: Array[StringName] = []
+	for s: SetDef in _content.sets:
+		var def := _content.members(s.id)[0]
+		var home := _home_room(def)
+		if home != here.id and not rooms.has(home):
+			bound.append(def)
+			rooms.append(home)
+		if bound.size() == 2:
+			break
+	Inventory.reset(Balance.FINALE_SLOT_COST * 2)
+	Inventory.take(bound[0])
+	Inventory.take(bound[1])
+	_eye.global_position = _middle(here)
+	for i: int in [1, 0]:
+		Inventory.select(i)
+		_way.refresh()
+		var way := _way.way()
+		_ok("way.held", way != null and way.def == bound[i] and way.room == rooms[i],
+				"in %s holding '%s' of two: the marker is for %s" % [
+				here.id, bound[i].id, "nothing" if way == null else "'%s' in %s" % [way.def.id, way.room]])
+		var pinned: Array[StringName] = []
+		for pin: WayHome.Pin in _way.pins():
+			pinned.append(pin.def.id)
+		_ok("way.held", pinned.has(bound[0].id) and pinned.has(bound[1].id),
+				"in %s holding '%s' of two: pins only for %s" % [here.id, bound[i].id, pinned])
+	Inventory.reset(Balance.FINALE_SLOT_COST)
 
 ## One look with a member of every set in hand, from the attic, the far end of the house.
 func _measure() -> void:
@@ -203,8 +321,8 @@ func _measure() -> void:
 		var spent := Time.get_ticks_usec() - t0
 		worst = maxi(worst, spent)
 		total += spent
-	print("  way.time: %d carried, %d markers: a look takes %.2f ms, at worst %.2f ms" % [
-			Inventory.carried().size(), _way.ways().size(), total / 1000.0 / REFRESH_SAMPLES, worst / 1000.0])
+	print("  way.time: %d carried, %d pins: a look takes %.2f ms, at worst %.2f ms" % [
+			Inventory.carried().size(), _way.pins().size(), total / 1000.0 / REFRESH_SAMPLES, worst / 1000.0])
 	for held: ItemDef in Inventory.carried():
 		Inventory.release(held)
 	Inventory.reset(Balance.FINALE_SLOT_COST)
@@ -218,8 +336,15 @@ func _check_names() -> void:
 		for room: RoomDef in [_plan.all_rooms()[0], _plan.find_room(_home_room(def))] as Array[RoomDef]:
 			_eye.global_position = _middle(room)
 			_way.refresh()
-			any += _way.ways().size() + _way.pins().size() + _way.shown_outlines().size()
-	_ok("way.names", any == 0, "names only: %d markers, pins and outlines shown" % any)
+			any += (0 if _way.way() == null else 1) + _way.pins().size()
+			for outline: Outline in _way.shown_outlines():
+				any += 1 if outline.kind == Outline.Kind.HOME else 0
+	var sought := 0
+	for outline: Outline in _way.shown_outlines():
+		sought += 1 if outline.kind == Outline.Kind.SOUGHT else 0
+	_ok("way.names", any == 0 and sought > 0, "names only: %d markers, pins and home outlines shown; %d of the set looked for"
+			% [any, sought])
+	_way.track(_way.tracked())
 	_way.guidance = WayHome.Guidance.FULL
 
 func _ok(label: String, condition: bool, detail: String) -> void:

@@ -7,7 +7,7 @@ extends FurnitureGenerator
 ##
 ## Anchors:
 ##
-##     lower    on the lower mattress against its back rail, at the place nearest the foot
+##     lower    on the lower mattress down its middle, at the place nearest the foot
 
 const MATTRESS := Vector3(1.9, 0.14, 0.9)
 const MATTRESS_ROUND := 0.035
@@ -33,9 +33,10 @@ const DUVET := Vector2(0.05, 0.07)
 const DUVET_FROM := 0.45
 const PILLOW_HALF := Vector2(0.23, 0.16)
 const PILLOW_THICK := 0.11
-## The stuffed animals sit in a row on the duvet this far from the mattress's back edge, starting this
-## far from its foot.
-const TOY_BACK := 0.12
+## The stuffed animals sit in a row down the middle of the duvet, this far from the mattress's back edge,
+## starting this far from its foot. Against the back rail a standing eye could not see them under the top
+## bunk to take them out again (`dev/HomeProbe.tscn`, 2026-09-17).
+const TOY_BACK := 0.45
 const TOY_FROM := 0.11
 
 const PINE := Color(1.0, 0.9, 0.72)

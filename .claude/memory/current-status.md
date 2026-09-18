@@ -982,3 +982,166 @@ Everything above is verified and staged, not committed: `--import` 0, `run_tests
 - 2026-09-17 author said "Commit, then U4": stair wall + C1-C3 + U2 + U3 committed as ONE commit on top of 8fb776c
   (files overlap too much to split). PortraitProbe still timed out right before (display not drawing) - still owed.
 - NEXT: U4 ledger.
+- 2026-09-17 U3 commit is 0b62a36 ("Physics carry, item pictures and the way home").
+
+## U4 ledger (2026-09-17) - BUILT + AUDITED, NOT COMMITTED
+- New: ui/LedgerMap.gd (one storey from FloorPlan polygons, shade + count/tick, home ring, here dot under labels,
+  selected outline; frame = building footprint of all storeys grown by the storey's own rooms), ui/Ledger.gd/.tscn
+  (totals, floor tabs, map, legend, keys | room name + misplaced count, 5 filter chips with number keys + counts,
+  list grouped "Belongs in <room>" with "N sets · M complete" or "shown of N sets" when filtered, cards with
+  "Complete · +1 slot"), ui/SetProgress.gd (carried/under way shared by tracker and ledger). Replaces the Overview.
+- Hides tracker, room tag, crosshair, prompt, card, pins while open. Input in Hud._input: select_1..5 filters,
+  ledger_filter_next/previous (pad RB/LB), wheel/d-pad rooms, PageUp/Down + d-pad floors; all set_input_as_handled.
+- Filtered list is a clip Control starting at the selected room's group (ScrollContainer scrolled on stale layout).
+- Audit after "Make sure everything we planned is done": filters were missing (now built), map frame, crosshair kept,
+  vacuous probe checks, filtered heads miscounting - all fixed.
+- Proofs: HudProbe (hud.ledger, ledger.sets, ledger.map, ledger.filter) 0; breaks all red: carrying_wrong 8,
+  list_not_anchored 224, map_whole_plan 104, crosshair_kept 8, number_not_taken 8, no_bonus 8, no_room_group 208,
+  head count 56. run_tests 129/0, InteractProbe, WayProbe, PlanProbe 0, check_export PASS, no SCRIPT ERROR.
+- Renders: screenshots/ledger/ledger.png, ledger_under_way.png (HudProbe --ledger --filter=2).
+- Not built by design: piano "last piece" line (no data), Tab hold/toggle + HUD scale (Phase 5 settings), pad glyphs.
+- Visible limits (need human verification in game): card pictures blank in probe (no portraits headless); a group
+  head can be cut off at the list's bottom without cards; basement map uses part of the shared frame.
+- Still owed: PortraitProbe + GenerationProbe rerun with a visible window.
+- NEXT: author reviews renders; commit when asked.
+
+## Play-test fixes (2026-09-17, after U4) - BUILT, VERIFYING, NOT COMMITTED (U4 also uncommitted, same tree)
+Author's 9 reports and what was done (answers: remove loose-looking decor; fullscreen default):
+1. Homes unusable: slot offer was 1.6 m eye->group ORIGIN. Now Interactor measures eye->item at slot <= INTERACT_REACH,
+   NEAREST picks slot nearest line of sight (PlaceSlots.aimed_index), not through house walls (WORLD ray).
+   PLACE_SNAP_RADIUS removed. New dev/HomeProbe.tscn (home.offered/home.back): red 93+25 before, 0 after.
+   Bunk toy row moved to mattress middle (TOY_BACK 0.45) - under top bunk it could not be taken out.
+2. Throw: CHARGE 0.45, SPEED 6..18, ENERGY 12..160, LIFT 0.08, THROW_SPIN 14 (end over end).
+3/4. Collision split: Layers.SURFACE(9) = drawn furniture triangles (FurnitureNode.gather_surface on gen workers,
+   add_surface in FurnitureBuilder), flight treads/rails, deck/outside steps, trim, plinth, fixtures, fascia,
+   ridge, deck frame. Furniture boxes (add_box) + ramps + guards = BULK (body only). add_hollow/add_bulk deleted.
+   prop_mask = WORLD|SURFACE|PROP|TRAY|BACKING; interact_mask = WORLD|SURFACE|ITEM|CONTAINER; body_mask, drawn_mask.
+   Reach counts crouched eye; Reach._solid_at uses body_mask. Clearance.standing (rays from item top+1mm per hull
+   point; the up-ray-from-inside variant was proven BROKEN by break test) used by author.rests, buried, --settle.
+   ContentImport --settle=<ids>: 19 starts settled, pool_noodle_03 + hand_towel_01 restarted. User's sink book /
+   bunny were LOOSE items in their save that landed on boxes.
+5. Crouch (Ctrl/C/pad RS hold; CROUCH_HEIGHT 1.1, eye 1.0, speed 1.4, headroom test) + jump (Space/pad A, 0.45 m).
+   WalkProbe body.jump/body.crouch, proven red.
+6. RoomGraph.sight: slides along leg (bisection SIGHT_STEPS 5, backed off WAY_JAMB), metres from eye along route;
+   _on_flight storey + height aware (was plan-only: aimed through ceilings). Hud eases world heading
+   (WAY_TURN_RATE 12). Band arrow -> dot. aim() removed. WayProbe 0 (was 141 with the slide before on_flight fix).
+7. project.godot window/size/mode=3 (disables editor embedding). WorldBuilder.windowed (mode+size re-set per frame:
+   KWin maximizes first). EDITOR MUST BE RESTARTED (it holds old project.godot in memory and would overwrite it).
+8. FurnitureProbe container.swing (mesh-box edges ray vs WORLD/SURFACE/TRAY at 25-100%): red 6 before. Fixes:
+   DOOR_SWING_DEG 90 in BaseRun/WallCabinet/Vanity, Props.hinged_left + `hinges` param (kitchen_run "rr",
+   master_bath_vanity "llll"), kids_toy_box out 0.03, deck_grill out 0.25.
+9. Table tennis set (56th, finale 57): props/items/TableTennis.gd kinds bat/ball/net; PingPongTable anchors net/gear,
+   NET_CLAMP; groups table_tennis_bat/ball/net_home accept explicit ids; content_model.py KINDS -> JSON kinds ->
+   ContentImport per-kind name/home/cost/mass. Decor removed: workbench hammer, washer detergent jug, potting bench
+   small pots/stack/soil bag. KEPT (homes on them): coffee table tray (tv remote), dog bed cushion (dog toys).
+   RunTests compare members per kind. Ledger card shows slot range (NumberFormatter.slots_range).
+- Renders: screenshots/fixes/ (table_tennis_home, vanity_open, kitchen_run_open, per-start renders). Scratch dir
+  dev/scratch_tmp deleted.
+- Final proof (2026-09-17): import 0 errors; run_tests 129/0; PlanProbe, FurnitureProbe, HomeProbe, InteractProbe,
+  DropProbe, HudProbe, WayProbe, WalkProbe, PacingProbe 0; GenerationProbe 0 (81 pieces, 183 items, 1294 ms);
+  PortraitProbe 0; check_export PASS (1361 paths). Breaks red: home.offered 93 (+25 back), container.swing 6,
+  WayProbe 141 (plan-only on_flight), body.jump + body.crouch, rest measure (2 cm down/up: ~231/233 red).
+- Boot: world ready 3.4-3.6 s warm (docs said 1.8-2.2 before U2-U4); collision is ~0.25 s of it, rest unmeasured.
+- NEXT: author restarts the Godot editor (project.godot changed on disk), play-tests; commit when asked (U4 + this).
+
+## UI readability pass + 6 more author asks (2026-09-17, after the play-test fixes) - BUILT, NOT COMMITTED
+Author: "the UI is way too textbased ... overwhelming", plus 5 more asks. Research (web, sourced in
+docs/ARCHITECTURE.md "Reading the HUD"): XAG 101 (18 px at 1080p on PC), XAG 103 + GAG (never colour alone),
+XAG 107 + GAG (no holds), NN/g "Icon Usability" (an icon always needs a word), Unpacking (outline of a misplaced
+item, criticised as too thin) and PowerWash Simulator (select a part -> it is highlighted).
+1. Shown, not written: item/set pictures everywhere (tracker rows = picture + pips + "3/12", no set names),
+   new ui/Glyph.gd (drawn tick/slot/house/eye/arrows, sized from the font), card = picture + name + [slot]N +
+   [house] room · piece + pips, carry bar = cells + "6/10" (the "free" line went), notice + pins carry pictures
+   (HomePins is a picture disc now, not a text box), room tag "11 misplaced" / tick + "Tidy".
+   Ledger: per-set cards -> ui/SetTile.gd grid (picture, name, pips, tick/eye), the per-card second line moved into
+   ONE detail line for the set pointed at. KeyLabel 13 -> 15 px. Theme: Tile/TileHover/TileSought/Sought styles.
+2. Homes are outlined and pinned from ANYWHERE (was the home room only): world/HomeOutline.gd -> world/Outline.gd
+   (Kind HOME/SOUGHT), shaders renamed outline_seen/outline_through/outline_mask + outline.gdshaderinc; the hull is
+   drawn faint with depth_test_disabled (Balance.OUTLINE_THROUGH_ALPHA 0.55) and full-strength over the seen part.
+3. Compass says the floor's NAME beside the arrow (Way.storey -> Mark.floor_name); hud.floor/floors keys deleted.
+4. set.table_tennis -> "Table tennis equipment" (content_model.py, content_plan.json, CONTENT.md, HudProbe).
+5. Toggles: Tab opens/closes the ledger (Hud._input takes Tab + Escape before the GUI), crouch toggles
+   (PlayerController._wants_crouch; jump while crouched stands up). Hud.ledger_toggled -> PlayerController.hold_still
+   (no walking/looking/hands, pointer freed) wired in GameWorld.
+6. Pick a set in the ledger (click a tile, or Enter on it) -> WayHome.track: every member not home and not in hand
+   outlined amber through the house (SOUGHT_OUTLINE_PX 3.5), map badges per room (ClutterCensus.rooms_of), tracker
+   top row "N to find"; picking again or completing it stops. VISION Findability amended + a new UI row.
+   More convenience: the whole ledger is clickable (floor tabs, map rooms, filter chips, tiles) and arrow keys
+   move between tiles.
+- PlaceSlots.slot_local caches the rest transform per item+slot: ItemFactory.rest builds a string key from params,
+  and way.time went 3.3 -> 7.7 ms with 56 pins; with the cache 4.4 ms (the old home-room-only path measures 3.8).
+- Proof: run_tests 129/0; Plan, Diag, Furniture, Home, Interact, Drop, Walk, Pacing, Hud, Way 0; Portrait 0.
+  Breaks shown red: way.through 56 (home room only), way.sought 1 (carried/home outlined too), body.crouch 2 (hold
+  instead of toggle), ledger.click 8 (tiles not taking the mouse).
+- Renders: screenshots/ui/ (ledger, item_card, set_looked_for, tracker_and_pins) - author must look.
+- NOT built, proposed to the author: put every carried member away with one click (changes the PACING placement
+  model), remembering the set looked for in the save (needs save v3), a compass marker for the set looked for,
+  Phase 5 settings (HUD scale, outline colour, per-action hold/toggle, remapping).
+
+## Four more author asks after the UI pass (2026-09-17, later the same day)
+
+1. **Refusals say which fact refused.** `Interactor.Prompt` gained HANDS_FULL / TOO_BIG / AT_HOME in place of
+   NO_SLOT ("no slots free" was wrong when slots were free and the item wanted more of them). Text: "Hands too
+   full · needs 2 slots", "Needs 2 slots · your hands hold 1 slot", "Already at home"; none of them shows a key
+   cap (`Hud.ACTION_PROMPTS`). The item card now shows the bare cost, amber when it does not fit, and repeats
+   nothing. `hud.no_slot` and `hud.free` deleted.
+2. **Fewer numbers** (the author's ledger screenshot, "so much numbers everywhere"). Gone: the fraction on every
+   set tile and tracker row (the pips are the count), the count on every filter chip, the group heading's
+   "3 sets · 1 complete", the detail line's "1/3" and the word "slots" beside the slot sign, and the header's
+   three sentences, now a tick + "0/56", a slot sign + "8/57" and a bar labelled "Put away". The map prints a
+   room's figure only under the pointer; its shades are scaled to the busiest room of the floor shown
+   (`LedgerMap._few_max/_some_max`, legend rebuilt on every refresh) because three fixed bands painted every room
+   of a fresh house the same darkest colour. About 45 figures on that screen became about 18.
+3. **The floor steps on the arrows and on W/S** as well as the page keys (`project.godot`: the arrow is the first
+   event, so the cap reads Up/Down). `Hud._input` keeps left/right for the tiles, and `Ledger._chain_focus` wires
+   the tiles into one wrapping row (a flow container's own neighbours stop at the end of a row).
+4. **Sorted stays sorted.** `CarryComponent.can_take` refuses an item standing in its own home, and the crosshair
+   says AT_HOME. `HomeProbe` now counts any slot the group offered as success, and `InteractProbe._take_back()`
+   (says `item_picked_up`, then takes) rewinds the probe's own placements.
+
+- Two bugs found by looking at renders: `Hud._on_pictures_rendered` did not redraw the tracker, so its rows were
+  pips with no picture until something else changed; and `LedgerMap`'s hover never lit a room, because Godot 4.7
+  only sends mouse motion to `_gui_input` while a button is held — hover now comes from `_process` +
+  `get_local_mouse_position`, which also works under pushed input, so a probe can check it.
+- Proof: run_tests 129/0; Hud, Interact, Home (256/256), Way, Drop, Pacing, Plan 0 violations; Diag exit 0;
+  check_export PASS (1368 paths, 248M). Not re-run (nothing they cover was touched): Furniture, Generation,
+  Portrait. Breaks shown red: hud.prompt 16 (both refusals one string), hud.ledger 16 (arrows and W/S unbound),
+  ledger.click 8 (hover off), place.sorted 3 checks (the home gate removed).
+- Renders in `screenshots/ui/`: ledger.png, item_card.png, tracker_and_pins.png, refused_too_big.png,
+  refused_hands_full.png, at_home.png — the author must look.
+- `dev/CarryShot.gd` gained `--sort=<ids>` (put items into their own homes before the shot).
+
+## Compass without leader lines + a real pool (2026-09-18) - BUILT, NOT COMMITTED (same tree as U4 onwards)
+- Compass: each picture stands straight under its bearing dot; the leader line is gone. The line existed because
+  the full label (~200 px = 47 deg of the 760 px band) pushed pictures apart. Now words give way: row 1 under every
+  picture is the distance (no wider than the disc); rows 2-3 are room + "arrow Floor", nearest first, only where
+  they do not meet another name. Pictures sharing a bearing (every room up one flight) form a group centred on the
+  mean bearing (`Compass._place`). Mark gained `distance`; `title` is now the room name alone (Hud._show_way).
+  Compass height 132 -> 156 (Hud.tscn offset_bottom 180). Probe: nearest named, lone marker < 1 px off its
+  bearing, others within widest column + gap, names apart. Red proofs: label-wide columns -> 8; no names -> 8.
+  SUPERSEDED the same day, see the next section.
+- Pool: 6.6 x 1.65 -> 6.6 x 3.6 m (ManorPlan.POOL), POOL_AREA 3.3 -> 5.25 m deep; diving-board `along` stays
+  0.225 (centring maths is width-independent). New `Clearance.water` keeps scattered starts out of the water
+  (ContentImport keep_out) and FurnitureProbe `start.clear` fails a start over water (red on real data: toy_car_08,
+  toy_car_10, redrawn with --restart). `Clearance.item_footprint` moved from ContentImport. Renders:
+  screenshots/pool/before.png, after.png, aerial.png. Depth still 1.5 m with a diving board: unrealistic, not
+  raised (steps are divided out of depth; would need a sloped floor) - offered to the author.
+- Green: Furniture, Plan, Walk (climbs out), Interact, Pacing, Hud 0. Suite run for the rest: see the report.
+
+## One compass marker, for the item in hand + wording (2026-09-18) - BUILT, NOT COMMITTED (same tree)
+- Author: show only the held item's marker, not every carried item's. `WayHome.way()` (was `ways()`) returns the
+  way for `Inventory.selected()` only, or null. Compass reduced to one Mark (`show_mark`, `disc_rect`,
+  `words_rect`; grouping, naming priority, `gap`, `label_space`, `Mark.metres` deleted). Picture under its dot,
+  clamped inside the band at the edge; distance / room / floor below it.
+- Evaluated and KEPT: pins + outlines stay on every carried item's home (they sit at real positions, never crowd,
+  and pointing at a home auto-selects the item that goes there = no hand switching; convenience-first). Told the
+  author; theirs to overrule.
+- New WayProbe `way.held` (two items bound for two rooms: marker follows the hand, both pins). HudProbe
+  `hud.compass` rewritten: one marker at 4 bearings, inside the compass, under its bearing. Red proofs: no hand
+  filter -> way.held 2; picture 20 px off -> hud.compass violations. Renders: screenshots/ui/compass_hand_duck.png,
+  compass_hand_mug.png (old compass_hall/behind deleted).
+- Wording: "Already at home" -> "Already put away" (key hud.already_put_away), card badge "At home" -> "Put away"
+  (hud.is_put_away), "Show where they lie"/"Stop showing" -> "Track"/"Stop tracking", legend "Set looked for" ->
+  "Tracked set", filter "Under way" -> "In progress". Not "sorted in": that is German "einsortiert".
+- Green: Hud, Way, Interact 0; run_tests 129/0. Not re-run: Home, Drop, Pacing, Furniture (untouched code paths).
+- Next: author's play-test; commit when asked.

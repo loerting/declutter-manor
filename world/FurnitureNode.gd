@@ -17,7 +17,9 @@ var footprint := Vector2.ZERO
 var mounted := false
 
 var _body: StaticBody3D
-var _bulk: StaticBody3D
+## The static half's triangles, from `gather_surface` until `add_surface` makes them solid.
+var _faces := PackedVector3Array()
+var _surface: StaticBody3D
 var _anchors: Dictionary[StringName, Anchor] = {}
 var _anchor_containers: Dictionary[StringName, ContainerComponent] = {}
 var _containers: Array[ContainerComponent] = []
@@ -27,13 +29,14 @@ func initialize(furniture: FurnitureDef, covers: Vector2) -> void:
 	name = String(furniture.id)
 	footprint = covers
 
-## A box the player cannot walk through and an item can be put down on (`HomeAuthor`, F5). Every
-## call adds a shape to the same body, so a table is a top and not a solid block to the floor.
+## A box the player's body cannot walk into (`Layers.BULK`). Items and the crosshair pass through it and
+## meet what the piece is drawn with instead (`add_surface`), so a box is only ever the body's question:
+## the whole of a cupboard, open front and all, or a table's top and legs.
 func add_box(size: Vector3, centre: Vector3) -> void:
 	if _body == null:
 		_body = StaticBody3D.new()
 		_body.name = "Body"
-		_body.collision_layer = Layers.bit(Layers.WORLD)
+		_body.collision_layer = Layers.bit(Layers.BULK)
 		_body.collision_mask = 0
 		add_child(_body)
 	var shape := CollisionShape3D.new()
@@ -43,45 +46,52 @@ func add_box(size: Vector3, centre: Vector3) -> void:
 	shape.position = centre
 	_body.add_child(shape)
 
-## The faces of a hollow piece, for `add_hollow`.
-enum Face { FRONT = 1, TOP = 2, BACK = 4, LEFT = 8, RIGHT = 16, BOTTOM = 32 }
+## Gathers the triangles of every mesh on the piece's static half, in its own space, for `add_surface`.
+## Safe on a worker thread, before the piece is in the tree: `Generation` calls it where the piece is built,
+## so the mesh read-back is paid there and not on the main thread. A moving part is left out; it is solid
+## to items through its own container (`ContainerComponent`).
+func gather_surface() -> void:
+	_faces = PackedVector3Array()
+	_gather(self, Transform3D.IDENTITY)
 
-## A piece the player reaches into: the whole of it stops the body (`add_bulk`) and its walls stop the
-## interaction ray (`add_box`), with the faces in `open_faces` left out — the front of a cupboard, the top
-## of a bin. One solid box instead, and nothing inside the piece can ever be picked up, because the ray
-## that reaches for it hits the box (2026-09-16).
-func add_hollow(size: Vector3, centre: Vector3, wall: float, open_faces := Face.FRONT) -> void:
-	add_bulk(size, centre)
-	var half := size * 0.5
-	if not (open_faces & Face.TOP):
-		add_box(Vector3(size.x, wall, size.z), centre + Vector3(0, half.y - wall * 0.5, 0))
-	if not (open_faces & Face.BOTTOM):
-		add_box(Vector3(size.x, wall, size.z), centre - Vector3(0, half.y - wall * 0.5, 0))
-	if not (open_faces & Face.BACK):
-		add_box(Vector3(size.x, size.y, wall), centre - Vector3(0, 0, half.z - wall * 0.5))
-	if not (open_faces & Face.FRONT):
-		add_box(Vector3(size.x, size.y, wall), centre + Vector3(0, 0, half.z - wall * 0.5))
-	if not (open_faces & Face.LEFT):
-		add_box(Vector3(wall, size.y, size.z), centre - Vector3(half.x - wall * 0.5, 0, 0))
-	if not (open_faces & Face.RIGHT):
-		add_box(Vector3(wall, size.y, size.z), centre + Vector3(half.x - wall * 0.5, 0, 0))
+func _gather(node: Node, xform: Transform3D) -> void:
+	var mi := node as MeshInstance3D
+	if mi != null and mi.mesh != null:
+		_faces.append_array(xform * mi.mesh.get_faces())
+	for child: Node in node.get_children():
+		var spatial := child as Node3D
+		if spatial == null or _moved(spatial):
+			continue
+		_gather(spatial, xform * spatial.transform)
 
-## What the piece takes up for the body alone (`Layers.BULK`): the interaction ray passes through it, so
-## a piece whose insides the player reaches into gives its shell to `add_box` and its whole volume to
-## this. Without it a cupboard is one solid box and nothing inside it can be picked up.
-func add_bulk(size: Vector3, centre: Vector3) -> void:
-	if _bulk == null:
-		_bulk = StaticBody3D.new()
-		_bulk.name = "Bulk"
-		_bulk.collision_layer = Layers.bit(Layers.BULK)
-		_bulk.collision_mask = 0
-		add_child(_bulk)
+func _moved(node: Node3D) -> bool:
+	for c: ContainerComponent in _containers:
+		if c.carries(node):
+			return true
+	return false
+
+## What items land on and the crosshair stops at: the piece exactly as it is drawn (`Layers.SURFACE`).
+func add_surface() -> void:
+	if _faces.is_empty():
+		gather_surface()
+	if _faces.is_empty():
+		return
+	var body := StaticBody3D.new()
+	body.name = "Surface"
+	body.collision_layer = Layers.bit(Layers.SURFACE)
+	body.collision_mask = 0
 	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = size
-	shape.shape = box
-	shape.position = centre
-	_bulk.add_child(shape)
+	var faces := ConcavePolygonShape3D.new()
+	faces.set_faces(_faces)
+	shape.shape = faces
+	body.add_child(shape)
+	add_child(body)
+	_surface = body
+	_faces = PackedVector3Array()
+
+## The static half's solid (`add_surface`), or null before it is added.
+func surface() -> StaticBody3D:
+	return _surface
 
 ## A moving part that opens. Its id is `<piece id>_<part>`. `host` is the static half the
 ## container belongs to — an item that starts inside a cupboard hangs under it and stays put when

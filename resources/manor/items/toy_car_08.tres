@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://data/ItemDef.gd" id="1_16qwv"]
 [ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_l46m6"]
 
-[sub_resource type="Resource" id="Resource_dnvhc"]
+[sub_resource type="Resource" id="Resource_16qwv"]
 script = ExtResource("2_l46m6")
 room = &"pool_area"
-xform = Transform3D(-0.82828885, 0, 0.56030136, 0, 1, 0, -0.56030136, 0, -0.82828885, 14.341341, 0.059999943, 18.3299)
+xform = Transform3D(-0.89066374, 0, 0.4546626, 0, 1, 0, -0.4546626, 0, -0.89066374, 23.480877, 0, 18.25042)
 
 [resource]
 script = ExtResource("1_16qwv")
@@ -20,4 +20,4 @@ params = {
 "tint": Color(0.7, 0.72, 0.74, 1)
 }
 home = &"toy_car_home"
-start = SubResource("Resource_dnvhc")
+start = SubResource("Resource_16qwv")

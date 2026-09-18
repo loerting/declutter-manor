@@ -23,6 +23,7 @@ static func build(plan: FloorPlan, content: Catalogue, pieces: Array[FurnitureNo
 			piece.free()
 			continue
 		piece.transform = placement(plan, def, piece.footprint)
+		piece.add_surface()
 		hang_slots(piece)
 		# On its room's render layer, so that room's bulb lights it and no other does.
 		RoomLayers.stamp(piece, RoomLayers.mask(layers, room.id))

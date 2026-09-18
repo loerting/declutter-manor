@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://data/ItemDef.gd" id="1_lhllg"]
 [ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_mfnta"]
 
-[sub_resource type="Resource" id="Resource_xgvhb"]
+[sub_resource type="Resource" id="Resource_lhllg"]
 script = ExtResource("2_mfnta")
 room = &"mudroom"
-xform = Transform3D(-0.28386593, 0, 0.958864, 0, 1, 0, -0.958864, 0, -0.28386593, 14.952954, 0.47999996, 12.019597)
+xform = Transform3D(-0.0027065126, 0, -0.99999636, 0, 1, 0, 0.99999636, 0, -0.0027065126, 15.865435, 0.45000005, 11.826979)
 
 [resource]
 script = ExtResource("1_lhllg")
@@ -20,4 +20,4 @@ params = {
 "tint": Color(0.28, 0.36, 0.52, 1)
 }
 home = &"bath_towel_home"
-start = SubResource("Resource_xgvhb")
+start = SubResource("Resource_lhllg")

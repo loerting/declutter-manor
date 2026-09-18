@@ -1,9 +1,7 @@
 keys,en
-hud.sets,Sets
-hud.rooms,Misplaced items
 hud.complete,Complete
-hud.set_completed,%s complete. +%s.
-hud.overview_hint,Hold for every set and room
+hud.set_completed,%s complete · +%s
+hud.ledger_hint,Sets and rooms
 set.cutlery,Cutlery
 item.spoon,Spoon
 room.rec_room,Rec room
@@ -128,7 +126,11 @@ item.photo_album,Photo album
 set.garden_gnome,Garden gnome
 item.garden_gnome,Garden gnome
 set.grill_tool,Grill tool
+set.table_tennis,Table tennis equipment
 item.grill_tool,Grill tool
+item.table_tennis_bat,Table tennis bat
+item.table_tennis_ball,Table tennis ball
+item.table_tennis_net,Table tennis net
 set.deck_cushion,Deck chair cushion
 item.deck_cushion,Deck chair cushion
 set.pool_noodle,Pool noodle
@@ -161,6 +163,9 @@ home.garden_hose_home,hose reel
 home.glass_home,glass cupboard
 home.goggles_home,pool bin
 home.grill_tool_home,grill side hooks
+home.table_tennis_bat_home,table tennis table
+home.table_tennis_ball_home,table tennis table
+home.table_tennis_net_home,table tennis table
 home.hand_towel_home,towel ring
 home.hanger_home,clothes rail
 home.kitchen_cutlery,cutlery drawer
@@ -198,25 +203,39 @@ hud.take,Take
 hud.open,Open
 hud.close,Close
 hud.put_away,Put away
-hud.no_slot,No slot free
+hud.hands_full,Hands too full · needs %s
+hud.too_big,Needs %s · your hands hold %s
+hud.already_put_away,Already put away
 hud.drop,Drop
 hud.throw,Throw
 hud.pair,%s · %s
-hud.free,%s free
-hud.card_home,Home
-hud.card_set,Set
-hud.at_home,At home
-hud.set_home,%s home
-hud.sets_of,of %s sets
-hud.slots_word,slots
-hud.put_away_of,Put away %s
+hud.is_put_away,Put away
 hud.tidy,Tidy
-hud.misplaced_here,%s misplaced here
+hud.misplaced,%s misplaced
+hud.to_find,%s to find
 input.mouse_left,LMB
 input.mouse_right,RMB
 input.mouse_middle,MMB
 input.mouse_other,Mouse %d
-hud.slot_word,slot
 hud.metres,%s m
-hud.floor,%s floor
-hud.floors,%s floors
+input.wheel,Wheel
+storey.basement,Basement
+storey.ground,Ground floor
+storey.upper,Upstairs
+storey.attic,Attic
+hud.each,%s each
+hud.range,%s–%s
+hud.or_more,%s or more
+hud.carried_home,A carried item goes here
+hud.you_are_here,You are here
+hud.sought_here,Tracked set
+hud.look_for,Track
+hud.stop_looking,Stop tracking
+hud.room,Room
+hud.floor_step,Floor
+hud.belongs_in,Belongs in %s
+hud.bonus,+%s
+hud.filter_room,This room
+hud.filter_all,All
+hud.filter_under_way,In progress
+hud.filter_carrying,Carrying

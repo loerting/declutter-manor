@@ -297,6 +297,7 @@ static func _build_fixture(holder: Node3D, at: Vector3, room: RoomDef, lit: bool
 	# that cast shadows would black out its own ceiling.
 	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	holder.add_child(disc)
+	solid(holder, disc.mesh, "FixtureDiscBody", Layers.SURFACE, disc.transform)
 	var frosted := Props.mat(Color(0.97, 0.96, 0.93), 0.35)
 	if lit:
 		frosted.emission_enabled = true
@@ -307,6 +308,7 @@ static func _build_fixture(holder: Node3D, at: Vector3, room: RoomDef, lit: bool
 	dome.name = "FixtureDome"
 	dome.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	holder.add_child(dome)
+	solid(holder, dome.mesh, "FixtureDomeBody", Layers.SURFACE, dome.transform)
 
 ## The plane of a room with every relevant stairwell removed. A well that touches the room's
 ## edge is a notch and clips cleanly; a well fully inside is a hole, which a single polygon
@@ -511,13 +513,15 @@ static func _build_wall(parent: Node3D, plan: FloorPlan, storey: StoreyDef, wall
 		_build_opening(holder, plan, storey, wall, o, length, z_ref, z_floor, parts)
 	_build_skirting(storey, wall, length, z_ref, parts["trim"])
 	_build_plinth(storey, wall, length, centre_y, z_floor, parts["plinth"])
-	_emit(holder, parts["trim"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Trim")
+	# Casings and skirting stand proud of the wall: solid to items, so a thrown one stops on the casing and not
+	# in it (2026-09-17), and left out of the body's way.
+	_emit(holder, parts["trim"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Trim", true, Layers.SURFACE)
 	# The one emitted part that is a barrier as well as a surface: an opening is a hole in the
 	# wall's collision, so a leaf that fills it visually and not physically is a door the player
 	# walks through — which is what the author did (2026-09-09).
 	_emit(holder, parts["panel"], Mats.of(GARAGE_DOOR_SLOT, GARAGE_DOOR_TINT, 0.55, 1.0, false, true),
 			"GarageDoor", true)
-	_emit(holder, parts["plinth"], Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true), "Plinth")
+	_emit(holder, parts["plinth"], Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true), "Plinth", true, Layers.SURFACE)
 	# A pane is a barrier too: a thrown spoon went out through the office window into the garden
 	# (`InteractProbe` `carry.throw`, 2026-09-16). Only windows have glass, so no doorway closes.
 	_emit(holder, parts["glass"], _glass(), "Glass", true)
@@ -550,21 +554,15 @@ static func _glass() -> Material:
 	return Props.glass(Color(0.86, 0.92, 0.95, 0.20), 0.02)
 
 static func _emit(holder: Node3D, parts: Array, material: Material, node_name: String,
-		collide := false) -> void:
+		collide := false, layer := Layers.WORLD) -> void:
 	if parts.is_empty():
 		return
 	var mesh := Props.union(parts)
 	var mi := Props.mi(mesh, material)
 	mi.name = node_name
 	holder.add_child(mi)
-	if not collide:
-		return
-	var body := StaticBody3D.new()
-	body.name = node_name + "Body"
-	var shape := CollisionShape3D.new()
-	shape.shape = mesh.create_trimesh_shape()
-	body.add_child(shape)
-	holder.add_child(body)
+	if collide:
+		solid(holder, mesh, node_name + "Body", layer)
 
 ## Wall-local intervals along X left after removing every opening that reaches the floor,
 ## widened by `margin` so a board butts against the casing rather than running into it.
@@ -859,7 +857,7 @@ static func _build_steps(holder: Node3D, plan: FloorPlan, storey: StoreyDef, wal
 	# collision, or the body would climb them tread by tread, stuttering up the flight instead
 	# of striding over it (2026-09-13).
 	surface(holder, mesh, [Mats.of(PLINTH_SLOT, PLINTH_TINT, 1.0, 1.0, true)],
-			"Ramp" if is_ramp else "Steps", is_ramp)
+			"Ramp" if is_ramp else "Steps", true, Layers.WORLD if is_ramp else Layers.SURFACE)
 	# `down` is named for the extrusion, whose profile runs negative downward: in the wall's local
 	# space, where +Z points at the ground, it is the world's up. Passing `-down` as `up` built the
 	# ramp standing on the flight rather than under it, 0.4 m proud of the front steps and the
@@ -877,8 +875,10 @@ static func ground_level(plan: FloorPlan, storey: StoreyDef, at: Vector2) -> flo
 
 # --- Plumbing ---------------------------------------------------------------------------------
 
+## `layer` is `Layers.WORLD` for what the body walks on and against as well, and `Layers.SURFACE` for what
+## only items and the crosshair meet: the treads of a flight the body climbs on a hidden ramp.
 static func surface(parent: Node3D, mesh: ArrayMesh, materials: Array, node_name: String,
-		collide: bool) -> void:
+		collide: bool, layer := Layers.WORLD) -> void:
 	if mesh.get_surface_count() == 0:
 		return
 	var mi := MeshInstance3D.new()
@@ -891,8 +891,15 @@ static func surface(parent: Node3D, mesh: ArrayMesh, materials: Array, node_name
 		return
 	# Trimesh collision rather than a box, so an opening is a hole you can walk through for the
 	# same reason it is a hole you can see through: there is only one piece of geometry.
+	solid(parent, mesh, node_name + "Body", layer)
+
+## `mesh` as triangles on `layer`, placed at `at` in `parent`.
+static func solid(parent: Node3D, mesh: Mesh, node_name: String, layer: int, at := Transform3D.IDENTITY) -> void:
 	var body := StaticBody3D.new()
-	body.name = node_name + "Body"
+	body.name = node_name
+	body.transform = at
+	body.collision_layer = Layers.bit(layer)
+	body.collision_mask = 0
 	var shape := CollisionShape3D.new()
 	shape.shape = mesh.create_trimesh_shape()
 	body.add_child(shape)
@@ -998,7 +1005,7 @@ static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef, undersid
 	var cap_poly := PackedVector2Array([Vector2(vm - RIDGE_CAP_HALF, cap_foot),
 			Vector2(vm, ridge + RIDGE_CAP_RISE), Vector2(vm + RIDGE_CAP_HALF, cap_foot)])
 	surface(holder, Props.extrude(cap_poly, Vector3.ZERO, across, Vector3.UP, along, u0, u1),
-			[tiles], "RidgeCap", false)
+			[tiles], "RidgeCap", true, Layers.SURFACE)
 
 	# Fascia along both eaves: the board that closes the tile edge. A roof without one reads as
 	# a sheet of card laid on the walls. The gutter hangs off it and the downspout runs from the
@@ -1035,7 +1042,7 @@ static func _build_roof(parent: Node3D, plan: FloorPlan, roof: RoofDef, undersid
 				_uv(along_x, su, g_bot - 0.45, at_wall),
 				_uv(along_x, su, GRADE + 0.07, at_wall)]), DOWNSPOUT_R, 10), Transform3D.IDENTITY])
 		e += 1
-	surface(holder, Props.with_tangents(Props.union(edge)), [fascia], "Fascia", false)
+	surface(holder, Props.with_tangents(Props.union(edge)), [fascia], "Fascia", true, Layers.SURFACE)
 
 ## Maps an (along-ridge, height, across-ridge) triple into world space for either ridge
 ## direction, so the roof is written once instead of twice.
@@ -1093,7 +1100,7 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 	var holder := Node3D.new()
 	holder.name = "Stair_%s_%s" % [stair.lower_room, stair.upper_room]
 	parent.add_child(holder)
-	surface(holder, mesh, [Mats.of(stair.tread_slot, Color.WHITE, 0.7, 1.0, true)], "Flight", false)
+	surface(holder, mesh, [Mats.of(stair.tread_slot, Color.WHITE, 0.7, 1.0, true)], "Flight", true, Layers.SURFACE)
 	_stair_ramp(holder, stair, origin, u, w, rise)
 
 	if stair.width < LADDER_WIDTH:
@@ -1131,8 +1138,8 @@ static func _build_stair(parent: Node3D, plan: FloorPlan, stair: StairDef) -> vo
 					func(at: Vector3) -> float: return _soffit_y(plan, over, Vector2(at.x, at.z)) - y_top)
 			continue
 		_build_guard(rails, Vector3(a.x, y_top, a.y), Vector3(b.x, y_top, b.y))
-	_emit(holder, rails["post"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Balusters")
-	_emit(holder, rails["rail"], Mats.of(stair.tread_slot, Color.WHITE, 0.6, 1.0, true), "Handrail")
+	_emit(holder, rails["post"], Mats.of(TRIM_SLOT, TRIM_TINT, 0.7), "Balusters", true, Layers.SURFACE)
+	_emit(holder, rails["rail"], Mats.of(stair.tread_slot, Color.WHITE, 0.6, 1.0, true), "Handrail", true, Layers.SURFACE)
 	_emit_barrier(holder, rails["barrier"])
 
 ## The flight that goes down from this flight's own floor through the space under it, or null.
@@ -1223,6 +1230,8 @@ static func _emit_barrier(holder: Node3D, bars: Array) -> void:
 		return
 	var body := StaticBody3D.new()
 	body.name = "GuardBody"
+	body.collision_layer = Layers.bit(Layers.BULK)
+	body.collision_mask = 0
 	for bar: Array in bars:
 		var node := CollisionShape3D.new()
 		node.shape = bar[0]
@@ -1270,6 +1279,8 @@ static func ramp_collider(holder: Node3D, origin: Vector3, going: Vector3, up: V
 	node.transform = Transform3D(Basis(across, normal, across.cross(normal)), centre)
 	var body := StaticBody3D.new()
 	body.name = "FlightBody"
+	body.collision_layer = Layers.bit(Layers.BULK)
+	body.collision_mask = 0
 	body.add_child(node)
 	holder.add_child(body)
 

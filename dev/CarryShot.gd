@@ -4,12 +4,15 @@ extends Node
 ##
 ##     godot --path . dev/CarryShot.tscn -- --carry=spoon_01,mug_02 --stand=x,y,z --look=x,y,z
 ##             [--select=0] [--look-home=cushion_01] [--look-item=tv_remote_01] [--slots=8] [--size=1600x900]
-##             --screenshot=/abs/out.png
+##             [--track=mug] [--ledger] [--sort=spoon_01,spoon_02] --screenshot=/abs/out.png
 ##
 ## `--stand` is where the feet are. Without `--select` the last item taken is selected, as in the game.
+## `--sort` puts those items into their own homes first, as the player would, so a shot can show what the crosshair
+## says about an item already sorted.
 ## `--look-home` looks at the next free slot of that item's home instead of `--look`, and prints where it is.
 ## `--look-item` looks at that item where it lies, and prints where that is. `--slots` is the capacity carried
-## with, the finale's by default.
+## with, the finale's by default. `--track` looks for that set, as picking it in the ledger does, and `--ledger`
+## opens the ledger.
 
 const WORLD := preload("res://scenes/World.tscn")
 ## Beside the real save, and deleted afterwards.
@@ -24,6 +27,9 @@ func _ready() -> void:
 	var home_of := &""
 	var item_at := &""
 	var slots := Balance.FINALE_SLOT_COST
+	var track := &""
+	var ledger := false
+	var sort: PackedStringArray = []
 	var shot := ""
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--carry="):
@@ -42,7 +48,13 @@ func _ready() -> void:
 			select = arg.trim_prefix("--select=").to_int()
 		elif arg.begins_with("--size="):
 			var wh := arg.trim_prefix("--size=").split("x")
-			get_window().size = Vector2i(wh[0].to_int(), wh[1].to_int())
+			await WorldBuilder.windowed(self, Vector2i(wh[0].to_int(), wh[1].to_int()))
+		elif arg.begins_with("--track="):
+			track = StringName(arg.trim_prefix("--track="))
+		elif arg == "--ledger":
+			ledger = true
+		elif arg.begins_with("--sort="):
+			sort = arg.trim_prefix("--sort=").split(",", false)
 		elif arg.begins_with("--screenshot="):
 			shot = arg.trim_prefix("--screenshot=")
 	SaveManager.basename_override = SAVE_NAME
@@ -56,6 +68,10 @@ func _ready() -> void:
 	var by_id: Dictionary[StringName, ItemNode] = {}
 	for item: ItemNode in ProgressSave.items_in(world):
 		by_id[item.def.id] = item
+	for id: String in sort:
+		var item: ItemNode = by_id.get(StringName(id), null)
+		if item == null or not _sort_home(item):
+			push_error("CarryShot: cannot put '%s' into its home" % id)
 	for id: String in ids:
 		var item: ItemNode = by_id.get(StringName(id), null)
 		if item == null or not player.carry().try_take(item):
@@ -74,6 +90,10 @@ func _ready() -> void:
 		print("CarryShot: '%s' lies at %s" % [item_at, look])
 	if look != Vector3.INF:
 		player.aim_at(look)
+	if track != &"":
+		world.way().track(track)
+	if ledger:
+		world.hud().show_ledger(true)
 	# The crosshair's frame: what is offered there, and what that selects.
 	for i in range(4):
 		await get_tree().process_frame
@@ -84,6 +104,14 @@ func _ready() -> void:
 	for path: String in [SaveManager.main_path(), SaveManager.backup_path(), SaveManager.temp_path()]:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	get_tree().quit(0 if err == OK else 1)
+
+## Puts `item` into the next free slot of its own home, the way a placement does.
+func _sort_home(item: ItemNode) -> bool:
+	for node: Node in get_tree().get_nodes_in_group(PlaceSlots.GROUP):
+		var slots := node as PlaceSlots
+		if slots != null and slots.group.id == item.def.home and slots.next_index() >= 0:
+			return slots.accept(item, slots.next_index())
+	return false
 
 func _home_slot(def: ItemDef) -> Vector3:
 	for node: Node in get_tree().get_nodes_in_group(PlaceSlots.GROUP):

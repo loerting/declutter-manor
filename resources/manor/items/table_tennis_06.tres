@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_c18yg"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_wbbg0"]
+
+[sub_resource type="Resource" id="Resource_8ky5s"]
+script = ExtResource("2_wbbg0")
+room = &"landing"
+xform = Transform3D(-0.6356501, 0, 0.7719773, 0, 1, 0, -0.7719773, 0, -0.6356501, 9.315916, 3.5, 8.289602)
+
+[resource]
+script = ExtResource("1_c18yg")
+id = &"table_tennis_06"
+name_key = "item.table_tennis_net"
+slot_cost = 2
+mass = 0.25
+set_id = &"table_tennis"
+generator = &"table_tennis"
+params = {
+"kind": "net"
+}
+home = &"table_tennis_net_home"
+start = SubResource("Resource_8ky5s")

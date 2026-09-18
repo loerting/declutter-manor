@@ -130,7 +130,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	container.add_handle(Vector3(door_size.x, door_size.y, 0.08), Vector3(0, door_size.y * 0.5, -0.02))
 	piece.add_anchor(&"rack", Transform3D(Basis.IDENTITY, Vector3(0, RACK_Y + RACK_WIRE, oz)), piece, container)
 
-	piece.add_hollow(Vector3(WIDTH, HOB, DEPTH), Vector3(0, HOB * 0.5, DEPTH * 0.5), 0.02)
+	piece.add_box(Vector3(WIDTH, HOB, DEPTH), Vector3(0, HOB * 0.5, DEPTH * 0.5))
 	return piece
 
 ## A wire rack: a frame round its edge and bars across it, front to back.

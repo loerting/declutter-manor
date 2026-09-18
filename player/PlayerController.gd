@@ -19,6 +19,13 @@ extends CharacterBody3D
 
 var _yaw := 0.0
 var _pitch := 0.0
+var _capsule: CapsuleShape3D
+## The crouch key toggles what the player wants (the author, 2026-09-17: one press down, one press up); crouched is
+## what the body is, which stays down for as long as there is no room to stand up.
+var _wants_crouch := false
+var _crouched := false
+## Held still while something else has the screen (`hold_still`): no walking, looking, jumping or crouching.
+var _still := false
 ## What the player asked for, which is not the same as what the mouse is doing: a window that
 ## does not have focus cannot grab the pointer, and asking it to is an X11 error in the log.
 var _wants_mouse := true
@@ -29,17 +36,16 @@ func _ready() -> void:
 	# The scene owns the node structure, `Balance` owns the numbers (CLAUDE.md rule 10): the
 	# capsule and the eye are shaped here rather than typed into the .tscn, where they would be
 	# a second copy of a dimension the whole house is built to.
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = Balance.PLAYER_RADIUS
-	capsule.height = Balance.PLAYER_HEIGHT
-	_body.shape = capsule
-	_body.position = Vector3(0.0, Balance.PLAYER_HEIGHT * 0.5, 0.0)
+	_capsule = CapsuleShape3D.new()
+	_capsule.radius = Balance.PLAYER_RADIUS
+	_body.shape = _capsule
+	_shape_body(Balance.PLAYER_HEIGHT)
 	_head.position = Vector3(0.0, Balance.EYE_HEIGHT, 0.0)
 	_camera.fov = Balance.FOV
 	# Its own layer: the interaction ray starts inside this capsule, and a ray that can hit the
 	# body it came from picks up nothing ever again.
 	collision_layer = Layers.bit(Layers.PLAYER)
-	collision_mask = Layers.bit(Layers.WORLD) | Layers.bit(Layers.BULK)
+	collision_mask = Layers.body_mask()
 	floor_max_angle = deg_to_rad(Balance.FLOOR_MAX_ANGLE_DEG)
 	floor_snap_length = Balance.FLOOR_SNAP
 	# Walking pace along a slope, not across it. Off, a ramp keeps only cos² of the stride in plan:
@@ -77,6 +83,10 @@ func teleport(to: Vector3, facing_degrees := 0.0) -> void:
 	rotation = Vector3(0.0, _yaw, 0.0)
 	_head.rotation = Vector3.ZERO
 	velocity = Vector3.ZERO
+	_wants_crouch = false
+	_crouched = false
+	_shape_body(Balance.PLAYER_HEIGHT)
+	_head.position.y = Balance.EYE_HEIGHT
 
 ## Points the eye at a place in the world. It is the same yaw and pitch the mouse writes, so
 ## nothing about the controller has to know it was not the mouse that moved.
@@ -88,6 +98,17 @@ func aim_at(target: Vector3) -> void:
 	_pitch = clampf(atan2(to.y, Vector2(to.x, to.z).length()), -Balance.PITCH_LIMIT, Balance.PITCH_LIMIT)
 	rotation.y = _yaw
 	_head.rotation.x = _pitch
+
+## Held still while the ledger has the screen: the pointer is let go so it can be clicked, the hands take no input
+## and the body stops where it is. Released, all of it comes back.
+func hold_still(on: bool) -> void:
+	_still = on
+	_interactor.set_process_unhandled_input(not on)
+	_interactor.cancel_throw()
+	capture_mouse(not on)
+
+func still() -> bool:
+	return _still
 
 ## Whether the player wants to be looking around. The pointer follows when the window can
 ## take it — `_sync_mouse` is where that is decided, and it is the only writer of `mouse_mode`.
@@ -109,6 +130,8 @@ func _sync_mouse() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _still:
+		return
 	if event.is_action_pressed(&"ui_cancel"):
 		capture_mouse(false)
 		return
@@ -131,15 +154,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	_head.rotation.x = _pitch
 
 func _physics_process(delta: float) -> void:
+	var jump := Input.is_action_just_pressed(&"jump") and not _still
+	# Jump while crouched stands up, rather than jumping from a crouch.
+	if jump and _wants_crouch:
+		_wants_crouch = false
+		jump = false
+	if Input.is_action_just_pressed(&"crouch") and not _still:
+		_wants_crouch = not _wants_crouch
+	_crouch(delta)
 	if is_on_floor():
 		# Not zeroed: a small downward velocity is what keeps the body pinned to a ramp on the
 		# way down instead of leaving it at every crest.
 		velocity.y = minf(velocity.y, 0.0)
+		if jump and not _crouched:
+			velocity.y = sqrt(2.0 * Balance.GRAVITY * Balance.JUMP_HEIGHT)
 	else:
 		velocity.y -= Balance.GRAVITY * delta
-	var wish := Input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
+	var wish := Vector2.ZERO if _still else Input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
 	var dir := (Basis(Vector3.UP, rotation.y) * Vector3(wish.x, 0.0, wish.y)).limit_length(1.0)
-	var target := dir * Balance.WALK_SPEED
+	var target := dir * (Balance.CROUCH_SPEED if _crouched else Balance.WALK_SPEED)
 	var step := Balance.ACCELERATION * delta
 	velocity.x = move_toward(velocity.x, target.x, step)
 	velocity.z = move_toward(velocity.z, target.z, step)
@@ -222,6 +255,41 @@ func _step_up(from: Vector3, wanted: Vector3, delta: float) -> void:
 	# Gravity banked while the body was off its floor, climbing, would pull it straight back down
 	# the lip it is halfway up.
 	velocity.y = 0.0
+
+## Whether the player is crouched: toggled down, or still under something too low to stand up in.
+func crouched() -> bool:
+	return _crouched
+
+## Crouches once the player wants to and stands up once they no longer do and there is room: the standing capsule
+## is tested where the body is, so standing up under a table keeps the player down rather than pushing them
+## through it. The eye goes down and comes back up over `Balance.CROUCH_TIME`.
+func _crouch(delta: float) -> void:
+	var wants := _wants_crouch
+	if wants and not _crouched:
+		_crouched = true
+		_shape_body(Balance.CROUCH_HEIGHT)
+	elif not wants and _crouched and _room_to_stand():
+		_crouched = false
+		_shape_body(Balance.PLAYER_HEIGHT)
+	var eye := Balance.CROUCH_EYE_HEIGHT if _crouched else Balance.EYE_HEIGHT
+	var rate := (Balance.EYE_HEIGHT - Balance.CROUCH_EYE_HEIGHT) / Balance.CROUCH_TIME
+	_head.position.y = move_toward(_head.position.y, eye, rate * delta)
+
+## The capsule `height` tall, standing on the same feet.
+func _shape_body(height: float) -> void:
+	_capsule.height = height
+	_body.position = Vector3(0.0, height * 0.5, 0.0)
+
+func _room_to_stand() -> bool:
+	var query := PhysicsShapeQueryParameters3D.new()
+	var standing := CapsuleShape3D.new()
+	standing.radius = Balance.PLAYER_RADIUS
+	standing.height = Balance.PLAYER_HEIGHT
+	query.shape = standing
+	query.transform = Transform3D(Basis.IDENTITY, global_position + Vector3.UP * (Balance.PLAYER_HEIGHT * 0.5 + Balance.STEP_EPSILON))
+	query.collision_mask = collision_mask
+	query.exclude = [get_rid()]
+	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 ## Whether the last move was stopped by a face steeper than a floor, as opposed to only being
 ## bent up a slope the body walks on anyway.

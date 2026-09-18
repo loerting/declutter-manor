@@ -51,10 +51,12 @@ const ATTIC := Rect2(4.3, 9.5, 12.4, 2.5)
 const DECK := Rect2(6, 15.5, 6, 3)
 ## Carried 2 m past the pool's deep end: at 11 m the paving beyond the coping was 1.7 m either end,
 ## and a diving board and a pair of loungers, which a pool area has, fitted at neither (2026-09-15).
-const POOL_AREA := Rect2(12, 15.5, 13, 3.3)
+## As deep as the pool needs: its south edge is the pool's plus the same 0.6 m of paving.
+const POOL_AREA := Rect2(12, 15.5, 13, 5.25)
 ## Set 1.05 m off the house wall and 0.6 m off the paving's south edge: the first cut left
-## half a metre of walkway between the coping and the siding, which read as a moat.
-const POOL := Rect2(14.2, 16.55, 6.6, 1.65)
+## half a metre of walkway between the coping and the siding, which read as a moat. 3.6 m wide, a
+## family pool's width: at 1.65 m it read as a gutter (the author, 2026-09-18).
+const POOL := Rect2(14.2, 16.55, 6.6, 3.6)
 const POOL_DEPTH := 1.5
 
 ## The stair core. The main flight's east edge is let into the hall's east wall; the basement
@@ -123,6 +125,7 @@ static func build() -> FloorPlan:
 static func _storey(id: StringName, base: float, height: float) -> StoreyDef:
 	var s := StoreyDef.new()
 	s.id = id
+	s.name_key = "storey." + String(id)
 	s.base_y = base
 	s.height = height
 	s.slab_thickness = SLAB

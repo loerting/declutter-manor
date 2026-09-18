@@ -78,10 +78,10 @@ static func build_deck(holder: Node3D, plan: FloorPlan, storey: StoreyDef, room:
 	var wood := Mats.of(room.floor_slot, BOARD_TINT, 0.7, 1.0, true)
 	HouseBuilder.surface(holder, Props.union(boards), [wood], "Deck", true)
 	HouseBuilder.surface(holder, Props.union(frame),
-			[Mats.of(FRAME_SLOT, FRAME_TINT, 0.85, 1.0, true)], "DeckFrame", false)
+			[Mats.of(FRAME_SLOT, FRAME_TINT, 0.85, 1.0, true)], "DeckFrame", true, Layers.SURFACE)
 	# Visual only: a flat ramp under each flight carries the body, or it climbs the deck steps
 	# tread by tread the way it used to at every other flight in the house (`HouseBuilder._build_steps`).
-	HouseBuilder.surface(holder, Props.union(steps), [wood], "DeckSteps", false)
+	HouseBuilder.surface(holder, Props.union(steps), [wood], "DeckSteps", true, Layers.SURFACE)
 
 ## Where the flight off the deck's `dir` edge leaves the deck, at the middle of its width. It sits at
 ## the far end of that edge from the house rather than in the middle of it: the mudroom's back door
@@ -267,12 +267,8 @@ static func build_pool(holder: Node3D, storey: StoreyDef, room: RoomDef, pool: P
 	# same hidden ramp every other flight in the house has.
 	var liner := Mats.of(pool.liner_slot, pool.liner_tint, 0.5, 1.0, true)
 	HouseBuilder.surface(holder, Props.union(shell + treads), [liner], "PoolShell", false)
-	var body := StaticBody3D.new()
-	body.name = "PoolShellBody"
-	var shape := CollisionShape3D.new()
-	shape.shape = Props.union(shell).create_trimesh_shape()
-	body.add_child(shape)
-	holder.add_child(body)
+	HouseBuilder.solid(holder, Props.union(shell), "PoolShellBody", Layers.WORLD)
+	HouseBuilder.solid(holder, Props.union(treads), "PoolStepsBody", Layers.SURFACE)
 	var run := POOL_GOING * float(pool.step_count) - COPING_OVERHANG
 	HouseBuilder.ramp_collider(holder, Vector3(r.position.x + POOL_GOING * float(pool.step_count), floor_y, c.y),
 			Vector3.LEFT, Vector3.UP, Vector3.BACK, run, cy + ch * 0.5 - floor_y,

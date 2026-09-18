@@ -6,7 +6,7 @@
 [sub_resource type="Resource" id="Resource_p6xhl"]
 script = ExtResource("2_3r0vq")
 room = &"garage"
-xform = Transform3D(0.07548157, 0, -0.9971472, 0, 1, 0, 0.9971472, 0, 0.07548157, 19.569555, 1.07, 7.1691375)
+xform = Transform3D(0.07548157, 0, -0.9971472, 0, 1, 0, 0.9971472, 0, 0.07548157, 19.569555, 1.0557225, 7.1691375)
 
 [resource]
 script = ExtResource("1_53fm0")

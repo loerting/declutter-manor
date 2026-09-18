@@ -488,9 +488,10 @@ func _test_set_tracker() -> void:
 	Inventory.reset()
 	SetTracker.begin(Catalogue.new())
 
-## What the HUD tells the player about a set, for the real content: one home the whole set shares, on a
-## piece that stands in a room of the plan, with a name the player can read, and one slot cost. A set
-## whose members disagree has no single answer to "where does this go".
+## What the HUD tells the player about a set, for the real content: one home every member of a kind shares, on
+## a piece that stands in a room of the plan, with a name the player can read, and one slot cost. Members of one
+## kind that disagree have no single answer to "where does this go". A set is one kind but for the table tennis
+## gear, whose bats, balls and net each have their own (`ItemDef.params` `kind`).
 func _test_every_set_has_a_home() -> void:
 	print("Homes")
 	var plan := ManorPlan.build()
@@ -501,20 +502,33 @@ func _test_every_set_has_a_home() -> void:
 		if members.is_empty():
 			wrong.append("%s has no members" % s.id)
 			continue
+		var firsts := _first_of_each_kind(members)
 		for def: ItemDef in members:
-			if def.home != members[0].home or def.slot_cost != members[0].slot_cost:
-				wrong.append("%s: %s disagrees with %s on home or slot cost" % [s.id, def.id, members[0].id])
-		var group := content.find_group(members[0].home)
-		var piece := content.piece_of(members[0].home)
-		if group == null or piece == null:
-			wrong.append("%s: no piece carries '%s'" % [s.id, members[0].home])
-			continue
-		if plan.find_room(piece.room) == null:
-			wrong.append("%s: '%s' stands in '%s', which the plan does not have" % [s.id, piece.id, piece.room])
-		if group.name_key == "" or tr(group.name_key) == group.name_key:
-			wrong.append("%s: home '%s' has no name ('%s')" % [s.id, group.id, group.name_key])
+			var first := firsts[Params.text(def.params, "kind", "")]
+			if def.home != first.home or def.slot_cost != first.slot_cost:
+				wrong.append("%s: %s disagrees with %s on home or slot cost" % [s.id, def.id, first.id])
+		for first: ItemDef in firsts.values():
+			var group := content.find_group(first.home)
+			var piece := content.piece_of(first.home)
+			if group == null or piece == null:
+				wrong.append("%s: no piece carries '%s'" % [s.id, first.home])
+				continue
+			if plan.find_room(piece.room) == null:
+				wrong.append("%s: '%s' stands in '%s', which the plan does not have" % [s.id, piece.id, piece.room])
+			if group.name_key == "" or tr(group.name_key) == group.name_key:
+				wrong.append("%s: home '%s' has no name ('%s')" % [s.id, group.id, group.name_key])
 	_ok("the content has every set", content.sets.size() == Balance.TARGET_SET_COUNT, str(content.sets.size()))
 	_ok("every set resolves one named home in a room", wrong.is_empty(), "\n\t".join(wrong))
+
+## The first member of each kind, by kind (`""` for a family with no kinds). Grill tools are kinds with one home
+## and one mass; the table tennis gear's kinds each have their own.
+static func _first_of_each_kind(members: Array[ItemDef]) -> Dictionary[String, ItemDef]:
+	var out: Dictionary[String, ItemDef] = {}
+	for def: ItemDef in members:
+		var kind := Params.text(def.params, "kind", "")
+		if not out.has(kind):
+			out[kind] = def
+	return out
 
 # --- Mass ---------------------------------------------------------------------------------------
 
@@ -528,9 +542,11 @@ func _test_every_item_weighs_its_cost() -> void:
 	var wrong: Array[String] = []
 	for s: SetDef in content.sets:
 		var members := content.members(s.id)
+		var firsts := _first_of_each_kind(members)
 		for def: ItemDef in members:
-			if def.mass <= 0.0 or def.mass != members[0].mass:
-				wrong.append("%s weighs %.2f kg, %s %.2f" % [def.id, def.mass, members[0].id, members[0].mass])
+			var first := firsts[Params.text(def.params, "kind", "")]
+			if def.mass <= 0.0 or def.mass != first.mass:
+				wrong.append("%s weighs %.3f kg, %s %.3f" % [def.id, def.mass, first.id, first.mass])
 			var tier := 1 if def.mass <= 0.5 else 2 if def.mass <= 2.0 else 4 if def.mass <= 8.0 else 8
 			if def.slot_cost < tier:
 				wrong.append("%s weighs %.2f kg and costs %d slots, under its weight's %d" % [def.id, def.mass, def.slot_cost, tier])

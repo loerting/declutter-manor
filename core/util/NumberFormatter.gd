@@ -1,6 +1,10 @@
 class_name NumberFormatter
 ## Every number shown to the player goes through here. Never `str(x)` in UI code.
 
+## "3/12" — beside pips or a picture that already says what is counted.
+static func fraction(have: int, total: int) -> String:
+	return TranslationServer.translate("%d/%d", "NumberFormatter") % [have, total]
+
 ## "3 of 12"
 static func of_total(have: int, total: int) -> String:
 	return TranslationServer.translate("%d of %d", "NumberFormatter") % [have, total]

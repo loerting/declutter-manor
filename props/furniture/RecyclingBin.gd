@@ -33,13 +33,6 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	]
 	var mesh := Props.loft(rings)
 	piece.add_child(Props.mi(mesh, Props.mat(PLASTIC, 0.5), Vector3(0, 0, outer.y * 0.5)))
-	# A block for the body, a shell for the ray: what is in the bin can be reached, and its rim is still a
-	# surface. The walls are as thick as the rim rolled over them.
-	var cz := outer.y * 0.5
-	piece.add_bulk(Vector3(TOP.x, HEIGHT, TOP.y), Vector3(0, HEIGHT * 0.5, cz))
-	piece.add_box(Vector3(TOP.x, WALL, TOP.y), Vector3(0, WALL * 0.5, cz))
-	for sz: float in [-1.0, 1.0]:
-		piece.add_box(Vector3(TOP.x, HEIGHT, RIM.x), Vector3(0, HEIGHT * 0.5, cz + sz * (TOP.y - RIM.x) * 0.5))
-		piece.add_box(Vector3(RIM.x, HEIGHT, TOP.y), Vector3(sz * (TOP.x - RIM.x) * 0.5, HEIGHT * 0.5, cz))
+	piece.add_box(Vector3(TOP.x, HEIGHT, TOP.y), Vector3(0, HEIGHT * 0.5, outer.y * 0.5))
 	piece.add_anchor(&"floor", Transform3D(Basis.IDENTITY, Vector3(0, FLOOR, outer.y * 0.5)), piece)
 	return piece

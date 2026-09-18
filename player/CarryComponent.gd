@@ -44,10 +44,16 @@ func select(index: int) -> bool:
 func select_step(step: int) -> void:
 	Inventory.select_step(step)
 
-## Picks an item up. False and nothing moves when there is no room for it — a refused pick-up
-## must leave the world exactly as it was, or the item has been silently teleported.
+## Whether the hands would take `item`: it has to fit the free slots, and it must not already stand in its own
+## home. Sorted is sorted — an item put away is not picked up again (the author, 2026-09-17). The one gate every
+## pick-up passes; `Interactor` reads the same two facts to say which of them refused.
+func can_take(item: ItemNode) -> bool:
+	return Inventory.can_take(item.def) and not SetTracker.at_home(item.def.id)
+
+## Picks an item up. False and nothing moves when there is no room for it, or it is already home — a refused
+## pick-up must leave the world exactly as it was, or the item has been silently teleported.
 func try_take(item: ItemNode) -> bool:
-	if not Inventory.can_take(item.def):
+	if not can_take(item):
 		return false
 	var slots := item.get_parent() as PlaceSlots
 	item.remember_origin(slots, slots.slot_of(item) if slots != null else -1)
@@ -91,9 +97,10 @@ func throw_selected(eye: Transform3D, carrier_velocity: Vector3, charge: float) 
 	var effort := lerpf(Balance.THROW_ENERGY_MIN, Balance.THROW_ENERGY_MAX, c)
 	var speed := minf(lerpf(Balance.THROW_SPEED_MIN, Balance.THROW_SPEED_MAX, c), sqrt(2.0 * effort / item.mass))
 	var along := (-eye.basis.z + Vector3.UP * Balance.THROW_LIFT).normalized()
-	return _let_go(eye, carrier_velocity + along * speed)
+	var spin := -eye.basis.x.normalized() * Balance.THROW_SPIN * speed / Balance.THROW_SPEED_MAX
+	return _let_go(eye, carrier_velocity + along * speed, spin)
 
-func _let_go(eye: Transform3D, velocity: Vector3) -> bool:
+func _let_go(eye: Transform3D, velocity: Vector3, spin := Vector3.ZERO) -> bool:
 	var item := selected()
 	if item == null:
 		return false
@@ -101,7 +108,7 @@ func _let_go(eye: Transform3D, velocity: Vector3) -> bool:
 	var xform := _release_xform(item, eye)
 	_forget(item)
 	_reparent(item, _world, _world.global_transform.affine_inverse() * xform)
-	item.let_go(velocity)
+	item.let_go(velocity, spin)
 	EventBus.item_dropped.emit(item.def.id)
 	return true
 

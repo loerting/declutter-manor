@@ -6,7 +6,7 @@
 [sub_resource type="Resource" id="Resource_pig5e"]
 script = ExtResource("2_8m38l")
 room = &"side_garden"
-xform = Transform3D(5.9074496e-09, 0.13514669, 0.9908256, 1, -4.371139e-08, 0, 4.331036e-08, 0.9908256, -0.13514669, 0.86819893, 0.17400005, 12.6058445)
+xform = Transform3D(5.9074496e-09, 0.13514669, 0.9908256, 1, -4.371139e-08, 0, 4.331036e-08, 0.9908256, -0.13514669, 0.86819893, 0.13400006, 12.6058445)
 
 [resource]
 script = ExtResource("1_pig5e")

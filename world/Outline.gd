@@ -1,31 +1,43 @@
-class_name HomeOutline
+class_name Outline
 extends RefCounted
-## The white line round the piece a carried item belongs on, while the player is in its room
-## (`docs/ARCHITECTURE.md`, "The way home"). Every mesh of the piece gets a hull: the same mesh with its
-## normals averaged per corner, drawn behind it and grown in screen space (`world/home_outline.gdshader`), and
-## a mask, the mesh itself marking its pixels so the line is never drawn over the piece
-## (`world/home_outline_mask.gdshader`). Both hang under the mesh they outline, so a door's outline swings
-## with the door.
+## A line round something the player is looking for, seen from anywhere in the house (`docs/ARCHITECTURE.md`, "The way
+## home"): the home of a carried item, or a misplaced member of the set the player picked in the ledger. Every mesh
+## gets a hull: the same mesh with its normals averaged per corner, grown in screen space
+## (`world/outline.gdshaderinc`). The hull is drawn twice: faint through every wall and floor
+## (`outline_through.gdshader`) and at full strength over the part in plain sight (`outline_seen.gdshader`). A mask,
+## the mesh itself marking its pixels, keeps the line off the thing (`outline_mask.gdshader`). All of them hang
+## under the mesh they outline, so a door's outline swings with the door and an item's rolls with the item.
 ##
 ## Items are not the piece: one standing on it or put away in it is left out, and never outlined with it.
 
-const SHADER := preload("res://world/home_outline.gdshader")
-const MASK := preload("res://world/home_outline_mask.gdshader")
+enum Kind { HOME, SOUGHT }
+
+const SEEN := preload("res://world/outline_seen.gdshader")
+const THROUGH := preload("res://world/outline_through.gdshader")
+const MASK := preload("res://world/outline_mask.gdshader")
+## A home is white and a member of the set looked for amber. Colour is never the only sign: the HUD shows the set
+## looked for by its picture, and a home is a piece of furniture where an item is a thing on its own.
+const COLORS: Dictionary[Kind, Color] = {Kind.HOME: Color(0.961, 0.937, 0.894), Kind.SOUGHT: Color(1.0, 0.71, 0.24)}
 
 ## The node outlined.
 var target: Node3D
+
+var kind: Kind
 
 var _hulls: Array[MeshInstance3D] = []
 var _masks: Array[MeshInstance3D] = []
 var _shown := false
 
-static var _material: ShaderMaterial
+## Kind -> the faint material the hull is drawn with, and the full one drawn over it.
+static var _through: Dictionary[Kind, ShaderMaterial] = {}
+static var _seen: Dictionary[Kind, ShaderMaterial] = {}
 static var _mask_material: ShaderMaterial
 ## Mesh -> its hull mesh. A drawer shared by twelve pieces is averaged once.
 static var _smoothed: Dictionary[Mesh, ArrayMesh] = {}
 
-func _init(outlined: Node3D) -> void:
+func _init(outlined: Node3D, outline_kind: Kind) -> void:
 	target = outlined
+	kind = outline_kind
 
 func show(on: bool) -> void:
 	if on == _shown:
@@ -33,19 +45,20 @@ func show(on: bool) -> void:
 	_shown = on
 	if on and _hulls.is_empty():
 		var meshes: Array[MeshInstance3D] = []
-		_collect(target, meshes)
+		_collect(target, target, meshes)
 		# After the walk, so a hull is never found by it and outlined in turn.
 		for mi: MeshInstance3D in meshes:
 			var hull := MeshInstance3D.new()
-			hull.name = "HomeOutline"
+			hull.name = "Outline"
 			hull.mesh = _smooth(mi.mesh)
-			hull.material_override = _outline_material()
+			hull.material_override = _material(_through, THROUGH, kind)
+			hull.material_overlay = _material(_seen, SEEN, kind)
 			hull.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			hull.layers = mi.layers
 			mi.add_child(hull)
 			_hulls.append(hull)
 			var mask := MeshInstance3D.new()
-			mask.name = "HomeOutlineMask"
+			mask.name = "OutlineMask"
 			mask.mesh = mi.mesh
 			mask.material_override = _mask()
 			mask.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -64,24 +77,31 @@ func shown() -> bool:
 func hulls() -> Array[MeshInstance3D]:
 	return _hulls
 
-static func _collect(node: Node, into: Array[MeshInstance3D]) -> void:
-	if node is ItemNode:
+static func _collect(node: Node, outlined: Node3D, into: Array[MeshInstance3D]) -> void:
+	if node is ItemNode and node != outlined:
 		return
 	var mi := node as MeshInstance3D
 	if mi != null and mi.mesh != null:
 		into.append(mi)
 	for child: Node in node.get_children():
-		_collect(child, into)
+		_collect(child, outlined, into)
 
-static func _outline_material() -> ShaderMaterial:
-	if _material == null:
-		_material = ShaderMaterial.new()
-		_material.shader = SHADER
-		_material.set_shader_parameter(&"width", Balance.HOME_OUTLINE_PX)
-		_material.set_shader_parameter(&"pull", Balance.HOME_OUTLINE_PULL)
-		# After every mask: both are drawn with the transparent things, lowest priority first.
-		_material.render_priority = 1
-	return _material
+## One material per kind and pass, shared by every hull. The faint pass is drawn after every mask, and the full
+## one after it: all three are drawn with the transparent things, lowest priority first.
+static func _material(cache: Dictionary[Kind, ShaderMaterial], shader: Shader, of: Kind) -> ShaderMaterial:
+	if cache.has(of):
+		return cache[of]
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	var color := COLORS[of]
+	if shader == THROUGH:
+		color.a = Balance.OUTLINE_THROUGH_ALPHA
+	material.set_shader_parameter(&"line_color", color)
+	material.set_shader_parameter(&"width", Balance.HOME_OUTLINE_PX if of == Kind.HOME else Balance.SOUGHT_OUTLINE_PX)
+	material.set_shader_parameter(&"pull", Balance.HOME_OUTLINE_PULL)
+	material.render_priority = 2 if shader == SEEN else 1
+	cache[of] = material
+	return material
 
 static func _mask() -> ShaderMaterial:
 	if _mask_material == null:

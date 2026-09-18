@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_g21u8"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_2vkqf"]
+
+[sub_resource type="Resource" id="Resource_thpcu"]
+script = ExtResource("2_2vkqf")
+room = &"dining"
+xform = Transform3D(-0.61950076, 0, -0.7849961, 0, 1, 0, 0.7849961, 0, -0.61950076, 15.369445, 0.45000005, 7.0209713)
+
+[resource]
+script = ExtResource("1_g21u8")
+id = &"table_tennis_01"
+name_key = "item.table_tennis_bat"
+mass = 0.09
+set_id = &"table_tennis"
+generator = &"table_tennis"
+params = {
+"kind": "bat"
+}
+home = &"table_tennis_bat_home"
+start = SubResource("Resource_thpcu")

@@ -17,7 +17,10 @@ const HEIGHT := 0.7
 const DEPTH := 0.32
 const BACK := 0.008
 const SHELF_SHARE := 0.5
-const DOOR_SWING_DEG := 100.0
+## A door opens square to its front and no further: past square, the end door of a run against a wall swung
+## into the wall and the two middle doors of a double vanity into each other (`FurnitureProbe`,
+## `container.swing`, 2026-09-17).
+const DOOR_SWING_DEG := 90.0
 const PULL_LENGTH := 0.12
 ## The pull sits this far up from the door's bottom edge, where a hand reaches for a wall unit.
 const PULL_FROM_BOTTOM := 0.1

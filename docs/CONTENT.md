@@ -9,8 +9,10 @@ resources under `resources/manor/` become the source of truth for every row.
 
 - **A set is every copy of one item type.** A set can have one member: placing the one television
   completes the Television set. Every completed set grants +1 slot (`docs/VISION.md`).
-- **The totals from `docs/PACING.md` hold:** 250 items, a three-hour run, no set over 12 minutes.
-  One set per type makes that **55 sets**, so the slot ladder runs 1 -> 56 and the finale costs 56.
+- **The totals from `docs/PACING.md` hold:** 256 items, a three-hour run, no set over 12 minutes.
+  One set per type makes that **55 sets**; the table tennis gear — two bats, three balls and the net, which
+  had been built into the table — is a 56th set of three types (the author, 2026-09-17), so the slot ladder
+  runs 1 -> 57 and the finale costs 57.
 - **Counts are what a real family owns**, not what fills a set. The household is two adults, two
   children sharing the kids' room, and a dog. The US average family is 3.15 people; two children
   matches a house with a kids' room and a kids' bath. Where a family owns more than a set can hold
@@ -48,6 +50,7 @@ deliberately absurd spot, listed further down.
 | Item | Count | Slots each | Home | Why this many | Starts in |
 |---|---|---|---|---|---|
 | Board game | 6 | 2 | game shelf | - | Master bath 2, Half bath 1, Garage 1, Guest room 1, Kitchen 1 |
+| Table tennis equipment | 6 | 1 or 2 | table tennis table | two bats, three balls, the net | Kitchen 1, Garage 1, Front yard and driveway 1, Guest room 1, Dining room 1, Upstairs hall 1 |
 
 **Laundry**
 
@@ -233,7 +236,7 @@ deliberately absurd spot, listed further down.
 
 ## The absurd spots
 
-25 of 250 starts (10%). One copy of each item below starts here.
+25 of 256 starts (9%). One copy of each item below starts here.
 
 | Item | Zone | Where |
 |---|---|---|
@@ -267,7 +270,7 @@ deliberately absurd spot, listed further down.
 
 | Zone | Starts | Homes |
 |---|---|---|
-| Rec room | 9 | 6 |
+| Rec room | 9 | 12 |
 | Laundry | 10 | 2 |
 | Utility | 10 | 8 |
 | Workshop | 10 | 10 |
@@ -275,30 +278,30 @@ deliberately absurd spot, listed further down.
 | Entry hall | 11 | 9 |
 | Home office | 9 | 7 |
 | Living room | 10 | 28 |
-| Dining room | 11 | 8 |
-| Kitchen | 9 | 29 |
+| Dining room | 12 | 8 |
+| Kitchen | 10 | 29 |
 | Mudroom | 11 | 14 |
 | Half bath | 9 | 2 |
-| Garage | 10 | 16 |
-| Upstairs hall | 11 | 8 |
+| Garage | 11 | 16 |
+| Upstairs hall | 12 | 8 |
 | Master bedroom | 12 | 6 |
 | Walk-in closet | 11 | 19 |
 | Master bath | 10 | 3 |
 | Kids' room | 10 | 25 |
-| Guest room | 10 | 2 |
+| Guest room | 11 | 2 |
 | Hall bath | 9 | 15 |
 | Attic | 9 | 4 |
-| Front yard and driveway | 10 | 3 |
+| Front yard and driveway | 11 | 3 |
 | Rear deck | 9 | 7 |
 | Pool area | 10 | 8 |
 | Side garden | 10 | 2 |
 
 ## Pacing, run over this list
 
-- Sets: **55**. Items: **250**. Finale cost: **56 slots** (1 to start + 1 per set).
-- Slot costs: 127 items at 1, 90 at 2, 22 at 4, 11 at 8; mean **1.93**.
-- Modelled run: **178 min** against the 180-minute target.
-- Longest set: **Book, 10.1 min** at 42 slots. Limit 12 min. Over the limit: 0.
+- Sets: **56**. Items: **256**. Finale cost: **57 slots** (1 to start + 1 per set).
+- Slot costs: 132 items at 1, 91 at 2, 22 at 4, 11 at 8; mean **1.91**.
+- Modelled run: **182 min** against the 180-minute target.
+- Longest set: **Book, 10.1 min** at 43 slots. Limit 12 min. Over the limit: 0.
 - From set 24 (~46 min in), capacity is 24: every set fits in one trip.
 
 First ten sets in the model's order:
@@ -319,7 +322,8 @@ First ten sets in the model's order:
 ## What changes elsewhere
 
 - **The HUD tracker is two faces now** (`ui/Hud.tscn`, checked by `dev/HudProbe.tscn` with these
-  55 names): a short list always on, and every set and room while Tab is held.
+  56 names): a short list of pictures and pips always on, and every set and room in the ledger, which Tab
+  opens and Tab closes.
 - **Every home above implies a piece of furniture**, and every absurd spot names a fixture (fridge,
   oven, washer, grill, vise, trunk, diving board). All of them are built, and every absurd copy now
   starts on the fixture its line names (`dev/ContentImport.tscn -- --absurd`, 2026-09-16): on the

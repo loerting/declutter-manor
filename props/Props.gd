@@ -1847,6 +1847,12 @@ static func drawer_floor(front: Vector2, depth: float) -> Vector3:
 	var h := front.y - 0.03
 	return Vector3(0, top - h + DRAWER_PANEL, -FRONT_PANEL - depth * 0.5)
 
+## Whether door `index` (from 0, left to right) hinges on its left edge: the letter at its place in `hinges`, "l"
+## or "r", or `fallback` past its end. A door's pull swings to the side its hinge is on, so a door hinged next to
+## a wall, or two doors hinged on one line, open their pulls into the wall or into each other.
+static func hinged_left(hinges: String, index: int, fallback: bool) -> bool:
+	return fallback if index >= hinges.length() else hinges[index] == "l"
+
 ## A hinged door. The local origin is the hinge axis and the outer face is at z = 0, so a
 ## container opens it by rotating this node and nothing has to know where the panel is.
 ## `hinge_left` puts the hinge at the door's -X edge. `face` is the door's material, painted white

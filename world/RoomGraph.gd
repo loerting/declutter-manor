@@ -19,8 +19,16 @@ class Waypoint:
 		at = point
 		storey = on
 
+## Where to look along a route and how far it is from the eye (`sight`).
+class Sight:
+	extends RefCounted
+	var at: Vector3
+	var metres := 0.0
+
 ## Two exterior zones are walked between across open ground, with no doorway between them.
 const OUTDOORS_STEP := 1.0
+## Halvings `sight` takes to find how far along a leg the eye still sees: a 6 m leg to 19 cm.
+const SIGHT_STEPS := 5
 
 var _plan: FloorPlan
 ## Room id -> room id -> metres between their middles, through a doorway or a flight.
@@ -164,26 +172,82 @@ func _crossing(a: StringName, b: StringName) -> Array[Waypoint]:
 
 # --- Where to look ---------------------------------------------------------------------------------
 
-## Where someone at `eye` on `storey` looks to follow `points`: the last of them in plain sight before the route
-## changes floor, or on a flight the far end of it. When none is in sight, the first corner of the way round
-## whatever stands between — a flight in the hall — towards the first of them.
-func aim(storey: StoreyDef, eye: Vector2, points: Array[Waypoint]) -> Vector3:
+## Where someone whose eye is at `eye` on `storey` looks to follow `points` to `end`, and how far that is on foot:
+## the last of the points in plain sight before the route changes floor, or on a flight the far end of it; when
+## none is in sight, the first corner of the way round whatever stands between — a flight in the hall — towards
+## the first of them. What is looked at is the furthest place
+## along the route in plain sight: past the last point in sight, as far along the leg to the next one as is still
+## in sight, so the place slides along the route as the eye moves instead of jumping from one point to the next
+## (the author, 2026-09-17: the compass jumped while walking straight on). The metres run from the eye to that
+## place and on along the route, so they fall as the player walks it; measured through each room's middle, they
+## rose from 8 to 9 walking towards the kids' room door.
+func sight(storey: StoreyDef, eye_at: Vector3, points: Array[Waypoint], end: Vector3) -> Sight:
+	var eye := Vector2(eye_at.x, eye_at.z)
+	var out := Sight.new()
 	var level := 0
 	while level < points.size() and points[level].storey == storey:
 		level += 1
-	if level < points.size() and level > 0 and _on_flight(eye):
-		return points[level].at
-	# From the far end back, so the first in sight is the answer.
-	for i in range(level - 1, -1, -1):
-		if clear(storey, eye, Vector2(points[i].at.x, points[i].at.z)):
-			return points[i].at
-	var first := points[0]
-	var round := _round(storey, eye, Vector2(first.at.x, first.at.z))
-	return first.at if round == Vector2.INF else Vector3(round.x, first.at.y, round.y)
+	var next := 0
+	if level < points.size() and level > 0 and _on_flight(storey, eye_at):
+		out.at = points[level].at
+		next = level + 1
+	else:
+		var seen := -1
+		# From the far end back, so the first in sight is the answer.
+		for i in range(level - 1, -1, -1):
+			if clear(storey, eye, Vector2(points[i].at.x, points[i].at.z)):
+				seen = i
+				break
+		if seen < 0:
+			var first := points[0]
+			var round := _round(storey, eye, Vector2(first.at.x, first.at.z))
+			out.at = first.at if round == Vector2.INF else Vector3(round.x, first.at.y, round.y)
+			next = 1 if round == Vector2.INF else 0
+		else:
+			out.at = points[seen].at
+			next = seen + 1
+			if next < level:
+				out.at = _along(storey, eye, points[seen].at, points[next].at)
+	out.metres = eye.distance_to(Vector2(out.at.x, out.at.z))
+	var from := out.at
+	for i in range(next, points.size()):
+		out.metres += from.distance_to(points[i].at)
+		from = points[i].at
+	out.metres += from.distance_to(end)
+	return out
 
-func _on_flight(eye: Vector2) -> bool:
+## The furthest place from `a` towards `b` that `eye` sees, `a` itself in sight: halved in on `SIGHT_STEPS` times,
+## then `WAY_JAMB` back towards `a`, so the line to it does not graze whatever ends the view (the attic ladder's
+## guard, `WayProbe`, 2026-09-17).
+func _along(storey: StoreyDef, eye: Vector2, a: Vector3, b: Vector3) -> Vector3:
+	var lo := 0.0
+	var hi := 1.0
+	for i in range(SIGHT_STEPS):
+		var mid := (lo + hi) * 0.5
+		var p := a.lerp(b, mid)
+		if clear(storey, eye, Vector2(p.x, p.z)):
+			lo = mid
+		else:
+			hi = mid
+	return a.lerp(b, maxf(lo - Balance.WAY_JAMB / maxf(a.distance_to(b), Balance.WAY_JAMB), 0.0))
+
+## Whether an eye at `eye` stands on a flight that starts or ends on `storey`: over its treads, or `WAY_JAMB` off
+## either end, and as high over the treads under it as a standing or crouching eye is, give or take a step. By
+## its plan alone, an eye beside the basement flight or under its top end was on it, and the marker aimed up the
+## flight through its guard (`WayProbe`, 2026-09-17).
+func _on_flight(storey: StoreyDef, eye: Vector3) -> bool:
 	for stair: StairDef in _plan.stairs:
-		if stair.footprint().grow(Balance.WAY_JAMB).has_point(eye):
+		if _plan.storey_of(stair.lower_room) != storey and _plan.storey_of(stair.upper_room) != storey:
+			continue
+		var from_foot := Vector2(eye.x, eye.z) - stair.foot
+		var along := from_foot.dot(stair.direction)
+		var across := absf(from_foot.dot(Vector2(-stair.direction.y, stair.direction.x)))
+		if along < -Balance.WAY_JAMB or along > stair.run + Balance.WAY_JAMB or across > stair.width * 0.5:
+			continue
+		var lower := _plan.find_room(stair.lower_room).floor_y(_plan.storey_of(stair.lower_room).base_y)
+		var upper := _plan.find_room(stair.upper_room).floor_y(_plan.storey_of(stair.upper_room).base_y)
+		var above := eye.y - lerpf(lower, upper, clampf(along / stair.run, 0.0, 1.0))
+		if above >= Balance.CROUCH_EYE_HEIGHT - Balance.STEP_HEIGHT and above <= Balance.EYE_HEIGHT + Balance.STEP_HEIGHT:
 			return true
 	return false
 

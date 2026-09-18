@@ -1,0 +1,318 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://ui/Ledger.gd" id="1"]
+[ext_resource type="Material" path="res://ui/glass.tres" id="2"]
+[ext_resource type="Script" path="res://ui/LedgerMap.gd" id="3"]
+[ext_resource type="Script" path="res://ui/SetDots.gd" id="4"]
+[ext_resource type="Script" path="res://ui/Glyph.gd" id="5"]
+
+[node name="Ledger" type="PanelContainer"]
+visible = false
+material = ExtResource("2")
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Body" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="Top" type="HBoxContainer" parent="Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="SetsGlyph" type="Control" parent="Body/Top"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5")
+font_size = 26
+
+[node name="LedgerSetsDone" type="Label" parent="Body/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Big"
+
+[node name="Gap" type="Control" parent="Body/Top"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="SlotsGlyph" type="Control" parent="Body/Top"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5")
+shape = 1
+font_size = 26
+
+[node name="LedgerSlots" type="Label" parent="Body/Top"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Big"
+
+[node name="Gap2" type="Control" parent="Body/Top"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PutAway" type="VBoxContainer" parent="Body/Top"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="LedgerPutAway" type="Label" parent="Body/Top/PutAway"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Dim"
+
+[node name="LedgerMeter" type="ProgressBar" parent="Body/Top/PutAway"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Meter"
+show_percentage = false
+
+[node name="Split" type="HBoxContainer" parent="Body"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 28
+
+[node name="MapSide" type="VBoxContainer" parent="Body/Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.75
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Floors" type="HBoxContainer" parent="Body/Split/MapSide"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Map" type="Control" parent="Body/Split/MapSide"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 240)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3")
+
+[node name="Legend" type="HFlowContainer" parent="Body/Split/MapSide"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 4
+
+[node name="Keys" type="HBoxContainer" parent="Body/Split/MapSide"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RoomKeyCap" type="PanelContainer" parent="Body/Split/MapSide/Keys"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"Key"
+
+[node name="RoomKey" type="Label" parent="Body/Split/MapSide/Keys/RoomKeyCap"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"KeyLabel"
+
+[node name="RoomText" type="Label" parent="Body/Split/MapSide/Keys"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Dim"
+
+[node name="Gap" type="Control" parent="Body/Split/MapSide/Keys"]
+custom_minimum_size = Vector2(16, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="FloorUpCap" type="PanelContainer" parent="Body/Split/MapSide/Keys"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"Key"
+
+[node name="FloorUp" type="Label" parent="Body/Split/MapSide/Keys/FloorUpCap"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"KeyLabel"
+
+[node name="FloorDownCap" type="PanelContainer" parent="Body/Split/MapSide/Keys"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"Key"
+
+[node name="FloorDown" type="Label" parent="Body/Split/MapSide/Keys/FloorDownCap"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"KeyLabel"
+
+[node name="FloorText" type="Label" parent="Body/Split/MapSide/Keys"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Dim"
+
+[node name="RoomSide" type="VBoxContainer" parent="Body/Split"]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Head" type="HBoxContainer" parent="Body/Split/RoomSide"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="LedgerRoomName" type="Label" parent="Body/Split/RoomSide/Head"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Title"
+
+[node name="LedgerRoomClutter" type="Label" parent="Body/Split/RoomSide/Head"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+theme_type_variation = &"Dim"
+text_overrun_behavior = 3
+
+[node name="Filters" type="HFlowContainer" parent="Body/Split/RoomSide"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 4
+
+[node name="CardClip" type="Control" parent="Body/Split/RoomSide"]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Cards" type="VBoxContainer" parent="Body/Split/RoomSide/CardClip"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Detail" type="PanelContainer" parent="Body/Split/RoomSide"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Tile"
+
+[node name="Line" type="HBoxContainer" parent="Body/Split/RoomSide/Detail"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="DetailPicture" type="TextureRect" parent="Body/Split/RoomSide/Detail/Line"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture_filter = 5
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Words" type="VBoxContainer" parent="Body/Split/RoomSide/Detail/Line"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="NameLine" type="HBoxContainer" parent="Body/Split/RoomSide/Detail/Line/Words"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="DetailName" type="Label" parent="Body/Split/RoomSide/Detail/Line/Words/NameLine"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Title"
+text_overrun_behavior = 3
+
+[node name="DetailAction" type="HBoxContainer" parent="Body/Split/RoomSide/Detail/Line/Words/NameLine"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="DetailKeyCap" type="PanelContainer" parent="Body/Split/RoomSide/Detail/Line/Words/NameLine/DetailAction"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"Key"
+
+[node name="DetailKey" type="Label" parent="Body/Split/RoomSide/Detail/Line/Words/NameLine/DetailAction/DetailKeyCap"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"KeyLabel"
+
+[node name="DetailDo" type="Label" parent="Body/Split/RoomSide/Detail/Line/Words/NameLine/DetailAction"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HomeLine" type="HBoxContainer" parent="Body/Split/RoomSide/Detail/Line/Words"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HomeGlyph" type="Control" parent="Body/Split/RoomSide/Detail/Line/Words/HomeLine"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5")
+shape = 2
+
+[node name="DetailHome" type="Label" parent="Body/Split/RoomSide/Detail/Line/Words/HomeLine"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text_overrun_behavior = 3
+
+[node name="Facts" type="HBoxContainer" parent="Body/Split/RoomSide/Detail/Line/Words"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="CostGlyph" type="Control" parent="Body/Split/RoomSide/Detail/Line/Words/Facts"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5")
+shape = 1
+
+[node name="DetailCost" type="Label" parent="Body/Split/RoomSide/Detail/Line/Words/Facts"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Dim"
+
+[node name="DetailDots" type="Control" parent="Body/Split/RoomSide/Detail/Line/Words/Facts"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("4")
+
+[node name="DetailOut" type="Label" parent="Body/Split/RoomSide/Detail/Line/Words/Facts"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Strong"
+text_overrun_behavior = 3

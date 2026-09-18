@@ -7,16 +7,34 @@ class_name WorldBuilder
 ## "One wall, two faces"). A house lit one way in a gate render and another way in the game
 ## would make the gate meaningless.
 
+## Puts the window in a window of `size`, the design size by default. The game opens full screen
+## (`display/window/size/mode`); a render is taken in a window, so every render is the same size whatever
+## screen it was taken on. Asked again every frame for a few: leaving full screen, KWin maximizes the window
+## first, and the size set in that frame is dropped (2560x1368, 2026-09-17).
+static func windowed(node: Node, size := Vector2i.ZERO) -> void:
+	var window := node.get_window()
+	var wanted := size if size != Vector2i.ZERO else Vector2i(ProjectSettings.get_setting("display/window/size/viewport_width"),
+			ProjectSettings.get_setting("display/window/size/viewport_height"))
+	for i in range(WINDOW_FRAMES):
+		window.mode = Window.MODE_WINDOWED
+		window.size = wanted
+		await node.get_tree().process_frame
+		RenderingServer.force_draw()
+
 ## SDFGI and a VoxelGI both need frames to converge before a picture of them is worth having,
 ## and a process frame is not a drawn frame: when the window is not composited the engine ticks
 ## at 1 fps and draws nothing, so every capture is a black PNG that no error reports. Each
 ## settle iteration is forced to draw for that reason.
 const SETTLE_FRAMES := 180
+## Frames a window is given to leave full screen and take its size.
+const WINDOW_FRAMES := 10
 
 ## Saves what the viewport is showing, after letting the light settle. Returns OK or the error
 ## `save_png` gave, so a caller can exit on it — a render that silently did not happen is the
 ## one failure this project cannot afford (`CLAUDE.md`, "Verification").
 static func capture(node: Node, path: String) -> Error:
+	if node.get_window().mode != Window.MODE_WINDOWED:
+		await windowed(node)
 	for i in range(SETTLE_FRAMES):
 		await node.get_tree().process_frame
 		RenderingServer.force_draw()

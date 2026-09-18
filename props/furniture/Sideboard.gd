@@ -88,7 +88,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 			piece.add_anchor(&"plates", Transform3D(Basis.IDENTITY, Vector3(_bay_x(i, bay, case_width), bottom + PANEL,
 					front - PLATES_Z)), piece, container)
 
-	piece.add_hollow(Vector3(WIDTH, under - bottom + TOP_THICK, front), Vector3(0, (bottom + HEIGHT) * 0.5, front * 0.5), PANEL)
+	piece.add_box(Vector3(WIDTH, under - bottom + TOP_THICK, front), Vector3(0, (bottom + HEIGHT) * 0.5, front * 0.5))
 	piece.add_anchor(&"top", Transform3D(Basis.IDENTITY, Vector3(0, HEIGHT, DEPTH * 0.5)), piece)
 	return piece
 

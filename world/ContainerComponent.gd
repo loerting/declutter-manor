@@ -21,6 +21,7 @@ var _open := Transform3D.IDENTITY
 var _openness := 0.0
 var _state: State = State.CLOSED
 var _tween: Tween
+var _tray: StaticBody3D
 
 ## `open_xform` is where the moving part sits when the container is fully open, in its own
 ## parent's space. A drawer slides, a door swings, and nothing here needs to know which.
@@ -37,6 +38,7 @@ func initialize(id: StringName, mover: Node3D, open_xform: Transform3D) -> void:
 func _ready() -> void:
 	assert(_mover != null, "ContainerComponent: initialize() before adding to the tree")
 	var body := StaticBody3D.new()
+	_tray = body
 	body.name = "Tray"
 	body.collision_layer = Layers.bit(Layers.TRAY)
 	body.collision_mask = 0
@@ -101,6 +103,16 @@ func close() -> void:
 		return
 	_state = State.CLOSING
 	_drive(0.0)
+
+## The moving part's solid, for a probe that has to tell it from everything else.
+func tray() -> StaticBody3D:
+	return _tray
+
+## Holds the moving part `openness` of the way open, with no tween and no change of state: a probe swinging it.
+func pose(openness: float) -> void:
+	if _tween != null:
+		_tween.kill()
+	_apply(openness)
 
 ## Snaps to a state with no tween. The probes use it; so will loading a save.
 func force(to_open: bool) -> void:

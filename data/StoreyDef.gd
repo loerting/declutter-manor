@@ -4,6 +4,8 @@ extends Resource
 ## a floor is.
 
 @export var id: StringName
+## What the player calls it: "Ground floor".
+@export var name_key := ""
 ## World Y of this storey's finished floor surface.
 @export var base_y := 0.0
 ## Finished floor to finished ceiling.

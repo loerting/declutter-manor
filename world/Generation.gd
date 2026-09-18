@@ -73,7 +73,10 @@ func _on_pool() -> void:
 
 func _build(i: int) -> void:
 	if i < _furniture.size():
-		_results[i] = FurnitureFactory.build(_furniture[i])
+		var piece := FurnitureFactory.build(_furniture[i])
+		if piece != null:
+			piece.gather_surface()
+		_results[i] = piece
 	else:
 		var parts := ItemFactory.generate(_items[i - _furniture.size()])
 		_hull_points[i - _furniture.size()] = ItemFactory.hull_points(parts)

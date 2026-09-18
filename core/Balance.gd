@@ -25,6 +25,16 @@ const PLAYER_RADIUS := 0.3
 ## body; the rest is the difference between a doorway and a gap. `dev/PlanProbe.gd` enforces it.
 const DOOR_CLEARANCE := PLAYER_RADIUS * 2.0 + 0.15
 const EYE_HEIGHT := 1.65
+## Crouched (held, the author's 2026-09-17 request for the keys every first-person game has): the capsule
+## this tall, the eye this high, walking at this pace, and the eye this long going down or up.
+## A crouch lowers a standing eye to about a kneeling adult's; walking crouched is half the walk.
+const CROUCH_HEIGHT := 1.1
+const CROUCH_EYE_HEIGHT := 1.0
+const CROUCH_SPEED := 1.4
+const CROUCH_TIME := 0.15
+## How high a jump lifts the feet: an ordinary standing jump, well short of a worktop, so it gets the
+## player over nothing the house does not already let them walk to.
+const JUMP_HEIGHT := 0.45
 const GRAVITY := 9.8
 ## Kept in contact with the floor over the crest of a stair ramp, so walking down a flight is
 ## a walk rather than a series of falls.
@@ -72,8 +82,6 @@ const FOV := 59.0
 
 ## How far the interaction ray reaches for picking up and for opening containers.
 const INTERACT_REACH := 2.2
-## Radius of the query that collects candidate place-slot groups while carrying.
-const PLACE_SNAP_RADIUS := 1.6
 ## A container must be at least this open before its slots are offered.
 const CONTAINER_OPEN_THRESHOLD := 0.85
 const CONTAINER_TWEEN_TIME := 0.35
@@ -96,17 +104,21 @@ const GHOST_OUTLINE := 0.004
 ## hand holds something out in front of you. Closer if a wall is closer.
 const DROP_REACH := 0.5
 const DROP_BELOW := 0.25
-## A throw's strength grows while the button is held, from a lob to a full throw over this long.
-const THROW_CHARGE_TIME := 0.8
-## A throw gives the item the player's effort in joules, capped at a speed a hand can release. A
-## 50 g spoon leaves at the cap; a 5 kg dumbbell at full charge leaves at 4.2 m/s and a 14 kg
-## television at 2.5 m/s, which is roughly what a person manages with each.
-const THROW_ENERGY_MIN := 4.0
-const THROW_ENERGY_MAX := 45.0
-const THROW_SPEED_MIN := 2.5
-const THROW_SPEED_MAX := 9.0
+## A throw's strength grows while the button is held, from a quick throw to a full one over this long.
+## It was 0.8 s from a lob, and the author found the throw too tame (2026-09-17).
+const THROW_CHARGE_TIME := 0.45
+## A throw gives the item the player's effort in joules, capped at a speed a hand can release. A tap
+## already throws a spoon at 6 m/s; a full throw sends it at 18 m/s, a 5 kg dumbbell at 8 m/s and a
+## 14 kg television at 4.8 m/s. It was 9, 4.2 and 2.5 m/s, a toss rather than a throw.
+const THROW_ENERGY_MIN := 12.0
+const THROW_ENERGY_MAX := 160.0
+const THROW_SPEED_MIN := 6.0
+const THROW_SPEED_MAX := 18.0
 ## Upward share of a throw's direction, so a throw aimed level arcs rather than skims the floor.
-const THROW_LIFT := 0.15
+const THROW_LIFT := 0.08
+## How fast a throw at the speed cap turns the item end over end, in radians a second; a slower throw
+## turns it slower in proportion, so a television leaves tumbling gently and a spoon spins.
+const THROW_SPIN := 14.0
 ## How long a let-go item may move before it is judged where it is. Most lie still in under two
 ## seconds; a can rolling across a floor may not, and a judge that waits forever never saves it.
 const LOOSE_SETTLE_LIMIT := 8.0
@@ -173,6 +185,9 @@ const HAND_FLOAT_PERIOD := 3.2
 
 ## How often the way to every carried item's home is looked up again. The player walks 2.8 m/s, so this is 28 cm.
 const WAY_INTERVAL := 0.1
+## How fast a compass mark turns to a new place to look, per second: 63% of the way in 1/12 s, so a new aim
+## glides in over a few frames rather than jumping.
+const WAY_TURN_RATE := 12.0
 ## A line through a doorway keeps this far off either jamb, so a marker never aims at the edge of a door.
 const WAY_JAMB := 0.15
 ## A doorway is walked through from this far in front of it to this far past it, and a flight from this far off
@@ -192,6 +207,13 @@ const HOME_OUTLINE_PX := 2.5
 ## How much nearer the eye the home outline is drawn than the piece, so the carcass round a flush drawer front
 ## does not hide it. Metres.
 const HOME_OUTLINE_PULL := 0.05
+## The outline round a member of the set looked for is wider than a home's: an item is small, and a thin line round
+## it across the house reads as a speck (Unpacking's outline was called "a touch on the thin side",
+## caniplaythat.com, 2021).
+const SOUGHT_OUTLINE_PX := 3.5
+## How strong an outline is where something stands between it and the eye, against 1 in plain sight: fainter, so
+## the player can tell "over there" from "right here", and still clear on a white wall.
+const OUTLINE_THROUGH_ALPHA := 0.55
 
 # --- Item pictures (docs/ARCHITECTURE.md, "Item pictures") ----------------------------------
 
@@ -218,9 +240,9 @@ const START_SLOTS := 1
 const SLOTS_PER_COMPLETED_SET := 1
 ## The only legal slot costs. An item outside this list is a content error.
 const SLOT_COST_TIERS: Array[int] = [1, 2, 4, 8]
-## The finale piece. 55 sets x 1 slot + START_SLOTS = 56, so the last set completion and the
+## The finale piece. 56 sets x 1 slot + START_SLOTS = 57, so the last set completion and the
 ## endgame coincide deliberately — there is no post-endgame limbo.
-const FINALE_SLOT_COST := 56
+const FINALE_SLOT_COST := 57
 ## How long the line saying a set is complete stays on screen. Long enough to read a set name
 ## and "+1 slot" while walking; short enough to be gone before the next item is picked up.
 const SET_NOTICE_SECONDS := 4.0
@@ -228,9 +250,9 @@ const SET_NOTICE_SECONDS := 4.0
 # --- Design targets, checked by dev/PacingProbe.gd ------------------------------------------
 
 const TARGET_SESSION_MINUTES := 180.0
-const TARGET_ITEM_COUNT := 250
-## One set per item type (`docs/CONTENT.md`).
-const TARGET_SET_COUNT := 55
+const TARGET_ITEM_COUNT := 256
+## One set per item type, and the table tennis gear (`docs/CONTENT.md`).
+const TARGET_SET_COUNT := 56
 const TARGET_ZONE_COUNT := 25
 ## Per-item budget: 5 s interact + 8 s amortized travel + 30 s search.
 const BUDGET_SECONDS_PER_ITEM := 43.0

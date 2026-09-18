@@ -1,7 +1,8 @@
 extends FurnitureGenerator
 ## A garage workbench against the wall: a butcher-block top on a pine frame with a plywood shelf low down,
 ## a bench vise on its front right corner, and a pegboard on furring strips on the wall above it with a
-## screwdriver rack, a row of hooks for wrenches and a hammer hanging between them.
+## screwdriver rack and a row of hooks for wrenches. It carries no tool that is not an item: a hammer on the pegboard
+## looked like one the player could pick up (the author, 2026-09-17).
 ##
 ## No parameters.
 ##
@@ -70,11 +71,6 @@ const HOOK_TIP := 0.016
 ## Where a wrench's ring meets the hook: a 13 mm ring's wall over the hook's top, out along its arm.
 const RING_WALL := 0.0057
 const HANG_OUT := 0.034
-## The hammer's hooks' column and row, its handle and head.
-const HAMMER_COLUMN := 22
-const HAMMER_ROW := 16
-const HAMMER_HANDLE := Vector2(0.014, 0.3)
-const HAMMER_HEAD := Vector3(0.11, 0.026, 0.024)
 
 const BUTCHER := Color(0.95, 0.8, 0.62)
 const PINE := Color(1.0, 0.92, 0.76)
@@ -187,25 +183,15 @@ func _rack(piece: FurnitureNode, board_front: float) -> void:
 func _rack_hole_x(k: int) -> float:
 	return RACK_X + (float(k) - (RACK_HOLES - 1) * 0.5) * RACK_PITCH
 
-## J-hooks out of the board's holes, and a hammer hanging head down over two of them.
+## J-hooks out of the board's holes.
 func _hooks(piece: FurnitureNode, board_front: float) -> void:
 	var wire: Array = []
 	for k in range(HOOKS):
 		wire.append([_hook(_hole(HOOK_COLUMN + k * HOOK_EVERY, HOOK_ROW), board_front), Transform3D.IDENTITY])
-	var hammer_at := _hole(HAMMER_COLUMN, HAMMER_ROW)
-	for side: float in [-1.0, 1.0]:
-		wire.append([_hook(hammer_at + Vector2(side * PEG_PITCH, 0), board_front), Transform3D.IDENTITY])
 	piece.add_child(Props.mi(Props.bake(wire), Mats.of("metal_brushed", STEEL, 0.4)))
 	var first := _hole(HOOK_COLUMN, HOOK_ROW)
 	piece.add_anchor(&"wrenches", Transform3D(Basis.IDENTITY, Vector3(first.x, first.y + HOOK_WIRE + RING_WALL,
 			board_front + HANG_OUT)), piece)
-	# The hammer's head rests across the two hooks, its handle hanging down between them.
-	var head_y := hammer_at.y + HOOK_WIRE + HAMMER_HEAD.y * 0.5
-	var head_z := board_front + HANG_OUT
-	piece.add_child(Props.mi(Props.rounded_box(HAMMER_HEAD, 0.004, 2, 8), Mats.of("metal_brushed", Color(0.35, 0.36, 0.38), 0.5),
-			Vector3(hammer_at.x, head_y, head_z)))
-	piece.add_child(Props.mi(Props.cyl(HAMMER_HANDLE.x, HAMMER_HANDLE.x * 0.8, HAMMER_HANDLE.y, 12), Mats.of("oak", PINE, 0.6),
-			Vector3(hammer_at.x, head_y - HAMMER_HANDLE.y * 0.5 + HAMMER_HEAD.y * 0.3, head_z)))
 
 ## The middle of the board's hole in column `column` from its left and row `row` from its bottom, in the
 ## piece's space.

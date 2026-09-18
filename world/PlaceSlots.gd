@@ -9,8 +9,12 @@ const GROUP := &"place_slots"
 var group: PlaceSlotGroup
 
 var _container: ContainerComponent
+## How far the furthest slot is from this node: a group further from the eye than reach and this is out of reach.
+var _span := 0.0
 var _occupied: Array[bool] = []
 var _items: Array[ItemNode] = []
+## "<item id>|<slot>" -> where that item rests in that slot, in this node's space (`slot_local`).
+var _rest: Dictionary[String, Transform3D] = {}
 
 ## The container is optional and is only consulted for `requires_open`. It is injected because
 ## this node has no business walking up the tree to find its own drawer (rule 4).
@@ -21,6 +25,8 @@ func initialize(slot_group: PlaceSlotGroup, container: ContainerComponent = null
 	_occupied.resize(slot_group.capacity)
 	_occupied.fill(false)
 	_items.resize(slot_group.capacity)
+	for i in range(slot_group.capacity):
+		_span = maxf(_span, slot_group.slot_xform(i).origin.length())
 	add_to_group(GROUP)
 
 ## Whether the group may be offered at all right now.
@@ -44,10 +50,38 @@ func free_count() -> int:
 func next_index(aim := Vector3.ZERO) -> int:
 	return group.next_index(_occupied, global_transform.affine_inverse() * aim)
 
+## The slot the crosshair would fill, seen from `eye` looking along `forward`: for a NEAREST group the free slot
+## nearest the line of sight, so a book goes where the player points along the shelf; for the others the next one.
+func aimed_index(eye: Vector3, forward: Vector3) -> int:
+	if group.fill_order != PlaceSlotGroup.FillOrder.NEAREST:
+		return group.next_index(_occupied)
+	var best := -1
+	var best_d := INF
+	for i in range(mini(group.capacity, _occupied.size())):
+		if _occupied[i]:
+			continue
+		var to := global_transform * group.slot_xform(i).origin - eye
+		var d := (to - forward * maxf(to.dot(forward), 0.0)).length()
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+## Whether any slot can be within `reach` of `eye`: a cheap test before the slots are asked one by one.
+func near(eye: Vector3, reach: float) -> bool:
+	return global_position.distance_to(eye) <= reach + _span
+
 ## Where that item's origin goes in slot `index`, in this node's space: the slot, and the item
 ## resting at it the way the group says (`PlaceSlotGroup.Rest`).
+##
+## Kept per item type and slot: the answer never changes, and `ItemFactory.rest` looks its bounds up under a key
+## built from the item's parameters and the basis, which is string work in the middle of a frame. The crosshair asks
+## for it while it is on a home, and the way home asks for every carried item's home, every look.
 func slot_local(index: int, def: ItemDef) -> Transform3D:
-	return ItemFactory.rest(def, group.rest, group.slot_xform(index))
+	var key := "%s|%d" % [def.id, index]
+	if not _rest.has(key):
+		_rest[key] = ItemFactory.rest(def, group.rest, group.slot_xform(index))
+	return _rest[key]
 
 func slot_global(index: int, def: ItemDef) -> Transform3D:
 	return global_transform * slot_local(index, def)

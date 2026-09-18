@@ -1,6 +1,38 @@
 [gd_resource type="Resource" script_class="FurnitureDef" format=3]
 
 [ext_resource type="Script" path="res://data/FurnitureDef.gd" id="1_fd"]
+[ext_resource type="Script" path="res://data/PlaceSlotGroup.gd" id="2_psg"]
+
+[sub_resource type="Resource" id="Resource_rec_ping_pong_table_0"]
+script = ExtResource("2_psg")
+id = &"table_tennis_bat_home"
+name_key = "home.table_tennis_bat_home"
+accepts = Array[StringName]([&"table_tennis_01", &"table_tennis_02"])
+capacity = 2
+layout = 1
+base_xform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
+step = Vector3(0.2, 0, 0)
+anchor = &"gear"
+
+[sub_resource type="Resource" id="Resource_rec_ping_pong_table_1"]
+script = ExtResource("2_psg")
+id = &"table_tennis_ball_home"
+name_key = "home.table_tennis_ball_home"
+accepts = Array[StringName]([&"table_tennis_03", &"table_tennis_04", &"table_tennis_05"])
+capacity = 3
+layout = 1
+base_xform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0, 0)
+step = Vector3(0.06, 0, 0)
+anchor = &"gear"
+
+[sub_resource type="Resource" id="Resource_rec_ping_pong_table_2"]
+script = ExtResource("2_psg")
+id = &"table_tennis_net_home"
+name_key = "home.table_tennis_net_home"
+accepts = Array[StringName]([&"table_tennis_06"])
+layout = 3
+rest = 2
+anchor = &"net"
 
 [resource]
 script = ExtResource("1_fd")
@@ -10,3 +42,4 @@ room = &"rec_room"
 wall = 2
 along = -0.39
 out = 1.4
+slots = Array[ExtResource("2_psg")]([SubResource("Resource_rec_ping_pong_table_0"), SubResource("Resource_rec_ping_pong_table_1"), SubResource("Resource_rec_ping_pong_table_2")])

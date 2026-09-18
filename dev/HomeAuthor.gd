@@ -78,7 +78,7 @@ func _drop(eye: Camera3D) -> void:
 	if held == null:
 		_say("F5: carrying nothing")
 		return
-	var hit := _cast(eye, Layers.bit(Layers.WORLD))
+	var hit := _cast(eye, Layers.drawn_mask())
 	if hit.is_empty() or (hit["normal"] as Vector3).y < MIN_FLOOR_NORMAL_Y:
 		_say("F5: no surface to stand '%s' on under the crosshair" % held.def.id)
 		return

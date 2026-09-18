@@ -1,13 +1,10 @@
-shader_type spatial;
-// The home outline (`HomeOutline`): a hull behind the piece, grown in screen space, so the line is as wide on
-// a cupboard across the room as on one in reach. Its normals are averaged per corner, so a box's faces grow
-// into one closed shell instead of splitting apart at every edge.
+// The line of an outline (`Outline`): a hull behind the outlined meshes, grown in screen space, so the line is as
+// wide on a cupboard across the house as on one in reach. Its normals are averaged per corner, so a box's faces
+// grow into one closed shell instead of splitting apart at every edge.
 //
 // A drawer front is flush with the carcass round it, which hides a hull drawn behind it. So the hull is drawn
-// `pull` metres nearer the eye, and never over the piece itself: `home_outline_mask.gdshader` has marked the
-// piece's own pixels in the stencil first. What is left is a line round the outside.
-render_mode unshaded, cull_front, shadows_disabled, fog_disabled, depth_draw_never;
-stencil_mode read, compare_not_equal, 64;
+// `pull` metres nearer the eye, and never over the outlined thing itself: `outline_mask.gdshader` has marked its
+// own pixels in the stencil first. What is left is a line round the outside.
 
 uniform vec4 line_color : source_color = vec4(1.0);
 // Pixels at 1080 lines.

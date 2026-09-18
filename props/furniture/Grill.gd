@@ -179,9 +179,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.add_anchor(&"grate", Transform3D(Basis.IDENTITY, Vector3(0, grate_y, fb_z)), piece, container)
 	piece.add_anchor(&"hood", Transform3D(Basis.IDENTITY, Vector3(0, HOOD.y + HOOD.z, HOOD.x * 0.5)), mover, container)
 
-	piece.add_bulk(Vector3(CART.x, hinge.y + HOOD.y + HOOD.z, CART.z), Vector3(0, (hinge.y + HOOD.y + HOOD.z) * 0.5, cz))
-	piece.add_hollow(Vector3(CART.x, hinge.y, CART.z), Vector3(0, hinge.y * 0.5, cz), 0.02,
-			FurnitureNode.Face.FRONT | FurnitureNode.Face.TOP)
+	piece.add_box(Vector3(CART.x, hinge.y + HOOD.y + HOOD.z, CART.z), Vector3(0, (hinge.y + HOOD.y + HOOD.z) * 0.5, cz))
 	piece.add_box(Vector3(CART.x + SHELF.x * 2.0, SHELF.y, SHELF.z), Vector3(0, SHELF_TOP - SHELF.y * 0.5, fb_z))
 	return piece
 

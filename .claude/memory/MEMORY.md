@@ -1,6 +1,6 @@
 # Memory Index
 
-- [Current status](current-status.md) — READ FIRST: S committed 8fb776c; stair fix + C1-C3 + U2 pictures + U3 way home (compass, outline, WayProbe) built and verified, committed in one commit after 8fb776c; next = U4 ledger (PortraitProbe rerun still owed); D1-D5 all (a)
+- [Current status](current-status.md) — READ FIRST: U3 committed 0b62a36; U4 ledger, the 9 play-test fixes, the UI readability pass and the number cull (named refusals, figures written once, floor on the arrows and W/S, sorted items stay put), the 3.6 m pool, the one-marker compass (hand only) and the put-away wording all green, NOT committed; editor restart needed
 
 - [Game vision](game-vision-declutter-manor.md) — the committed concept and the decisions of 2026-09-09
 - [Workflow](declutter-manor-workflow.md) — in-window implementation, delegate on volume only; CLAUDE.md Phase 0

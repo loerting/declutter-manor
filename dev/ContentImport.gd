@@ -8,16 +8,20 @@ extends Node3D
 ##     godot --headless --path . dev/ContentImport.tscn -- --rooms=entry_hall,living
 ##     godot --headless --path . dev/ContentImport.tscn -- --restart=umbrella_01,book_05
 ##     godot --headless --path . dev/ContentImport.tscn -- --absurd
+##     godot --headless --path . dev/ContentImport.tscn -- --settle=book_05,mug_05
 ##
 ## A set whose family already has items is left alone, so a batch is imported once and running it
 ## again writes nothing. `--dry` prints what would be written. `--restart` draws the start of each item
 ## named again, in the zone it starts in, the way an import would draw it now: for a start a piece built
 ## later is standing on (`FurnitureProbe`, `start.clear`). `--absurd` writes the starts of the copies the
-## plan puts somewhere deliberately absurd, onto the fixtures that now exist (`ABSURD_SPOTS`).
+## plan puts somewhere deliberately absurd, onto the fixtures that now exist (`ABSURD_SPOTS`). `--settle` lowers
+## or raises each start named, out in the open, straight down onto what is drawn under it, turned and placed as
+## it was: for starts dropped onto a piece's collision box before items met the piece as drawn (2026-09-17).
 ##
 ## What each copy is: id `<set>_NN`, the set's family (`<set>`), the plan's slot cost, the
 ## parameters its family gives copy NN (`ItemGenerator.variant`), and home `<set>_home` — the id the
-## furniture carrying the set's home gives its group.
+## furniture carrying the set's home gives its group. A copy of a set of several kinds is its kind instead:
+## parameter `kind`, name `item.<set>_<kind>`, its kind's slot cost and home `<set>_<kind>_home`.
 ##
 ## Where each copy starts: a point on the floor of its zone, or on something standing on that floor
 ## no higher than `MAX_SURFACE`, lying the way its family lies (`ItemGenerator.lying`), out of every
@@ -90,6 +94,7 @@ func _ready() -> void:
 	assert(BuildConfig.is_dev_only(), "ContentImport in a release build")
 	var rooms := PackedStringArray()
 	var restart := PackedStringArray()
+	var settle := PackedStringArray()
 	var absurd := false
 	var dry := false
 	for arg: String in OS.get_cmdline_user_args():
@@ -97,12 +102,14 @@ func _ready() -> void:
 			rooms = arg.trim_prefix("--rooms=").split(",", false)
 		elif arg.begins_with("--restart="):
 			restart = arg.trim_prefix("--restart=").split(",", false)
+		elif arg.begins_with("--settle="):
+			settle = arg.trim_prefix("--settle=").split(",", false)
 		elif arg == "--absurd":
 			absurd = true
 		elif arg == "--dry":
 			dry = true
-	if rooms.is_empty() and restart.is_empty() and not absurd:
-		push_error("ContentImport: no --rooms=, --restart= or --absurd")
+	if rooms.is_empty() and restart.is_empty() and settle.is_empty() and not absurd:
+		push_error("ContentImport: no --rooms=, --restart=, --settle= or --absurd")
 		get_tree().quit(1)
 		return
 	_plan = ManorPlan.build()
@@ -115,6 +122,11 @@ func _ready() -> void:
 	if absurd:
 		var placed := _absurd(dry)
 		print("ContentImport: %d absurd start(s) %s, %d error(s)" % [placed, "planned" if dry else "written", _errors])
+		get_tree().quit(_errors)
+		return
+	if not settle.is_empty():
+		var settled := _settle(settle, dry)
+		print("ContentImport: %d start(s) %s, %d error(s)" % [settled, "planned" if dry else "written", _errors])
 		get_tree().quit(_errors)
 		return
 	if not restart.is_empty():
@@ -148,16 +160,27 @@ func _import(entry: Dictionary, dry: bool) -> int:
 		_error("'%s' has no item family yet" % set_id)
 		return 0
 	var home := StringName("%s_home" % set_id)
-	if _content.find_group(home) == null:
+	if _content.find_group(home) == null and _kinds(entry).is_empty():
 		_error("no piece carries group '%s'" % home)
 	var defs: Array[ItemDef] = []
 	var starts: Array = entry["starts"]
+	var kinds := _kinds(entry)
 	for n in range(int(entry["count"])):
 		var def := ItemDef.make(StringName("%s_%02d" % [set_id, n + 1]), set_id, home, set_id)
 		def.name_key = "item.%s" % set_id
 		def.slot_cost = int(entry["slot_cost"])
 		def.mass = float(entry["kg"])
 		def.params = ItemFactory.variant(set_id, n)
+		if not kinds.is_empty():
+			# A set of a few kinds: each copy is its kind, named for it, and at home where its kind goes.
+			var kind: Dictionary = kinds[n]
+			def.params = {"kind": str(kind["kind"])}
+			def.name_key = "item.%s_%s" % [set_id, kind["kind"]]
+			def.home = StringName("%s_%s_home" % [set_id, kind["kind"]])
+			def.slot_cost = int(kind["slot_cost"])
+			def.mass = float(kind["kg"])
+			if _content.find_group(def.home) == null:
+				_error("no piece carries group '%s'" % def.home)
 		def.start = _scatter(def, StringName(str(starts[n])))
 		if def.start == null:
 			continue
@@ -177,6 +200,15 @@ func _import(entry: Dictionary, dry: bool) -> int:
 	_content.items.append_array(defs)
 	return defs.size()
 
+## One entry per copy of a set of several kinds, in copy order (`tools/content_model.py`, `KINDS`); empty for a
+## set of one kind.
+static func _kinds(entry: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for kind: Dictionary in entry.get("kinds", []):
+		for i in range(int(kind["count"])):
+			out.append(kind)
+	return out
+
 # --- Starts ---------------------------------------------------------------------------------------
 
 func _scatter(def: ItemDef, zone: StringName) -> ItemPlacement:
@@ -189,6 +221,7 @@ func _scatter(def: ItemDef, zone: StringName) -> ItemPlacement:
 	var inner := Clearance.inner(room)
 	var keep_out := Clearance.doorways(_plan, room)
 	keep_out.append_array(Clearance.stairs(_plan, room))
+	keep_out.append_array(Clearance.water(_plan, room))
 	var top := floor_y + MAX_SURFACE + DROP_HEADROOM
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("%s@%s" % [def.id, zone])
@@ -200,11 +233,11 @@ func _scatter(def: ItemDef, zone: StringName) -> ItemPlacement:
 		# What it covers turned the way it would lie, not a circle round its diagonal: a pool noodle is a
 		# metre and a half long and five centimetres wide, and no furnished room had a clear circle
 		# 1.5 m across for it (2026-09-15).
-		var foot := _footprint(def, HomeAuthor.drop_xform(Vector3(p.x, floor_y, p.y), yaw, def))
+		var foot := Clearance.item_footprint(def, HomeAuthor.drop_xform(Vector3(p.x, floor_y, p.y), yaw, def))
 		if not _within(room, inner, foot) or _crowded(zone, foot) or Clearance.blocked(foot, keep_out):
 			continue
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, top, p.y),
-				Vector3(p.x, floor_y - Clearance.ITEM_SKIN, p.y), Layers.bit(Layers.WORLD)))
+				Vector3(p.x, floor_y - Clearance.ITEM_SKIN, p.y), Layers.drawn_mask()))
 		if hit.is_empty() or (hit["normal"] as Vector3).y < MIN_NORMAL_Y \
 				or (hit["position"] as Vector3).y - floor_y > MAX_SURFACE:
 			continue
@@ -301,7 +334,7 @@ func _world_of(placement: ItemPlacement) -> Vector3:
 ## Where the floor or the surface under `point` is, or null.
 func _floor_under(point: Vector3) -> Variant:
 	var hit := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(
-			point + Vector3.UP * DROP_HEADROOM, point - Vector3.UP * MAX_SURFACE, Layers.bit(Layers.WORLD)))
+			point + Vector3.UP * DROP_HEADROOM, point - Vector3.UP * MAX_SURFACE, Layers.drawn_mask()))
 	return null if hit.is_empty() else hit["position"]
 
 func _restart(ids: PackedStringArray, dry: bool) -> int:
@@ -324,6 +357,39 @@ func _restart(ids: PackedStringArray, dry: bool) -> int:
 			_error("'%s' did not write: %s" % [id, error_string(err)])
 	return moved
 
+func _settle(ids: PackedStringArray, dry: bool) -> int:
+	var nodes: Dictionary[StringName, ItemNode] = {}
+	for item: ItemNode in ProgressSave.items_in(self):
+		nodes[item.def.id] = item
+	var space := get_world_3d().direct_space_state
+	var settled := 0
+	for id: String in ids:
+		var item: ItemNode = nodes.get(StringName(id), null)
+		if item == null or item.def.start == null or item.def.start.container != &"" or item.def.start.anchor != &"":
+			_error("no item '%s' with a start out in the open" % id)
+			continue
+		var gap := Clearance.standing(space, item.hull_points(), MAX_SURFACE)
+		if gap == INF:
+			_error("'%s' has nothing drawn under it" % id)
+			continue
+		var xform := item.def.start.xform
+		xform.origin.y -= gap
+		var room := _plan.room_at(xform.origin, ProgressSave.ROOM_SLACK)
+		var floor_y := room.floor_y(_plan.storey_of(room.id).base_y) if room != null else 0.0
+		if room == null or not Reach.reachable(space, _plan, item.extent(), xform, floor_y):
+			_error("'%s' settled %.1f mm down at %s is out of reach" % [id, gap * 1000.0, xform.origin])
+			continue
+		print("  %s: %+.1f mm, onto what is drawn under it" % [id, -gap * 1000.0])
+		settled += 1
+		if dry:
+			continue
+		item.def.start.xform = xform
+		item.def.start.room = room.id
+		var err := HomeAuthor.save_item(item.def, HomeAuthor.content_dir(_plan))
+		if err != OK:
+			_error("'%s' did not write: %s" % [id, error_string(err)])
+	return settled
+
 ## Whether the surface the drop found runs under the whole item: a ray at each corner of its footprint,
 ## pulled in toward the middle, finds something at the same height.
 func _supported(space: PhysicsDirectSpaceState3D, def: ItemDef, xform: Transform3D, rest_y: float) -> bool:
@@ -335,7 +401,7 @@ func _supported(space: PhysicsDirectSpaceState3D, def: ItemDef, xform: Transform
 			var at := mid + Vector2(sx * half.x, sz * half.y)
 			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(
 					Vector3(at.x, rest_y + SUPPORT_DROP, at.y), Vector3(at.x, rest_y - SUPPORT_DROP, at.y),
-					Layers.bit(Layers.WORLD)))
+					Layers.drawn_mask()))
 			if hit.is_empty():
 				return false
 	return true
@@ -346,15 +412,6 @@ func _crowded(zone: StringName, foot: PackedVector2Array) -> bool:
 		if Clearance.overlap(spaced, other) > Clearance.OVERLAP_AREA:
 			return true
 	return false
-
-## The floor an item at `xform` covers, as a plan polygon: the hull of its bounds' corners.
-func _footprint(def: ItemDef, xform: Transform3D) -> PackedVector2Array:
-	var box := ItemFactory.extent(def)
-	var corners := PackedVector2Array()
-	for k in range(8):
-		var c := xform * box.get_endpoint(k)
-		corners.append(Vector2(c.x, c.z))
-	return Geometry2D.convex_hull(corners)
 
 ## A footprint grown by half the spacing, so two of them that do not overlap are the spacing apart.
 func _spaced(foot: PackedVector2Array) -> PackedVector2Array:
@@ -374,7 +431,7 @@ func _remember_starts(except: PackedStringArray) -> void:
 		if def.start == null or def.start.container != &"" or def.start.anchor != &"" \
 				or not _taken.has(def.start.room) or except.has(String(def.id)):
 			continue
-		_taken[def.start.room].append(_spaced(_footprint(def, def.start.xform)))
+		_taken[def.start.room].append(_spaced(Clearance.item_footprint(def, def.start.xform)))
 
 # --- The plan -------------------------------------------------------------------------------------
 

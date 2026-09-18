@@ -1,7 +1,7 @@
 class_name ClutterCensus
 extends Node
 ## How many misplaced items each room still holds — never which, never where (`docs/VISION.md`,
-## "Findability").
+## "Findability") — unless the player picked a set to look for (`rooms_of`).
 ##
 ## Misplaced is an item that belongs to a set and is not at home. It is counted in the room it is
 ## standing in, which for an item in a cupboard is the cupboard's room. A carried item is in no
@@ -30,6 +30,18 @@ func _ready() -> void:
 
 func counts() -> Dictionary:
 	return _counts.duplicate()
+
+## Room id -> the misplaced members of one set lying in it, for the set the player looks for. Counted when asked:
+## the ledger asks while it is open, not every frame.
+func rooms_of(set_id: StringName) -> Dictionary:
+	var out: Dictionary = {}
+	for item: ItemNode in ProgressSave.items_in(_root):
+		if item.def.set_id != set_id or item.is_carried() or SetTracker.at_home(item.def.id):
+			continue
+		var room := _plan.room_at(item.global_position, ProgressSave.ROOM_SLACK)
+		if room != null:
+			out[room.id] = int(out.get(room.id, 0)) + 1
+	return out
 
 func _on_item_placed(_item_id: StringName, _group_id: StringName) -> void:
 	_request()

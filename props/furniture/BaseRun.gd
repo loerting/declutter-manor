@@ -6,6 +6,8 @@ extends FurnitureGenerator
 ##     sink    int    the bay with a sink in it, from 1; 0 for none, default 0. That bay has a fixed
 ##                    front where its drawer would be, because the basin fills that space.
 ##     bowl    bool   a fruit bowl in the middle of the worktop (`FruitBowl`), default false
+##     hinges  String the side each door hinges on, "l" or "r" from the left (`Props.hinged_left`); by default
+##                    the outer edge, so neighbours open away from each other
 ##
 ## Parts, numbered from the run's left end seen from the front, starting at 1:
 ##
@@ -27,7 +29,10 @@ const DRAWER_DEPTH := 0.46
 ## How far a drawer comes out. Short of its own depth, because a drawer pulled past its runners
 ## falls on the floor.
 const DRAWER_TRAVEL := 0.42
-const DOOR_SWING_DEG := 100.0
+## A door opens square to its front and no further: past square, the end door of a run against a wall swung
+## into the wall and the two middle doors of a double vanity into each other (`FurnitureProbe`,
+## `container.swing`, 2026-09-17).
+const DOOR_SWING_DEG := 90.0
 
 func build(def: FurnitureDef) -> FurnitureNode:
 	var bays := maxi(1, Params.integer(def.params, "bays", DEFAULT_BAYS))
@@ -43,20 +48,9 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.add_child(run)
 	run.add_child(Props.base_carcass(width, bays, CARCASS_HEIGHT, CARCASS_DEPTH, sink))
 
-	# The carcass is a shell, not a block: the body is stopped by the whole unit (`FurnitureNode.add_bulk`),
-	# while the interaction ray is stopped only by the worktop, the ends, the back and the floor — so an item
-	# in an open cupboard can be picked up, which through one solid box it could not (2026-09-16).
 	var height := Props.worktop_y(CARCASS_HEIGHT)
 	var covers := CARCASS_DEPTH + Props.WORKTOP_NOSE
-	piece.add_bulk(Vector3(width, height, covers), Vector3(0, height * 0.5, covers * 0.5))
-	var carcass_top := Props.PLINTH_HEIGHT + CARCASS_HEIGHT
-	piece.add_box(Vector3(width, height - carcass_top, covers), Vector3(0, (height + carcass_top) * 0.5, covers * 0.5))
-	piece.add_box(Vector3(width, Props.PLINTH_HEIGHT + Props.CARCASS_PANEL, CARCASS_DEPTH),
-			Vector3(0, (Props.PLINTH_HEIGHT + Props.CARCASS_PANEL) * 0.5, CARCASS_DEPTH * 0.5))
-	piece.add_box(Vector3(width, carcass_top, Props.CARCASS_PANEL), Vector3(0, carcass_top * 0.5, Props.CARCASS_PANEL * 0.5))
-	for sx: float in [-1.0, 1.0]:
-		piece.add_box(Vector3(Props.CARCASS_PANEL, carcass_top, CARCASS_DEPTH),
-				Vector3(sx * (width - Props.CARCASS_PANEL) * 0.5, carcass_top * 0.5, CARCASS_DEPTH * 0.5))
+	piece.add_box(Vector3(width, height, covers), Vector3(0, height * 0.5, covers * 0.5))
 	piece.add_anchor(&"worktop", Transform3D(Basis.IDENTITY, Vector3(0, height, Props.WORKTOP_NOSE * 0.5)),
 			run)
 	if Params.flag(def.params, "bowl", false):
@@ -69,7 +63,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	for bay in range(bays):
 		var n := bay + 1
 		# Doors hinge on the outside edge, so two neighbours open away from each other.
-		var hinge_left := bay < bays / 2 or bays == 1
+		var hinge_left := Props.hinged_left(Params.text(def.params, "hinges", ""), bay, bay < bays / 2 or bays == 1)
 		var cx := -width * 0.5 + BAY * (float(bay) + 0.5)
 		var drawer_at := Vector3(cx, top - Props.FRONT_REVEAL - DRAWER_HEIGHT * 0.5, front_z)
 		if n == sink:

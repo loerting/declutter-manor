@@ -109,7 +109,7 @@ sheet, a dressmaker's form and three rolled rugs tied with string.
 Outdoors: driveway north of the garage, deck behind the hall, pool surround behind the kitchen
 wing, side garden along the west wall. The deck is 6 x 3 m of boards level with the floor
 inside, on a rim beam and posts, with a flight down its south edge to the lawn and another east
-onto the pool paving. The pool is a 6.6 x 1.7 m lap pool 1.5 m deep, cut through the paving and
+onto the pool paving. The pool is 6.6 x 3.6 m and 1.5 m deep, cut through the paving and
 the lawn under it, with a coped rim and steps at the shallow end; the paving runs 3.7 m past its deep
 end, where the diving board stands with the loungers and the pool bin beside it. The side garden is gravel, tinted well down from the scan: that scan is near white, and at the
 tint the other paving uses it read as a concrete slab in the aerial. The front walk is part of the driveway zone — an L from

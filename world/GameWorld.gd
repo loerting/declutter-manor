@@ -26,6 +26,8 @@ var _tier := Graphics.Tier.HIGH
 var _guidance := WayHome.Guidance.FULL
 var _shot := ""
 var _player: PlayerController
+var _hud: Hud
+var _way: WayHome
 var _plan: FloorPlan
 var _content: Catalogue
 var _items: Node3D
@@ -83,8 +85,10 @@ func _ready() -> void:
 
 	var hud := HUD.instantiate() as Hud
 	assert(hud != null, "GameWorld: Hud.tscn is not a Hud")
+	_hud = hud
 	add_child(hud)
 	hud.watch(_player.interactor())
+	hud.ledger_toggled.connect(_player.hold_still)
 	hud.track(content, plan, census)
 	# The pictures take a frame or two to draw; the HUD shows none until they are ready.
 	var portraits := Portraits.new()
@@ -93,6 +97,7 @@ func _ready() -> void:
 	hud.show_pictures(portraits)
 	portraits.render(content.items)
 	var way := WayHome.new()
+	_way = way
 	way.name = "WayHome"
 	way.guidance = _guidance
 	way.initialize(plan, content, RoomGraph.new(plan), _player.camera(), self)
@@ -107,6 +112,13 @@ func _ready() -> void:
 	if _shot != "" and BuildConfig.is_dev_only():
 		var err := await WorldBuilder.capture(self, _shot)
 		get_tree().quit(0 if err == OK else 1)
+
+## What the player is told, and the way home, for a render that has to set one of them up. Nothing reaches in by path.
+func hud() -> Hud:
+	return _hud
+
+func way() -> WayHome:
+	return _way
 
 ## The player, for anything the world owns that needs the eye. Nothing reaches in by path.
 func player() -> PlayerController:

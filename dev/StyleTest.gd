@@ -153,6 +153,7 @@ func _place_props() -> void:
 func _screenshot(path: String) -> void:
 	# SDFGI probes converge over many frames; capturing too early leaves the room
 	# lit by direct light alone, which reads far darker than it should.
+	await WorldBuilder.windowed(self)
 	for i in range(150):
 		await get_tree().process_frame
 	var img := get_viewport().get_texture().get_image()

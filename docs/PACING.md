@@ -10,17 +10,17 @@ one of them and must be resolved, not averaged away.
 | Input | Value | Where it comes from |
 |---|---|---|
 | Session target | 180 min | Author's stated "roughly a 3-hour play session" |
-| Item instances | 250 | `docs/VISION.md` scale decision |
-| Distinct item types | 55 | `docs/CONTENT.md`, from what a family of four owns |
-| Sets | 55 | One set per item type, one slot per set (author, 2026-09-14); see the slot ladder below |
+| Item instances | 256 | `docs/VISION.md` scale decision, and the table tennis gear (2026-09-17) |
+| Distinct item types | 58 | `docs/CONTENT.md`, from what a family of four owns |
+| Sets | 56 | One set per item type, one slot per set (author, 2026-09-14), the table tennis gear one set of three types (author, 2026-09-17); see the slot ladder below |
 | Zones (rooms + exterior areas) | ~22 | 6 basement, 7 ground, 6 upper, 3-4 exterior |
 | Walk speed | 2.8 m/s | Cozy first-person norm: above real walking (1.4), below shooter sprint (5.5) |
 | Mean one-way path, random point to random point | 24 m | Property ~26x19 m, three interior storeys, stairs traversed on ~55% of trips |
 
 ## The per-item budget
 
-    180 min = 10 800 s over 251 placements (250 items + the finale piece)
-    => 43 s per item, all-in
+    180 min = 10 800 s over 257 placements (256 items + the finale piece)
+    => 42 s per item, all-in
 
 Decomposed:
 
@@ -29,6 +29,11 @@ Decomposed:
 | Interact (pick up + aim + snap + confirm) | 5 s | Pick up ~1.5 s, aim until the slot previews ~2 s, confirm and settle ~1.5 s |
 | Travel, amortized over a full load | 8 s | See below |
 | Search and decide | 30 s | The actual game. This is where the fun is, and it is by far the number most likely to be wrong: at 15 s the game is 90 minutes, not 180. Only a playable room can measure it. |
+
+A player who picks a set in the ledger to be looked for (the author, 2026-09-17) spends almost none of that 30 s on
+those items: the outlines say where they lie, and the trip becomes travel. It is one set at a time and the player's
+own choice, so it shortens the run for whoever wants it shortened — which is the point of it — and the budget above
+is the run without it. What that costs in minutes cannot be modelled honestly; it needs the author's own play.
 
 **Travel amortization.** A trip is: walk to the clutter, gather `k` items along the way, walk to
 their homes. The two long legs (~24 m each) are shared by the whole load; the gathering legs are
@@ -39,19 +44,19 @@ their homes. The two long legs (~24 m each) are shared by the whole load; the ga
     k = 5   ->  22 m  ->   8 s per item
     k = 8   ->  18 m  ->   6 s per item
 
-Slot capacity runs 1 -> 56 across the session. The mean item slot cost over `docs/CONTENT.md` is
-1.93, so after the first few sets a whole set fits in one trip and `k` is the set's size, not the
+Slot capacity runs 1 -> 57 across the session. The mean item slot cost over `docs/CONTENT.md` is
+1.91, so after the first few sets a whole set fits in one trip and `k` is the set's size, not the
 capacity. **The content model's travel comes to ~7.5 s per item amortized**, close to the 8 s this
 section assumed with twenty sets.
 
 ## The slot ladder
 
-Start at 1 slot. Each completed set grants +1, permanently, forever. Fifty-five sets => 56 slots at
-100%. The finale piece costs 56 slots, so **the last set completion and the endgame coincide** —
+Start at 1 slot. Each completed set grants +1, permanently, forever. Fifty-six sets => 57 slots at
+100%. The finale piece costs 57 slots, so **the last set completion and the endgame coincide** —
 the final upgrade is immediately spent on the final act, and there is no post-endgame limbo.
 
-Sets are one item type each and range from 1 member (the television) to 15 (books, clothes
-hangers). `docs/CONTENT.md` runs the per-item budget above over the whole list, playing the sets
+Sets are one item type each, but for the table tennis gear, and range from 1 member (the television) to 15
+(books, clothes hangers). `docs/CONTENT.md` runs the per-item budget above over the whole list, playing the sets
 greedily — the lowest scatter tier first, then the lightest set that can be carried:
 
 | Checkpoint | Sets done | Capacity after | Cumulative time |
@@ -60,7 +65,7 @@ greedily — the lowest scatter tier first, then the lightest set that can be ca
 | Starting rooms clear | 4 | 5 | ~6 min |
 | Ground-floor sets done | 13 | 14 | ~19 min |
 | Every set fits one trip | 23 | 24 | ~46 min |
-| Last set, then the finale | 55 | 56 | ~177 min + 1 min finale |
+| Last set, then the finale | 56 | 57 | ~181 min + 1 min finale |
 
 An upgrade lands every ~3.2 minutes on average, and every ~1.3 minutes in the first ten. **After set 23
 the slot count stops limiting any single set.** Further slots only let the player carry several

@@ -27,7 +27,8 @@ script = ExtResource("1_fd")
 id = &"kitchen_run"
 generator = &"base_run"
 params = {
-"bays": 2
+"bays": 2,
+"hinges": "rr"
 }
 room = &"kitchen"
 align = 0

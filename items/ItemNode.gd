@@ -38,6 +38,7 @@ var origin_index := -1
 var origin_loose := false
 
 var _visual: Node3D
+var _solid: CollisionShape3D
 var _pick: ItemPick
 var _hold: Hold = Hold.STILL
 ## Seconds a loose item has been awake since it was let go of or last woken.
@@ -49,10 +50,10 @@ func initialize(item: ItemDef, visual: Node3D, solid: Shape3D) -> void:
 	add_to_group(GROUP)
 	_visual = visual
 	add_child(visual)
-	var shape := CollisionShape3D.new()
-	shape.name = "Solid"
-	shape.shape = solid
-	add_child(shape)
+	_solid = CollisionShape3D.new()
+	_solid.name = "Solid"
+	_solid.shape = solid
+	add_child(_solid)
 	_pick = ItemPick.new()
 	_pick.initialize(self, _extent(visual))
 	add_child(_pick)
@@ -63,6 +64,12 @@ func initialize(item: ItemDef, visual: Node3D, solid: Shape3D) -> void:
 	angular_damp = Balance.LOOSE_ANGULAR_DAMP
 	sleeping_state_changed.connect(_on_sleeping_state_changed)
 	_apply(Hold.STILL)
+
+## The points of its solid, where it is now, in world space.
+func hull_points() -> PackedVector3Array:
+	var hull := _solid.shape as ConvexPolygonShape3D
+	assert(hull != null, "ItemNode: '%s' has no convex solid" % def.id)
+	return global_transform * hull.points
 
 ## The item's meshes' bounds, in its own space.
 func extent() -> AABB:
@@ -97,11 +104,11 @@ func is_carried() -> bool:
 func is_loose() -> bool:
 	return _hold == Hold.LOOSE
 
-## Let go of, moving at `velocity`. The caller has already put it where it leaves the hand.
-func let_go(velocity: Vector3) -> void:
+## Let go of, moving at `velocity` and turning at `spin`. The caller has already put it where it leaves the hand.
+func let_go(velocity: Vector3, spin := Vector3.ZERO) -> void:
 	_apply(Hold.LOOSE)
 	linear_velocity = velocity
-	angular_velocity = Vector3.ZERO
+	angular_velocity = spin
 	loosened.emit(self)
 
 ## Loose and at rest where it is: an item a save found lying where it had come to rest. It sleeps, so

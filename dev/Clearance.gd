@@ -20,6 +20,8 @@ const FRONT_REACH := 0.75
 const OVERLAP_AREA := 0.0001
 ## An item whose shape reaches into anything solid by more than this is inside it.
 const ITEM_SKIN := 0.005
+## The surface under an item is looked for from this far over its top.
+const REST_START := 0.001
 
 ## The floor in front of every door, archway and garage door in the walls of `room`, on its side.
 static func doorways(plan: FloorPlan, room: RoomDef) -> Array[PackedVector2Array]:
@@ -52,6 +54,23 @@ static func stairs(plan: FloorPlan, room: RoomDef) -> Array[PackedVector2Array]:
 		var along := Vector2(absf(stair.direction.x), absf(stair.direction.y)) * STAIR_LANDING
 		out.append(rect_polygon(stair.footprint().grow_individual(along.x, along.y, along.x, along.y)))
 	return out
+
+## The open water of every pool cut into `room`: no item starts in it. Not one of `zones`, because the diving
+## board stands out over the water on purpose.
+static func water(plan: FloorPlan, room: RoomDef) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	for pool: PoolDef in plan.pools_in(room.id):
+		out.append(rect_polygon(pool.rect))
+	return out
+
+## The floor an item at `xform` covers, as a plan polygon: the hull of its bounds' corners.
+static func item_footprint(def: ItemDef, xform: Transform3D) -> PackedVector2Array:
+	var box := ItemFactory.extent(def)
+	var corners := PackedVector2Array()
+	for k in range(8):
+		var c := xform * box.get_endpoint(k)
+		corners.append(Vector2(c.x, c.z))
+	return Geometry2D.convex_hull(corners)
 
 ## All three, for something of `height` standing in `room`.
 static func zones(plan: FloorPlan, room: RoomDef, height: float) -> Array[PackedVector2Array]:
@@ -117,15 +136,26 @@ static func blocked(polygon: PackedVector2Array, zone_list: Array[PackedVector2A
 			return true
 	return false
 
-## True when an item at `xform` is inside something solid in `space`: its box, shrunk by ITEM_SKIN, meets
-## the world. Shrunk to half its own size at most, not by a fixed skin: a wrench 4.6 mm thick shrunk
-## to nothing meets the floor it lies on, and every start it tried was "inside" something.
+## How far an item whose solid has `points` (world space) stands over what is drawn under it: the least, over its
+## points, of the height of the point over the first surface a ray finds straight down from just over the item's
+## top. Negative is sunk: that surface passes through the item above the point. 0 is resting on it; INF is
+## nothing within `look` under it. Looked for from just over the item and not from higher, so the seat of a bench
+## over a towel on its shelf is not taken for something the towel has sunk into (2026-09-17). A ray from inside a
+## piece does not find its top face from behind, so a sunk point cannot be found looking up from it.
+static func standing(space: PhysicsDirectSpaceState3D, points: PackedVector3Array, look: float) -> float:
+	var top := -INF
+	for p: Vector3 in points:
+		top = maxf(top, p.y)
+	var gap := INF
+	for p: Vector3 in points:
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, top + REST_START, p.z),
+				p - Vector3.UP * look, Layers.drawn_mask()))
+		if not hit.is_empty():
+			gap = minf(gap, p.y - (hit["position"] as Vector3).y)
+	return gap
+
+## True when an item at `xform` is inside something drawn in `space`: a point of its hull is under the top face
+## of something by more than `ITEM_SKIN` (`standing`). Measured on the hull, not a box: a box shrunk by a skin
+## still reaches through the curve of a car's bonnet or a pillow it lies on.
 static func buried(space: PhysicsDirectSpaceState3D, def: ItemDef, xform: Transform3D) -> bool:
-	var box := ItemFactory.extent(def)
-	var shape := BoxShape3D.new()
-	shape.size = (box.size - Vector3.ONE * ITEM_SKIN * 2.0).max(box.size * 0.5)
-	var q := PhysicsShapeQueryParameters3D.new()
-	q.shape = shape
-	q.transform = xform * Transform3D(Basis.IDENTITY, box.get_center())
-	q.collision_mask = Layers.bit(Layers.WORLD)
-	return not space.intersect_shape(q, 1).is_empty()
+	return standing(space, xform * ItemFactory.hull(def).points, ITEM_SKIN) < -ITEM_SKIN

@@ -6,8 +6,22 @@ extends Node3D
 ## The camera and the hands are injected (rule 5). Nothing here reaches for the player, and the
 ## HUD is not called — the prompt is emitted and whoever built the world wires it up (rule 4).
 
-## What a click would do. The HUD renders it; nothing else reads it.
-enum Prompt { NONE, TAKE, OPEN, CLOSE, PLACE, NO_SLOT }
+## What a click would do, and why it would do nothing. The HUD renders it; nothing else reads it. A refusal names
+## its own reason, because "no slot free" is wrong when slots are free and the item needs more of them than that
+## (the author, 2026-09-17).
+enum Prompt {
+	NONE,
+	TAKE,
+	OPEN,
+	CLOSE,
+	PLACE,
+	## Free slots, but fewer than the item costs.
+	HANDS_FULL,
+	## The item costs more slots than the player has at all: no amount of putting away makes room for it.
+	TOO_BIG,
+	## The item stands in its own home. It is sorted, and it stays.
+	AT_HOME,
+}
 
 ## What a click would do, and the item under the crosshair if there is one — whether or not the click
 ## would act on it. Emitted when either changes.
@@ -85,9 +99,13 @@ func _decide() -> Prompt:
 				or _container.state() == ContainerComponent.State.OPENING else Prompt.OPEN
 	if _item == null:
 		return Prompt.NONE
-	# Aiming at something takeable with no room left for it is the one case the player has to
-	# be told about: the crosshair is on an item and the click will do nothing.
-	return Prompt.TAKE if Inventory.can_take(_item.def) else Prompt.NO_SLOT
+	# Aiming at something the click will not take is the case the player has to be told about, and each
+	# refusal has its own reason (`CarryComponent.can_take`).
+	if SetTracker.at_home(_item.def.id):
+		return Prompt.AT_HOME
+	if _item.def.slot_cost > Inventory.capacity:
+		return Prompt.TOO_BIG
+	return Prompt.TAKE if Inventory.can_take(_item.def) else Prompt.HANDS_FULL
 
 func _ray() -> Object:
 	var space := get_world_3d().direct_space_state
@@ -127,9 +145,12 @@ func _select_for(slots: PlaceSlots) -> void:
 			_carry.select(k)
 			return
 
-## The group being offered for any of `defs`, from the ones near enough to reach. The camera picks
-## it — the group whose next slot sits closest to the crosshair, inside a cone — so aiming at the
-## drawer is enough and the player never has to aim at a slot inside it.
+## The group being offered for any of `defs`. The camera picks it — the group whose next slot sits closest to
+## the crosshair, inside a cone — so aiming at the drawer is enough and the player never has to aim at a slot
+## inside it. A slot is offered as far off as an item can be picked up, measured to where the item would be,
+## and never through the house's own walls and floors: a toy box's floor is further below a standing eye than
+## the 1.6 m that was once measured to the group's origin, and the car could not be put in it from anywhere
+## (2026-09-17). The piece itself does not hide its own slots; the player aims at the bin, not into it.
 func _find_slot(defs: Array[ItemDef]) -> void:
 	_slots = null
 	_index = -1
@@ -138,23 +159,36 @@ func _find_slot(defs: Array[ItemDef]) -> void:
 	var best := cos(deg_to_rad(Balance.PLACE_AIM_CONE_DEG))
 	for node: Node in get_tree().get_nodes_in_group(PlaceSlots.GROUP):
 		var slots := node as PlaceSlots
-		if slots == null or slots.global_position.distance_to(global_position) > Balance.PLACE_SNAP_RADIUS:
+		if slots == null or not slots.near(eye, Balance.INTERACT_REACH):
 			continue
 		var def := _taken_by(slots, defs)
 		if def == null or not slots.available():
 			continue
-		var index := slots.next_index(eye + forward * Balance.PLACE_SNAP_RADIUS)
+		var index := slots.aimed_index(eye, forward)
 		if index < 0:
 			continue
-		var to_slot := slots.slot_global(index, def).origin - eye
-		if to_slot.length() < 0.001:
+		var at := slots.slot_global(index, def)
+		var box := ItemFactory.extent(def)
+		var to_slot := at * box.get_center() - eye
+		if to_slot.length() < 0.001 or to_slot.length() > Balance.INTERACT_REACH:
 			continue
 		var alignment := forward.dot(to_slot.normalized())
-		if alignment <= best:
+		if alignment <= best or not _in_sight(eye, at, box):
 			continue
 		best = alignment
 		_slots = slots
 		_index = index
+
+## Whether no wall or floor of the house stands between `eye` and an item with bounds `box` at `at`: a hit counts
+## only in front of where the line enters the item, so the wall a coat hangs against does not hide the coat.
+func _in_sight(eye: Vector3, at: Transform3D, box: AABB) -> bool:
+	var centre := at * box.get_center()
+	var entry: Variant = box.intersects_segment(at.affine_inverse() * eye, box.get_center())
+	if entry == null:
+		return true
+	var hit := get_world_3d().direct_space_state.intersect_ray(
+			PhysicsRayQueryParameters3D.create(eye, centre, Layers.bit(Layers.WORLD)))
+	return hit.is_empty() or eye.distance_to(hit["position"] as Vector3) >= eye.distance_to(at * (entry as Vector3)) - Reach.SKIN
 
 ## The first of `defs` the group takes, or null.
 static func _taken_by(slots: PlaceSlots, defs: Array[ItemDef]) -> ItemDef:
@@ -175,6 +209,10 @@ func throw_charge() -> float:
 	if _throw_since < 0:
 		return 0.0
 	return clampf(float(Time.get_ticks_msec() - _throw_since) / (Balance.THROW_CHARGE_TIME * 1000.0), 0.0, 1.0)
+
+## A wind-up let go of without a throw: the release never comes while the hands take no input (`PlayerController.hold_still`).
+func cancel_throw() -> void:
+	_throw_since = -1
 
 ## The actions that select a carried item by its place in the row, first to ninth.
 const SELECT_ACTIONS: Array[StringName] = [&"select_1", &"select_2", &"select_3", &"select_4", &"select_5",
@@ -212,7 +250,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# a spoon in front of an open drawer means the drawer.
 	if _slots != null:
 		_place()
-	elif _item != null:
+	elif _prompt == Prompt.TAKE:
 		_carry.try_take(_item)
 	elif _container != null:
 		_container.toggle()

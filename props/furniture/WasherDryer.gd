@@ -3,7 +3,7 @@ extends FurnitureGenerator
 ## baskets, on a small rug. Each machine is an enamelled cabinet on four feet, its front edges rounded over, a control strip
 ## across its top with a dial and a display, and a round door with a dark glass window. The washer's door
 ## opens on a real drum: the front is one surface that turns in through a round opening, along a short
-## tunnel and out into the drum. A jug of detergent stands on the washer.
+## tunnel and out into the drum.
 ##
 ## No parameters.
 ##
@@ -38,9 +38,6 @@ const TUNNEL := 0.05
 const DRUM := Vector2(0.25, 0.38)
 const HANDLE := Vector3(0.022, 0.1, 0.02)
 const SIDES := 48
-## A detergent jug on the washer: body, cap and handle.
-const JUG := Vector3(0.15, 0.25, 0.1)
-const JUG_AT := Vector2(-0.16, 0.22)
 const RUG := Vector3(0.6, 0.008, 0.56)
 
 const WHITE := Color(0.95, 0.95, 0.94)
@@ -48,7 +45,6 @@ const PANEL_GREY := Color(0.82, 0.83, 0.84)
 const FRAME := Color(0.72, 0.73, 0.75)
 const DARK := Color(0.03, 0.035, 0.04)
 const STAINLESS := Color(0.78, 0.79, 0.8)
-const JUG_TINT := Color(0.95, 0.5, 0.1)
 const RUG_TINT := Color(0.42, 0.48, 0.55)
 
 func build(def: FurnitureDef) -> FurnitureNode:
@@ -77,7 +73,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 			for z: float in [0.08, front - 0.08]:
 				feet.append([Props.cyl(FOOT_RADIUS, FOOT_RADIUS, FEET + 0.004, 12), Transform3D(Basis.IDENTITY,
 						Vector3(x + sx * (CABINET.x * 0.5 - 0.06), (FEET + 0.004) * 0.5, z))])
-		piece.add_hollow(Vector3(CABINET.x, CABINET.y, CABINET.z), Vector3(x, CABINET.y * 0.5, front * 0.5), 0.02)
+		piece.add_box(Vector3(CABINET.x, CABINET.y, CABINET.z), Vector3(x, CABINET.y * 0.5, front * 0.5))
 	piece.add_child(Props.mi(Props.bake(trim), Props.mat(PANEL_GREY, 0.35)))
 	piece.add_child(Props.mi(Props.bake(feet), Mats.of("rubber", DARK, 0.9)))
 	piece.add_child(Props.mi(Props.bake(dark), Props.mat(DARK, 0.1)))
@@ -97,7 +93,6 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var bay := Vector3(width * 0.5 - BAY * 0.5, 0, front * 0.5)
 	piece.add_child(Props.mi(Props.rounded_box(RUG, RUG.y * 0.5, 2, 8), Mats.of("rug_wool", RUG_TINT, 1.0), bay + Vector3(0, RUG.y * 0.5, 0)))
 	piece.add_anchor(&"beside", Transform3D(Basis.IDENTITY, bay + Vector3(0, RUG.y, 0)), piece)
-	_jug(piece, Vector3(washer_x + JUG_AT.x, CABINET.y, JUG_AT.y))
 	return piece
 
 ## A machine's cabinet as one loft from its back toward its front: the sides, the front's rounded edge and
@@ -149,16 +144,6 @@ func _door(at: Vector3) -> Node3D:
 	door.add_child(Props.mi(Props.rounded_box(HANDLE, 0.006, 2, 8), Props.mat(FRAME, 0.3, 0.4),
 			at + Vector3(DOOR.x - HANDLE.x * 0.5, 0, DOOR.z + HANDLE.z * 0.5)))
 	return door
-
-func _jug(piece: FurnitureNode, at: Vector3) -> void:
-	var parts: Array = [[Props.rounded_box(JUG, 0.02, 4, 16), Transform3D(Basis.IDENTITY, at + Vector3(0, JUG.y * 0.5, 0))]]
-	var grip := PackedVector3Array()
-	for k in range(7):
-		var a := PI * float(k) / 6.0
-		grip.append(at + Vector3(JUG.x * 0.5 - 0.005 + sin(a) * 0.035, JUG.y * 0.55 + cos(a) * 0.07, 0))
-	parts.append([Props.tube(grip, 0.012, 10), Transform3D.IDENTITY])
-	piece.add_child(Props.mi(Props.bake(parts), Props.mat(JUG_TINT, 0.35)))
-	piece.add_child(Props.mi(Props.cyl(0.028, 0.03, 0.035, 20), Props.mat(WHITE, 0.4), at + Vector3(-JUG.x * 0.2, JUG.y + 0.017, 0)))
 
 ## The rays every ring is drawn along: evenly round, plus the ones through each rounded corner's steps so
 ## the rectangle keeps its corners. Ordered so each ring runs from +X down toward -Y (`Props.loft`, toward +Z).

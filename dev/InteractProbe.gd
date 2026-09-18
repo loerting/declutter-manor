@@ -28,8 +28,10 @@ const SLOT_EPS := 0.0005
 ## Where the probe saves. Beside the real save rather than over it, and deleted afterwards
 ## (`SaveManager.basename_override`).
 const SAVE_NAME := "probe_interact"
-## A free-standing start rests on what is under it if its lowest point is this close to it.
+## A free-standing start rests on what is under it if its lowest point is this close to it, looked for
+## this far over its top and under its bottom.
 const REST_EPS := 0.003
+const REST_LOOK := 0.05
 ## Where the authoring round trip writes. Not the content, not the save, and deleted afterwards.
 const AUTHOR_DIR := "user://probe_author"
 ## The set the core verb is proven on: twelve spoons and the kitchen drawer, the reference
@@ -55,7 +57,7 @@ const HANDS_LOAD := 3
 ## the selected one and the float are drawn past the rectangle the layout measured.
 const HANDS_SCREEN_EPS := 0.01
 ## The item the auto-selection check carries beside the spoons has no home this near the cutlery drawer.
-const AUTO_SELECT_APART := Balance.PLACE_SNAP_RADIUS * 3.0
+const AUTO_SELECT_APART := Balance.INTERACT_REACH * 3.0
 ## A position that came back from a save, or went back to where it rested, is this close to it.
 const BACK_EPS := 0.001
 
@@ -127,6 +129,7 @@ func _run() -> void:
 	await _check_hands()
 	await _check_auto_select()
 	await _check_stacking()
+	await _check_sorted()
 	await _capture()
 	await _check_travel()
 	await _check_set_completes()
@@ -304,15 +307,28 @@ func _check_take() -> void:
 	if spoon.visible:
 		_fail("carry.hidden", "a carried spoon is still standing in the room")
 
-	# One slot, so the second spoon cannot be taken and the player has to be told why.
+	# One slot, so the second spoon cannot be taken and the player has to be told why. Which refusal it is matters:
+	# "no slot free" is the wrong thing to read when slots are free and the item wants more of them (the author,
+	# 2026-09-17), so a one-slot spoon with the hands full and a spoon too big for the hands are told apart.
 	var other := loose[1]
 	await _stand_looking_at(other.global_position)
-	if _player.interactor().prompt() != Interactor.Prompt.NO_SLOT:
+	if _player.interactor().prompt() != Interactor.Prompt.HANDS_FULL:
 		_fail("carry.full", "a full inventory does not say so (prompt %d)"
 				% _player.interactor().prompt())
 	await _press(&"interact")
 	if _player.carry().count() != 1:
 		_fail("carry.full", "a second spoon was taken into a one-slot inventory")
+	var cost := other.def.slot_cost
+	other.def.slot_cost = Inventory.capacity + 1
+	await _frames(2)
+	if _player.interactor().prompt() != Interactor.Prompt.TOO_BIG:
+		_fail("carry.full", "an item costing more slots than the player owns at all prompts %d, not TOO_BIG"
+				% _player.interactor().prompt())
+	other.def.slot_cost = cost
+	await _frames(2)
+	if _player.interactor().prompt() != Interactor.Prompt.HANDS_FULL:
+		_fail("carry.full", "back at its own cost the same item prompts %d, not HANDS_FULL"
+				% _player.interactor().prompt())
 
 
 # --- Letting go -----------------------------------------------------------------------------
@@ -562,7 +578,7 @@ func _face_open_floor() -> Vector3:
 		var a := TAU * float(i) / 16.0
 		var dir := Vector3(cos(a), 0.0, sin(a))
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, eye + dir * 20.0,
-				Layers.bit(Layers.WORLD) | Layers.bit(Layers.BULK)))
+				Layers.body_mask()))
 		var run := 20.0 if hit.is_empty() else eye.distance_to(hit["position"] as Vector3)
 		if run > best_run:
 			best_run = run
@@ -662,7 +678,8 @@ func _check_auto_select() -> void:
 	back.transform = back.origin_xform
 	back.set_carried(false)
 	for spoon: ItemNode in spoons:
-		carry.try_take(spoon)
+		if not _take_back(spoon):
+			_fail("place.select", "'%s' could not be taken back out of the drawer by the probe" % spoon.def.id)
 	await _face_open_floor()
 	for spoon: ItemNode in spoons:
 		await _press(&"drop_item")
@@ -680,6 +697,13 @@ func _home_near(def: ItemDef, slots: PlaceSlots) -> bool:
 				and group.global_position.distance_to(slots.global_position) < AUTO_SELECT_APART:
 			return true
 	return false
+
+## Takes an item back out of its own home, which the game itself no longer allows (`CarryComponent.can_take`,
+## the author, 2026-09-17): a probe that puts spoons away to prove the putting away has to rewind its own work.
+## It says what a pick-up says — the item has left its home — and then picks it up the ordinary way.
+func _take_back(item: ItemNode) -> bool:
+	EventBus.item_picked_up.emit(item.def.id)
+	return _player.carry().try_take(item)
 
 func _select_by_hand(action: StringName, item: ItemNode) -> void:
 	await _press(action)
@@ -752,6 +776,29 @@ func _check_stacking() -> void:
 	if slots.next_index() != -1:
 		_fail("place.stack", "a full drawer still offers slot %d" % slots.next_index())
 
+## A spoon standing in its own drawer is sorted, and sorted is sorted: the crosshair says so, the button does not
+## take it back out, and neither does the hands' own gate (the author, 2026-09-17). The drawer is still open from
+## `_check_stacking`, and the spoon on top of the pile is the one in plain sight.
+func _check_sorted() -> void:
+	var slots := _slots()
+	var spoon := slots.get_child(slots.get_child_count() - 1) as ItemNode
+	if spoon == null:
+		_fail("place.sorted", "nothing in the drawer to look at")
+		return
+	if not SetTracker.at_home(spoon.def.id):
+		_fail("place.sorted", "'%s' is in its own drawer and is not counted as home" % spoon.def.id)
+		return
+	await _stand_looking_at(spoon.global_transform * spoon.extent().get_center())
+	if _player.interactor().prompt() != Interactor.Prompt.AT_HOME:
+		_fail("place.sorted", "looking at a spoon in its own drawer prompts %d, not AT_HOME"
+				% _player.interactor().prompt())
+	await _press(&"interact")
+	await _release(&"interact")
+	if _player.carry().count() != 0 or spoon.get_parent() != slots:
+		_fail("place.sorted", "the button took a sorted spoon back out (hands hold %d)" % _player.carry().count())
+	if _player.carry().can_take(spoon) or _player.carry().try_take(spoon):
+		_fail("place.sorted", "the hands took '%s' although it was already at home" % spoon.def.id)
+
 ## What is in a drawer travels with the drawer. This is the check that fails if the slots are
 ## ever hung off the carcass instead of off the moving part.
 func _check_travel() -> void:
@@ -804,17 +851,14 @@ func _check_starts() -> void:
 		# the fruit in a bowl, the jaws of a vise, the lid of a trunk.
 		if start.container != &"" or start.anchor != &"":
 			continue
-		var box := item.global_transform * item.extent()
-		var centre := box.get_center()
-		var bottom := box.position.y
-		var q := PhysicsRayQueryParameters3D.create(Vector3(centre.x, bottom + 0.05, centre.z),
-				Vector3(centre.x, bottom - 0.05, centre.z), Layers.bit(Layers.WORLD))
-		var hit := space.intersect_ray(q)
-		if hit.is_empty():
-			_fail("author.rests", "'%s' has nothing within 5 cm under it" % item.def.id)
-		elif absf(bottom - (hit["position"] as Vector3).y) > REST_EPS:
-			_fail("author.rests", "'%s' stands %.1f mm off the surface under it"
-					% [item.def.id, (bottom - (hit["position"] as Vector3).y) * 1000.0])
+		# Measured on what is drawn, from every point of its hull (`Clearance.standing`). A box collider is not what is drawn, and starts
+		# dropped onto boxes hung up to 34 cm over what they seemed to lie on (2026-09-17).
+		var gap := Clearance.standing(space, item.hull_points(), REST_LOOK)
+		if gap == INF:
+			_fail("author.rests", "'%s' has nothing drawn within %.0f cm under it" % [item.def.id, REST_LOOK * 100.0])
+		elif absf(gap) > REST_EPS:
+			_fail("author.rests", "'%s' %s %.1f mm %s what is drawn under it" % [item.def.id,
+					"stands" if gap > 0.0 else "is sunk", absf(gap) * 1000.0, "off" if gap > 0.0 else "into"])
 
 ## The tool's writer, round-tripped: two items and a set written as files, a catalogue that
 ## refers to them, and all of it loaded back from disk rather than from the cache.

@@ -1,7 +1,8 @@
 extends FurnitureGenerator
 ## A cedar potting bench: a slatted top on four legs with rails, a slatted shelf low down, and two back posts
-## carrying a narrow shelf over the top. Terracotta pots stand about it — a big one with soil on the top, a
-## nested stack on the low shelf with a bag of potting soil, small ones along the high shelf.
+## carrying a narrow shelf over the top, and a big terracotta pot of soil standing on the top. Nothing else stands on
+## it: a stack of pots, small pots and a bag of soil looked like things the player could pick up (the author,
+## 2026-09-17).
 ##
 ## No parameters.
 ##
@@ -21,24 +22,17 @@ const SHELF_Y := 0.22
 const BACK_TOP := 1.45
 const HIGH_SHELF := Vector3(0.14, 1.22, 0.022)
 const BACK_RAIL_Y := 1.36
-## Terracotta pots as (radius at the rim, height): the big one on the top, the nested stack and the small ones.
+## The terracotta pot on the top: radius at the rim and height.
 const BIG_POT := Vector2(0.14, 0.2)
 const BIG_POT_X := 0.36
-const STACK_POT := Vector2(0.12, 0.16)
-const STACK_COUNT := 3
-const STACK_RISE := 0.05
-const SMALL_POT := Vector2(0.055, 0.08)
-const SMALL_POTS := 4
 const POT_WALL := 0.012
 ## The soil's top stands this far under a pot's rim.
 const SOIL_DROP := 0.03
-const BAG := Vector3(0.42, 0.13, 0.3)
 const TOP_X := -0.25
 
 const CEDAR := Color(0.66, 0.45, 0.31)
 const CLAY := Color(1.0, 0.9, 0.86)
 const SOIL := Color(0.5, 0.42, 0.36)
-const BAG_TINT := Color(0.24, 0.36, 0.2)
 
 func build(def: FurnitureDef) -> FurnitureNode:
 	var piece := FurnitureNode.new()
@@ -75,16 +69,9 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var clay: Array = []
 	var soil: Array = []
 	var big_at := Vector3(BIG_POT_X, SIZE.y, cz)
-	_pot(clay, soil, big_at, BIG_POT, true)
-	for k in range(STACK_COUNT):
-		_pot(clay, soil, Vector3(hx - LEG - STACK_POT.x - 0.04, SHELF_Y + STACK_RISE * float(k), cz), STACK_POT, false)
-	for k in range(SMALL_POTS):
-		var x := -hx + LEG + SMALL_POT.x + 0.04 + (SIZE.x - LEG * 2.0 - SMALL_POT.x * 2.0 - 0.08) * float(k) / float(SMALL_POTS - 1)
-		_pot(clay, soil, Vector3(x, HIGH_SHELF.y, LEG + HIGH_SHELF.x * 0.5), SMALL_POT, true)
+	_pot(clay, soil, big_at, BIG_POT)
 	piece.add_child(Props.mi(Props.bake(clay), Mats.of("terracotta", CLAY, 0.9)))
 	piece.add_child(Props.mi(Props.bake(soil), Mats.of("soil", SOIL, 1.0)))
-	var bag := Props.rounded_box(BAG, 0.03, 4, 16)
-	piece.add_child(Props.mi(bag, Props.mat(BAG_TINT, 0.45), Vector3(-hx + LEG + BAG.x * 0.5 + 0.03, SHELF_Y + BAG.y * 0.5, cz)))
 
 	piece.add_anchor(&"top", Transform3D(Basis.IDENTITY, Vector3(TOP_X, SIZE.y, cz)), piece)
 	piece.add_anchor(&"pot", Transform3D(Basis.IDENTITY, big_at + Vector3(0, BIG_POT.y - SOIL_DROP, 0)), piece)
@@ -92,14 +79,13 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	return piece
 
 ## A terracotta pot standing at `at`: an open lathe up the outside, over a rolled rim and down the inside to its
-## floor, filled to under the rim with soil when `filled`, or left hollow to take the pot nested in it.
-static func _pot(clay: Array, soil: Array, at: Vector3, size: Vector2, filled: bool) -> void:
+## floor, filled to under the rim with soil.
+static func _pot(clay: Array, soil: Array, at: Vector3, size: Vector2) -> void:
 	var foot := size.x * 0.72
 	var rim := size.y * 0.14
 	var profile := PackedVector2Array([Vector2(foot, 0.0), Vector2(size.x * 0.94, size.y - rim), Vector2(size.x, size.y - rim),
 			Vector2(size.x, size.y), Vector2(size.x - POT_WALL, size.y), Vector2(size.x - POT_WALL, size.y - rim),
 			Vector2(foot - POT_WALL, POT_WALL)])
 	clay.append([Props.lathe(profile, 28), Transform3D(Basis.IDENTITY, at)])
-	if filled:
-		var r := lerpf(foot, size.x * 0.94, (size.y - SOIL_DROP) / (size.y - rim)) - POT_WALL
-		soil.append([Props.cyl(r, r, 0.01, 24), Transform3D(Basis.IDENTITY, at + Vector3(0, size.y - SOIL_DROP - 0.005, 0))])
+	var r := lerpf(foot, size.x * 0.94, (size.y - SOIL_DROP) / (size.y - rim)) - POT_WALL
+	soil.append([Props.cyl(r, r, 0.01, 24), Transform3D(Basis.IDENTITY, at + Vector3(0, size.y - SOIL_DROP - 0.005, 0))])

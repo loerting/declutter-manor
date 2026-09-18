@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_drmsv"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_qk4jl"]
+
+[sub_resource type="Resource" id="Resource_yoi8h"]
+script = ExtResource("2_qk4jl")
+room = &"driveway"
+xform = Transform3D(-0.9655354, 0, -0.26027173, 0, 1, 0, 0.26027173, 0, -0.9655354, 14.096642, 0.119999886, 5.8002496)
+
+[resource]
+script = ExtResource("1_drmsv")
+id = &"table_tennis_02"
+name_key = "item.table_tennis_bat"
+mass = 0.09
+set_id = &"table_tennis"
+generator = &"table_tennis"
+params = {
+"kind": "bat"
+}
+home = &"table_tennis_bat_home"
+start = SubResource("Resource_yoi8h")

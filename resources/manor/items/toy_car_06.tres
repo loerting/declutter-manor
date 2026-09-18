@@ -6,7 +6,7 @@
 [sub_resource type="Resource" id="Resource_7hcwq"]
 script = ExtResource("2_dvxm1")
 room = &"master_bed"
-xform = Transform3D(0.51628864, 0, 0.8564146, 0, 1, 0, -0.8564146, 0, 0.51628864, 14.008139, 3.95, 14.82486)
+xform = Transform3D(0.51628864, 0, 0.8564146, 0, 1, 0, -0.8564146, 0, 0.51628864, 14.008139, 3.8999999, 14.82486)
 
 [resource]
 script = ExtResource("1_xu7mv")

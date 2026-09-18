@@ -14,30 +14,23 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="Head" type="HBoxContainer" parent="Rows"]
+[node name="CellsLine" type="HBoxContainer" parent="Rows"]
 layout_mode = 2
 mouse_filter = 2
+theme_override_constants/separation = 12
 
-[node name="Used" type="Label" parent="Rows/Head"]
+[node name="Cells" type="Control" parent="Rows/CellsLine"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"Strong"
-
-[node name="Spacer" type="Control" parent="Rows/Head"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
-[node name="Free" type="Label" parent="Rows/Head"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"Dim"
-
-[node name="Cells" type="Control" parent="Rows"]
-unique_name_in_owner = true
-layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("2")
+
+[node name="Used" type="Label" parent="Rows/CellsLine"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"Strong"
 
 [node name="Selected" type="HBoxContainer" parent="Rows"]
 unique_name_in_owner = true

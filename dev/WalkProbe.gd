@@ -20,6 +20,11 @@ const SETTLE_SECONDS := 1.0
 ## Seconds given to a body driven up a flight. Long enough for the longest one at walking pace,
 ## with the flight run and the rise both under 4 m.
 const CLIMB_SECONDS := 5.0
+## Seconds a jump is given to go up and come down, how far its height may be off `Balance.JUMP_HEIGHT` as a share
+## of it (a physics step at 240 Hz), and seconds a crouch is given to take the eye down or up.
+const JUMP_SECONDS := 1.0
+const JUMP_SHARE := 0.05
+const CROUCH_SECONDS := 0.4
 ## How high above the expected floor a body is dropped from.
 const DROP := 0.6
 ## The body has landed if its feet are within this of the floor the plan says is there. It is
@@ -82,6 +87,7 @@ func _ready() -> void:
 func _run() -> void:
 	print("=== manor (hash %s) ===" % _plan.plan_hash())
 	await _check_spawn()
+	await _check_jump_and_crouch()
 	for room: RoomDef in _plan.all_rooms():
 		await _check_floor(room)
 	print("  stood on %d of %d zones" % [_stood, _plan.all_rooms().size()])
@@ -107,6 +113,75 @@ func _run() -> void:
 			* get_physics_process_delta_time()) * 100.0, LURCH_BUDGET * 100.0])
 	print("WalkProbe: %d violation(s)" % _violations)
 	get_tree().quit(_violations)
+
+## The keys every first-person game has (the author, 2026-09-17), at the spawn: a jump lifts the feet
+## `Balance.JUMP_HEIGHT` and lands again. Crouch is a toggle: one press takes the eye down to `CROUCH_EYE_HEIGHT` and
+## it stays down once the key is let go; the next press under something lower than a standing body keeps the
+## player down until it is gone, and then they stand. Jump while crouched stands up without leaving the floor.
+func _check_jump_and_crouch() -> void:
+	var floor_y := _player.global_position.y
+	await _tap(&"jump")
+	var highest := floor_y
+	for i in range(_ticks(JUMP_SECONDS)):
+		await get_tree().physics_frame
+		highest = maxf(highest, _player.global_position.y)
+	var rise := highest - floor_y
+	if absf(rise - Balance.JUMP_HEIGHT) > Balance.JUMP_HEIGHT * JUMP_SHARE:
+		_fail("body.jump", "a jump lifted the feet %.2f m, not %.2f" % [rise, Balance.JUMP_HEIGHT])
+	if not _player.is_on_floor() or absf(_player.global_position.y - floor_y) > LAND_EPS:
+		_fail("body.jump", "a jump did not land again: feet at y=%.3f, floor %.3f" % [_player.global_position.y, floor_y])
+	await _tap(&"crouch")
+	await _physics_seconds(CROUCH_SECONDS)
+	var eye := _player.camera().global_position.y - _player.global_position.y
+	if not _player.crouched() or absf(eye - Balance.CROUCH_EYE_HEIGHT) > LAND_EPS:
+		_fail("body.crouch", "pressed once and let go, the eye is %.2f m over the feet, not %.2f" % [eye, Balance.CROUCH_EYE_HEIGHT])
+	# Something between a crouched head and a standing one, right over the body.
+	var low := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.0, 0.1, 1.0)
+	shape.shape = box
+	low.add_child(shape)
+	add_child(low)
+	low.global_position = _player.global_position + Vector3.UP * (Balance.CROUCH_HEIGHT + Balance.PLAYER_HEIGHT) * 0.5
+	# In the physics space from the frame after it is added.
+	for i in range(2):
+		await get_tree().physics_frame
+	await _tap(&"crouch")
+	await _physics_seconds(CROUCH_SECONDS)
+	if not _player.crouched():
+		_fail("body.crouch", "pressed again under something %.2f m up, the player stood up into it"
+				% (low.global_position.y - box.size.y * 0.5 - _player.global_position.y))
+	low.queue_free()
+	await _physics_seconds(CROUCH_SECONDS)
+	eye = _player.camera().global_position.y - _player.global_position.y
+	if _player.crouched() or absf(eye - Balance.EYE_HEIGHT) > LAND_EPS:
+		_fail("body.crouch", "pressed again with room to stand, the eye is %.2f m over the feet, not %.2f" % [eye, Balance.EYE_HEIGHT])
+	await _tap(&"crouch")
+	await _physics_seconds(CROUCH_SECONDS)
+	await _tap(&"jump")
+	highest = _player.global_position.y
+	for i in range(_ticks(JUMP_SECONDS)):
+		await get_tree().physics_frame
+		highest = maxf(highest, _player.global_position.y)
+	if _player.crouched() or highest - floor_y > LAND_EPS:
+		_fail("body.crouch", "jump while crouched: crouched %s, the feet rose %.2f m" % [_player.crouched(), highest - floor_y])
+	_player.hold_still(true)
+	await _tap(&"crouch")
+	await _physics_seconds(CROUCH_SECONDS)
+	if _player.crouched():
+		_fail("body.still", "held still, the crouch key still crouched the player")
+	_player.hold_still(false)
+
+## One press and let go, the frame after.
+func _tap(action: StringName) -> void:
+	Input.action_press(action)
+	await get_tree().physics_frame
+	Input.action_release(action)
+
+func _physics_seconds(seconds: float) -> void:
+	for i in range(_ticks(seconds)):
+		await get_tree().physics_frame
 
 ## The spawn is the one position in the house that must be right before anything else is: a
 ## player who starts inside a wall or above a stairwell never gets to find out about the rest.
@@ -437,7 +512,7 @@ func _check_deck_flight(deck: DeckDef, dir: Vector2) -> void:
 		_fail("deck.climb", "%s: the body stopped at y=%.2f, %.2f m from the deck edge, which is at y=%.2f"
 				% [label, at.y, mid.distance_to(Vector2(at.x, at.z)), top])
 	else:
-		var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP, at + Vector3.DOWN, Layers.bit(Layers.WORLD))
+		var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP, at + Vector3.DOWN, Layers.body_mask())
 		print("  climbed %s onto the deck at y=%.3f, ground under it %s" % [label, at.y,
 				get_world_3d().direct_space_state.intersect_ray(q).get("position", "none")])
 

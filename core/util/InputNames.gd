@@ -18,4 +18,5 @@ static func _mouse(index: MouseButton) -> String:
 		MOUSE_BUTTON_LEFT: return TranslationServer.translate("input.mouse_left")
 		MOUSE_BUTTON_RIGHT: return TranslationServer.translate("input.mouse_right")
 		MOUSE_BUTTON_MIDDLE: return TranslationServer.translate("input.mouse_middle")
+		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN: return TranslationServer.translate("input.wheel")
 		_: return TranslationServer.translate("input.mouse_other") % index

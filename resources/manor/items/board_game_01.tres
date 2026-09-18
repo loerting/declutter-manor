@@ -6,14 +6,13 @@
 [sub_resource type="Resource" id="Resource_hjum8"]
 script = ExtResource("2_bqte5")
 room = &"garage"
-xform = Transform3D(-0.511431, 0, 0.8593244, 0, 1, 0, -0.8593244, 0, -0.511431, 19.863997, 1.07, 10.582555)
+xform = Transform3D(-0.511431, 0, 0.8593244, 0, 1, 0, -0.8593244, 0, -0.511431, 19.863997, 0.91206044, 10.582555)
 
 [resource]
 script = ExtResource("1_1u5av")
 id = &"board_game_01"
 name_key = "item.board_game"
 slot_cost = 2
-mass = 1.0
 set_id = &"board_game"
 generator = &"board_game"
 params = {

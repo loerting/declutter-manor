@@ -19,6 +19,11 @@ extends Node3D
 
 ## Floating point, not geometry: a piece is on the floor if its lowest point is this close to it.
 const FLOOR_EPS := 0.002
+## How far open every door, lid and drawer is swung to while `container.swing` looks for what it runs into.
+const SWING_STEPS: Array[float] = [0.25, 0.5, 0.75, 1.0]
+## A moving part's box is shrunk by this before its edges are cast, so a door that opens flat against a wall
+## touches it rather than runs into it.
+const SWING_SKIN := 0.004
 ## What may stand proud of a footprint at the sides and front: pulls, a worktop's nose.
 const FOOTPRINT_SLACK := 0.03
 ## A signed volume smaller than this share of its bounding box says nothing about orientation —
@@ -54,6 +59,7 @@ func _ready() -> void:
 				_content.items.size()])
 		_check_every_family()
 		_check_homes()
+		add_child(HouseBuilder.build(_plan))
 		var root := FurnitureBuilder.build(_plan, _content, Generation.run(_content))
 		add_child(root)
 		_check_ids(root)
@@ -65,6 +71,7 @@ func _ready() -> void:
 		for i in range(2):
 			await get_tree().physics_frame
 		_check_starts()
+		await _check_swings(_pieces(root))
 	print("")
 	print("FurnitureProbe: %d violation(s)" % _violations)
 	get_tree().quit(_violations)
@@ -327,8 +334,9 @@ func _check_fronts(pieces: Array[FurnitureNode]) -> void:
 
 ## No item out in the open starts inside a piece: a start scattered before the piece was built is
 ## buried in it, and nothing else looked (2026-09-16). The same test `ContentImport` turns a start down
-## by (`Clearance.buried`), against the pieces' bodies alone. A start on a piece — in a container or on an
-## anchor — is on it on purpose and is not asked.
+## by (`Clearance.buried`), against the pieces as they are drawn. A start on a piece — in a container or on an
+## anchor — is on it on purpose and is not asked. Nor does one start over a pool's water: widening the pool
+## put two toy cars in it, and nothing looked (2026-09-18).
 func _check_starts() -> void:
 	var space := get_world_3d().direct_space_state
 	for def: ItemDef in _content.items:
@@ -336,6 +344,66 @@ func _check_starts() -> void:
 			continue
 		if Clearance.buried(space, def, def.start.xform):
 			_fail("start.clear", "'%s' starts inside a piece at %s in '%s'" % [def.id, def.start.xform.origin, def.start.room])
+		var room := _plan.find_room(def.start.room)
+		if Clearance.blocked(Clearance.item_footprint(def, def.start.xform), Clearance.water(_plan, room)):
+			_fail("start.clear", "'%s' starts over the water at %s in '%s'" % [def.id, def.start.xform.origin, def.start.room])
+
+## Every door, lid and drawer swings open clear of the house and of every other piece, with every other one open
+## too: the edges of each mesh box on its moving part, at each step of its swing, meet nothing drawn but its own
+## piece. A fridge door opened into the wall beside it and two doors side by side opened into each other (the
+## author, 2026-09-17), and nothing looked.
+func _check_swings(pieces: Array[FurnitureNode]) -> void:
+	var names: Dictionary[RID, String] = {}
+	var own: Dictionary[ContainerComponent, Array] = {}
+	for piece: FurnitureNode in pieces:
+		if piece.surface() != null:
+			names[piece.surface().get_rid()] = "'%s'" % piece.def.id
+		for c: ContainerComponent in piece.containers():
+			names[c.tray().get_rid()] = "'%s'" % c.container_id
+			var skip: Array[RID] = [c.tray().get_rid()]
+			if piece.surface() != null:
+				skip.append(piece.surface().get_rid())
+			own[c] = skip
+	var space := get_world_3d().direct_space_state
+	var mask := Layers.bit(Layers.WORLD) | Layers.bit(Layers.SURFACE) | Layers.bit(Layers.TRAY)
+	var reported: Dictionary[String, bool] = {}
+	for step: float in SWING_STEPS:
+		for c: ContainerComponent in own:
+			c.pose(step)
+		for i in range(2):
+			await get_tree().physics_frame
+		for c: ContainerComponent in own:
+			for edge: PackedVector3Array in _edges(c.mover()):
+				var query := PhysicsRayQueryParameters3D.create(edge[0], edge[1], mask, own[c])
+				var hit := space.intersect_ray(query)
+				if hit.is_empty():
+					continue
+				var what: String = names.get((hit["collider"] as CollisionObject3D).get_rid(), "the house")
+				var key := "%s|%s" % [c.container_id, what]
+				if reported.has(key):
+					continue
+				reported[key] = true
+				_fail("container.swing", "'%s' %d%% open runs into %s at %s" % [c.container_id, roundi(step * 100.0),
+						what, (hit["position"] as Vector3).snappedf(0.01)])
+	for c: ContainerComponent in own:
+		c.pose(0.0)
+
+## The twelve edges of the box round each mesh on `mover`, shrunk by `SWING_SKIN`, in world space.
+func _edges(mover: Node3D) -> Array[PackedVector3Array]:
+	var out: Array[PackedVector3Array] = []
+	for mi: MeshInstance3D in WorldBuilder.meshes(mover):
+		var box := mi.get_aabb().grow(-SWING_SKIN)
+		if box.size.x <= 0.0 or box.size.y <= 0.0 or box.size.z <= 0.0:
+			box = mi.get_aabb()
+		var corners: Array[Vector3] = []
+		for k in range(8):
+			corners.append(mi.global_transform * box.get_endpoint(k))
+		# get_endpoint numbers the corners by bits: x 1, y 2, z 4. An edge joins two that differ in one bit.
+		for a in range(8):
+			for bit: int in [1, 2, 4]:
+				if a & bit == 0:
+					out.append(PackedVector3Array([corners[a], corners[a | bit]]))
+	return out
 
 # --- Plan geometry --------------------------------------------------------------------------------
 

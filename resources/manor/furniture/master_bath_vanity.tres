@@ -22,7 +22,8 @@ generator = &"vanity"
 params = {
 "width": 1.4,
 "basins": 2,
-"finish": "oak"
+"finish": "oak",
+"hinges": "llll"
 }
 room = &"master_bath"
 wall = 1

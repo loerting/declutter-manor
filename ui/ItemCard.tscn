@@ -1,23 +1,24 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://ui/ItemCard.gd" id="1"]
 [ext_resource type="Script" path="res://ui/SetDots.gd" id="2"]
 [ext_resource type="Material" path="res://ui/glass.tres" id="3"]
+[ext_resource type="Script" path="res://ui/Glyph.gd" id="4"]
 
 [node name="ItemCard" type="PanelContainer"]
 material = ExtResource("3")
-custom_minimum_size = Vector2(364, 0)
+custom_minimum_size = Vector2(340, 0)
 mouse_filter = 2
 script = ExtResource("1")
 
 [node name="Body" type="HBoxContainer" parent="."]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
 
 [node name="Picture" type="TextureRect" parent="Body"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -29,7 +30,7 @@ stretch_mode = 5
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 7
 
 [node name="Top" type="HBoxContainer" parent="Body/Rows"]
 layout_mode = 2
@@ -45,59 +46,76 @@ autowrap_mode = 3
 
 [node name="CostChip" type="PanelContainer" parent="Body/Rows/Top"]
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 0
 mouse_filter = 2
 theme_type_variation = &"Chip"
 
-[node name="Cost" type="Label" parent="Body/Rows/Top/CostChip"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="Facts" type="GridContainer" parent="Body/Rows"]
+[node name="CostLine" type="HBoxContainer" parent="Body/Rows/Top/CostChip"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 4
-columns = 2
+theme_override_constants/separation = 4
 
-[node name="HomeKey" type="Label" parent="Body/Rows/Facts"]
+[node name="CostGlyph" type="Control" parent="Body/Rows/Top/CostChip/CostLine"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 0
-theme_type_variation = &"Dim"
+mouse_filter = 2
+script = ExtResource("4")
+shape = 1
 
-[node name="Home" type="Label" parent="Body/Rows/Facts"]
+[node name="Cost" type="Label" parent="Body/Rows/Top/CostChip/CostLine"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Strong"
+
+[node name="HomeLine" type="HBoxContainer" parent="Body/Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HomeGlyph" type="Control" parent="Body/Rows/HomeLine"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+script = ExtResource("4")
+shape = 2
+
+[node name="Home" type="Label" parent="Body/Rows/HomeLine"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 autowrap_mode = 3
 
-[node name="SetKey" type="Label" parent="Body/Rows/Facts"]
+[node name="Progress" type="HBoxContainer" parent="Body/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 0
-theme_type_variation = &"Dim"
-
-[node name="Progress" type="VBoxContainer" parent="Body/Rows/Facts"]
-layout_mode = 2
-size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 10
 
-[node name="Count" type="Label" parent="Body/Rows/Facts/Progress"]
+[node name="Dots" type="Control" parent="Body/Rows/Progress"]
 unique_name_in_owner = true
 layout_mode = 2
-text_overrun_behavior = 3
-
-[node name="Dots" type="Control" parent="Body/Rows/Facts/Progress"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 0
+size_flags_vertical = 4
 mouse_filter = 2
 script = ExtResource("2")
 
-[node name="AtHome" type="Label" parent="Body/Rows"]
+[node name="Count" type="Label" parent="Body/Rows/Progress"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Dim"
+
+[node name="AtHome" type="HBoxContainer" parent="Body/Rows"]
 unique_name_in_owner = true
 visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="AtHomeGlyph" type="Control" parent="Body/Rows/AtHome"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4")
+
+[node name="AtHomeText" type="Label" parent="Body/Rows/AtHome"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"Strong"

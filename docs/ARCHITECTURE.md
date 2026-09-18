@@ -282,6 +282,17 @@ landing two storeys down. That last check exists because nothing here tested bei
 every other check is about getting somewhere, and the author walked through a rail on
 2026-09-09 in a build where all of them were green.
 
+### What `dev/HomeProbe.tscn` proves
+
+Every item in the house, carried alone to its own home with every container open: the player is stood at every
+place round the slot the group fills next (any free one of a NEAREST group) where a body fits and the eye is in
+reach, nearest first, looks at it and presses the button, and `home.offered` fails an item no place puts into its
+slot. `home.back` fails one put away that no eye, standing or crouched, sees to take out again
+(`Reach.reachable`). Shown red on the house as it was (2026-09-17): 93 items could not be put away, the toy cars
+among them, and 25 put away could not be taken out of cupboards whose body was one box; after, a stuffed animal
+on the lower bunk against its back rail could not be seen under the top bunk, and the row moved to the mattress's
+middle. `-- --only=<group>` runs one home.
+
 ### What `dev/InteractProbe.gd` proves
 
 The same idea one level up: a real body, in the real house, with the authored items in it,
@@ -294,14 +305,15 @@ probe that reaches past the ray is a probe that can pass while the game does not
 |---|---|
 | `content.*` | an item naming a family that does not exist, a home no group answers to, an off-ladder slot cost, an item that starts nowhere |
 | `slots.arith` | generated slot transforms that drift, a stack taller than the drawer it is in |
-| `start.reachable` | an item no ray can reach: with every container open, no eye at standing height within reach sees it before something solid. A piece whose body is one box hides everything inside it, which is what `Layers.BULK` and `FurnitureNode.add_hollow` exist for |
+| `start.reachable` | an item no ray can reach: with every container open, no eye at standing or crouching height within reach sees it before something drawn. A piece whose body is one box hid everything inside it until the ray met pieces as they are drawn (`Layers.SURFACE`) |
 | `slots.closed` | a container's slots offered while it is shut — a ghost inside a carcass |
 | `container.fsm` | a container that does not open, does not shut, or does not start closed. Every container in the house, not just the kitchen's |
 | `reach.take` | the ray, the reach and the prompt: looking at a spoon from a stride away must say `Take` |
 | `carry.select` | the wheel, LB/RB and 1–9 selecting the wrong carried item, a drop letting go of anything but the selected one, the hands and the inventory disagreeing afterwards, or a selection that does not move to the item that took the dropped one's place |
 | `place.select` | pointing at the drawer with another item selected not selecting a spoon, a selection made by hand while the drawer is offered being overruled, or a click that puts one spoon away not selecting the next |
 | `hands.copies` / `.reach` / `.screen` | a copy held out for an item no longer carried, a copy reaching past the body's radius (into a wall), or a corner of one outside the screen, above `Balance.HAND_TOP` or in the carry bar's column |
-| `carry.full` | a second item taken into a one-slot inventory, and a full inventory that does not say so |
+| `carry.full` | a second item taken into a one-slot inventory, a full inventory that does not say so, and the two refusals told apart: hands too full for this item, and an item costing more slots than the player owns at all |
+| `place.sorted` | a spoon standing in its own drawer picked up again — by the button or by the hands' own gate — or one the crosshair does not call sorted |
 | `carry.drop` | a dropped item that stays in the hands, is not loose and visible, does not come to rest in front of the player, or lies more than 1 cm off what is under it |
 | `carry.retake` | a dropped item that cannot be picked up where it lies |
 | `carry.throw` | a full throw along open floor that lands under 2 m from the eye, or somewhere it cannot be reached |
@@ -316,7 +328,7 @@ probe that reaches past the ray is a probe that can pass while the game does not
 | `set.complete` / `.slot` / `.once` | a full drawer that does not complete its set, grant its slot, or say so exactly once |
 | `save.*` | the house torn down, rebuilt and loaded: the drawer must hold the same spoons in the same slots, the set still complete, the slot still granted and not granted again |
 | `author.start` | an item at its authored start that the authoring tool would read back as a different start — pressing F6 on an untouched item must write nothing new |
-| `author.rests` | a free-standing start more than 3 mm off the surface under it: the check that fails when the furniture moves and the content does not |
+| `author.rests` | a free-standing start more than 3 mm off what is drawn under it, or sunk more than 3 mm into it, measured from every point of its hull (`Clearance.standing`): the check that fails when the furniture moves and the content does not, and that found 15 starts lying on collision boxes instead of on the pieces, up to 34 cm over them (2026-09-17) |
 | `author.write` / `.read` / `.id` | the tool's writer round-tripped through real files: a catalogue that embeds its items instead of referring to them, a field lost on the way, a next id that is not one past the highest |
 | `author.home` | in the drawer, a spoon whose group does not read back as its home, or one that could be written as a start |
 | `change.*` | the same save loaded after a thirteenth spoon is added to the set: twelve back in the drawer, the new one at its authored start, the set reopened at 12 of 13, capacity unchanged |
@@ -368,7 +380,8 @@ Every piece the catalogue lists, built where its def says, and every item and fu
 | `group.anchor` / `.open` / `.on_piece` / `.consistent` / `.capacity` | a group on an anchor its family does not have, requiring an open container on a static anchor, a slot in the air off its piece, more items calling it home than it holds |
 | `home.group` / `home.accepts` | an item whose home no piece carries, or a group that does not take it |
 | `id.*` / `start.container` | two pieces, groups or containers with one id; a start inside a container no piece has |
-| `start.clear` | an item out in the open whose start is inside a piece's body — a start scattered before the piece it now stands in was built (`Clearance.buried`, the same test the import turns a start down by) |
+| `start.clear` | an item out in the open whose start is inside a piece as it is drawn — a start scattered before the piece it now stands in was built (`Clearance.buried`, the same test the import turns a start down by), or over a pool's water (`Clearance.water`, which the import keeps starts out of too) |
+| `container.swing` | a door, lid or drawer that runs into the house or another piece while it opens, every other one open too: the edges of each mesh box on the moving part, at a quarter, half, three quarters and fully open. Shown red on the content as it was (2026-09-17): the kitchen's end door and wall cabinet door into the wall, two vanity doors into each other, the toy box lid into the wall behind it and the grill hood into the house |
 
 `--family=<name>` runs the family checks on one family alone, which is the loop while a generator is
 being written. Shown red (2026-09-15): an inside-out box, a box with flipped normals, the kitchen
@@ -385,12 +398,15 @@ Items are not typed one by one. `tools/content_model.py --json` writes `dev/cont
 every set with its count, slot cost, home zone and the zone each copy starts in — and
 `dev/ContentImport.tscn -- --rooms=<zones>` writes the sets whose home is in those zones: the set, an
 item per copy (`<set>_NN`, family `<set>`, home `<set>_home`, parameters from the family's
-`variant`), and each copy's start, dropped once onto the real house and furniture in its zone, out of
+`variant`; for a set of several kinds, `KINDS` in the model, each copy's kind, name, slot cost and home
+`<set>_<kind>_home`), and each copy's start, dropped once onto the real house and furniture in its zone, out of
 doorways and landings, not inside anything and not on another start, then frozen into its file. A
 set that already has items is skipped, so an import cannot overwrite authored work. The absurd spots
 are not placed by it: that copy starts on the floor of the right zone until its fixture exists.
 The drop ray starts just over the highest surface a start may be on, not at the ceiling: in the
-attic a ray from storey height starts above the roof and every drop lands on it.
+attic a ray from storey height starts above the roof and every drop lands on it. `--settle=<ids>` lowers or
+raises a start straight onto what is drawn under it (`Clearance.standing`); it moved the 15 starts that had been
+dropped onto collision boxes (2026-09-17).
 
 Occluder generation from the same walk is planned for the end of Phase 1, once `PerfProbe` says
 whether the draw-call budget needs it. It is not built yet.
@@ -403,6 +419,14 @@ dimensions are set from `Balance` in `_ready()` rather than typed into the scene
 the node structure, `Balance` owns every number, and the eye height the house is dimensioned for
 must not exist in two places. The pointer is grabbed on the first input event rather than in
 `_ready`, because a window the window manager has not focused yet cannot take it and says so.
+
+It jumps (Space, the pad's A) `Balance.JUMP_HEIGHT` and crouches while Ctrl or C (the right stick's click) is held:
+the capsule shrinks to `CROUCH_HEIGHT`, the eye goes down to `CROUCH_EYE_HEIGHT` over `CROUCH_TIME` and it walks
+at `CROUCH_SPEED`; let go under something lower than a standing body, it stays down until there is room
+(`WalkProbe`'s `body.jump` and `body.crouch`). `Reach` counts a crouched eye, so an item in an oven is in reach.
+
+The game opens full screen (`display/window/size/mode`), which is also what keeps the editor from running it
+inside its Game tab. Every render is taken in a window of the design size (`WorldBuilder.windowed`).
 
 `world/WorldBuilder.gd` is the one path from a `FloorPlan` to a lit, walkable house: geometry,
 sky, sun, the tier's global illumination, the light culler, the material warm-up and the
@@ -516,65 +540,153 @@ and never where (`docs/VISION.md`).
 each answer is a component:
 
 - **Room tag** (`%RoomTag`): the room the player stands in, on a strip of tape, and how many misplaced
-  items it still holds, or "Tidy". The room comes from `EventBus.zone_entered`, which `ProbeCuller`
+  items it still holds, or a tick and "Tidy". The room comes from `EventBus.zone_entered`, which `ProbeCuller`
   emits because it already tracks the eye's room.
 - **Item card** (`ui/ItemCard.tscn`): shown while the crosshair is on an item a click would take
-  (`Interactor.aim_changed` carries the prompt and the item). Its picture, name (wrapping, never cut),
-  slot cost — with how many slots are
-  free when it does not fit — the home as "room · piece", and the set's progress as pips. The home's
-  wording is `HomeName.of`: the room of the `FurnitureDef` carrying the group, and the group's
-  `PlaceSlotGroup.name_key`, whose English text is the home column of `docs/CONTENT.md`. The card only
-  describes an item already found, so it gives nothing of the search away.
-- **Carry bar** (`ui/CarryBar.tscn`, `CarryCells`): slots used of capacity and free, one cell per slot,
-  each carried item a block as wide as its cost with its picture on it, the selected one outlined and named
-  beside the keys that drop and throw it. Past what fits in `CarryCells.max_width` the cells narrow into
-  segments, which carry no pictures.
-- **Tracker** (`%Tracker`): sets complete of the total, slots, set members put away of all of them
-  (`SetTracker.home_count`), and the sets under way — some members home or in hand, not all — at most
-  `Hud.active_rows`, the last one changed first, each with its pips (`SetDots`: a filled disc at home, a
-  bright ring in hand, a faint ring still out; shape as well as colour).
+  (`Interactor.aim_changed` carries the prompt and the item). Its picture, name (wrapping, never cut), a slot sign
+  with what it costs — the words "2 slots · 1 free" instead, in the warning colour, when it does not fit — a house
+  sign with the home as "room · piece", and the set as pips and "2/8". The home's wording is `HomeName.of`: the room
+  of the `FurnitureDef` carrying the group, and the group's `PlaceSlotGroup.name_key`, whose English text is the home
+  column of `docs/CONTENT.md`. The card only describes an item already found, so it gives nothing of the search away.
+- **Carry bar** (`ui/CarryBar.tscn`, `CarryCells`): one cell per slot, each carried item a block as wide as its cost
+  with its picture on it, "6/10" beside them, the selected one outlined and named beside the keys that drop and throw
+  it. The empty cells are what is free, so it is not written out. Past what fits in `CarryCells.max_width` the cells
+  narrow into segments, which carry no pictures.
+- **Tracker** (`%Tracker`): sets complete of the total and slots, then the set looked for (below) with how many of it
+  are still out, then the sets under way — some members home or in hand, not all — at most `Hud.active_rows`, the
+  last one changed first. A row is a member's picture, its pips (`SetDots`: a filled disc at home, a bright ring in
+  hand, a faint ring still out; shape as well as colour) and "3/12". The picture names the set: the card and the
+  ledger carry the words.
 - **Compass** (`ui/Compass.gd`) and **pins** (`ui/HomePins.gd`): the way home, below. The compass takes the
-  top middle, and steps aside while the set-complete notice or the overview is up.
-- **Held `show_tracker`** (Tab) shows `%Overview` in place of the tracker: every set and every room with a
-  count, in four-column grids of fixed-width rows (`Hud.row_width`); a name that does not fit ends in an
-  ellipsis. Sets keep content order and a completed set stays in place, dimmed. Tranche U4 replaces it
-  with the ledger.
+  top middle, and steps aside while the set-complete notice or the ledger is up.
+- **The ledger** (`ui/Ledger.tscn`, tranche U4, decision D2): `show_tracker` (Tab, the pad's Back) shows it in
+  place of the tracker and the room tag, and the next press, or Escape, puts it away (the author, 2026-09-17: one
+  press, not a hold). The crosshair, its prompt, the item card and the pins go while it is up, rather than blur under
+  its glass, and `Hud.ledger_toggled` asks whoever owns the player to hold them still (`PlayerController.hold_still`),
+  which also lets the pointer go, because everything in the ledger is clicked as well as keyed. Along the top, sets
+  complete of the total, slots against `Balance.FINALE_SLOT_COST`, and set members put away. On the left, one floor of
+  the house (`LedgerMap`), every room drawn from its `FloorPlan` polygon at one scale: each floor is fitted to the
+  building's footprint across all floors, grown by its own outdoor zones, so the floors inside the building share one
+  frame and only the ground floor is shrunk by the garden. A room is shaded by how many misplaced items it holds with
+  the count in it (a tick when tidy), its name where it fits, a ring where a carried item belongs, an amber badge with
+  how many members of the set looked for lie in it, a dot where the player stands (under the labels, so a count stays
+  readable), the selected room outlined and the room under the pointer lit; clicking a room selects it. A tab per
+  floor with that floor's count, clickable; a legend and the keys. On the right, the selected room with its misplaced
+  count, then the filters (this room, all, under way, carrying, complete; each chip with its number key and how many
+  sets it shows, clicked or keyed), then the sets the filter picks as tiles (`SetTile`), under a "Belongs in" heading
+  per home room that counts its sets and how many are complete, or how many of them the filter shows when it hides
+  some, in plan and content order. A tile is a member's picture, the set's name, its pips and "3/12", a tick once it
+  is complete and an eye while it is looked for; a completed set steps back. What a member costs, the piece it goes on
+  and how many are still out are one detail line under the tiles, for the set the pointer or the keyboard is on — one
+  line for the set in question instead of two on all fifty-six — and it is where the click that looks for a set is
+  offered. Clutter in a room and sets that belong in it are different questions, so each has its own label. A list
+  that spans the house starts at the selected room's group; stepping the room pages it group by group, and what does
+  not fit is cut off at the bottom (a ScrollContainer was tried: it scrolls against the layout of the frame before,
+  because containers sort deferred). "In progress" is `SetProgress`, shared with the tracker. It opens on the player's
+  room with the filter last picked. While it is up, the wheel and the d-pad's left/right step the room (through every
+  room, or only those with a group), Page Up/Down or the d-pad's up/down the floor (on the player's room if it is on
+  it), 1-5 pick a filter and LB/RB step it; `Hud._input` takes them, and Tab and Escape, before the player's input or
+  a focused tile sees them. The arrow keys move between tiles once one has the focus, and the first arrow press gives
+  it to the first tile. It gives away no more than the tape does — a count per room — until the player asks for a set
+  by picking it.
+
+### Reading the HUD
+
+The author's verdict on the first build was "way too text based … overwhelming to read" (2026-09-17). What the HUD
+shows now follows five rules, which any new part of it follows too. They come from published accessibility guidance
+and from games that do this well, not from taste:
+
+1. **A thing is shown by its picture, and a set by a member's picture** (`Portraits`). An item picture is the item,
+   not a symbol to learn.
+2. **A picture or a sign never stands without a word beside it** — a name, a number or a label — because almost no
+   icon is understood on its own (Nielsen Norman Group, "Icon Usability"). The drawn signs (`ui/Glyph.gd`: tick,
+   slot, house, eye, arrow up and down) sit beside the number or name they belong to, never alone.
+3. **A number says what a sentence used to**: "3/12" beside pips, "6/10" beside the cells. Words are kept for what a
+   number cannot say.
+4. **Each figure is written once, where the player acts on it** (the author, 2026-09-17: "so much numbers
+   everywhere"). Pips are the count on a tile and in the tracker's rows, so neither carries a fraction; the tiles in a
+   group are the count, so its heading carries none; a chip's list is its count; a room's shade is how much it holds,
+   and the legend says what each shade counts, so only the room under the pointer carries its figure — and the
+   selected room's stands beside its name on the other side of the ledger. Where the same fact is a length rather
+   than a figure, it is a bar: the house put away, at the top of the ledger.
+5. **Detail is for the one thing in question**, not for every row: the ledger's detail line describes the set under
+   the pointer, and the item card the item under the crosshair.
+6. **Nothing is told by colour alone** (Xbox Accessibility Guidelines 103, Game Accessibility Guidelines): complete
+   is a tick as well as a dim row, in hand is a ring as well as a lighter pip, looked for is an eye as well as amber.
+7. **A refusal names the fact that refused it** (`Interactor.Prompt`, the author, 2026-09-17). "No slot free" was
+   wrong whenever slots were free and the item wanted more of them than that. There are three: the hands are too full
+   for this item and it says what it costs; the item costs more slots than the player owns at all, and it says both;
+   or it is sorted already. None of them offers a key to press.
+
+Sizes follow XAG 101: text on PC is at least 18 px at 1080 lines. The HUD is laid out at 1600x900 and scaled by the
+window, so 15 px here is 18 px at 1080p; the theme's smallest text, the key caps, is 15. Holds are toggles (XAG 107,
+GAG "avoid requiring buttons to be held"): Tab opens and closes the ledger, and the crouch key takes the player down
+and up. Everything in the ledger is clicked as well as keyed, and a step is bound to the keys the player already has
+under their fingers as well as to its own: the floor steps on the arrows, on W/S and on the page keys. `dev/HudProbe.tscn` checks the layout at four screen sizes with every string 40% longer; the sizes themselves
+are a theme value, and the HUD scale setting belongs to Phase 5 with the rest of the settings.
 
 ### The way home
 
-Decision D1 of the HUD plan (the author, 2026-09-16): the hunt stays unmarked, and a carried item is guided
-home in three layers. The name, "Kitchen · cupboard over the coffee maker", is always on the item card. The
+Decision D1 of the HUD plan (the author, 2026-09-16): the hunt stays unmarked until the player asks, and a carried
+item is guided home in three layers. The name, "Kitchen · cupboard over the coffee maker", is always on the item card. The
 other two are `world/WayHome.gd` (tranche U3), and `GameWorld --guidance=names` turns them off until Phase 5
 writes the settings.
 
-- **From another room, a compass marker per home room** (`ui/Compass.gd`), with the picture of a carried item
-  that goes there (the selected one first), the room, the metres on foot (`RoomGraph.walk`) and how many floors
-  up or down. It points at the furthest place on the route the eye can see: `RoomGraph.waypoints` lists every
+- **From another room, one compass marker, for the item in hand** (`ui/Compass.gd`): its picture, the metres on
+  foot, the room and the floor it is on beside an arrow up or down, and a dot on the band at its true bearing (it was
+  an arrow pointing up, which read as "a floor up"). The picture stands straight under its dot. There was one marker
+  per home room of every carried item; they crowded each other off their bearings, and a picture moved aside with a
+  line back to its dot read as a puzzle, so the author settled on the hand alone (2026-09-18). The pins and outlines
+  stay on every carried item's home: they stand where the homes are, so they never crowd, and pointing at any of
+  them selects the item that goes there, so the player never has to change hands to see one. It points at the
+  furthest place on the route the eye can see (`RoomGraph.sight`): `RoomGraph.waypoints` lists every
   link on the route crossed — `Balance.WAY_APPROACH` in front of a doorway to as far past it, both ends of a
   flight with a place to stand off each, and between two exterior zones a way round the outside of the house
-  past its corners — and `RoomGraph.aim` takes the last one `RoomGraph.clear` finds in plain sight, never past
-  a change of floor. `clear` tests a straight line on one storey against both faces of every wall, through a
+  past its corners — and `sight` takes the last one `RoomGraph.clear` finds in plain sight, never past
+  a change of floor, then slides on along the next leg as far as is still in sight, so the place looked at moves
+  with the eye instead of jumping from one waypoint to the next; the HUD eases a new direction in over
+  `WAY_TURN_RATE`, never the head's own turning. The floor is named, not counted: "1 floor" beside an arrow read as
+  how far to climb rather than where to go (the author, 2026-09-17), so the marker says "Upstairs". The metres run from the eye to that place and on along the
+  route to the home, so they fall while the player walks it; through each room's middle they rose from 8 to 9
+  walking towards the kids' room door (the author, 2026-09-17). `clear` tests a straight line on one storey against both faces of every wall, through a
   doorway or an arch with `WAY_JAMB` to spare, and against every flight: from below where its treads are under
   `WAY_HEADROOM`, walked onto across its foot; from above as a railed hole, walked onto across its head. When
   nothing on the route is in sight, the marker points at the first corner of the way round the flights. A
   garage door is built shut, so it is a wall, for the route and for the pacing model alike.
-- **In the home room, the home is outlined and pinned.** The outline (`world/HomeOutline.gd`) goes on the
-  container's moving part if the slots are within `HOME_OUTLINE_REACH` of it — the drawer they are in, the
-  door in front of them — and on the whole piece otherwise: the lid of a deep toy box is not where the car
-  goes. It is a hull of every mesh with its normals averaged per corner, grown `HOME_OUTLINE_PX` in screen
-  space and drawn `HOME_OUTLINE_PULL` nearer the eye, so the carcass round a flush drawer front does not hide
-  it; a mask pass marks the piece's own pixels in the stencil first, so the line is only ever round the
-  outside. A pin (`ui/HomePins.gd`) names the item and the piece at the next free slot, while it is in view.
+- **From anywhere, the home is outlined through the house and pinned.** It was the home room only; the author
+  (2026-09-17) asked to see the place from wherever they stand, "so a player can directly navigate to it". The
+  outline (`world/Outline.gd`) goes on the container's moving part if the slots are within `HOME_OUTLINE_REACH` of
+  it — the drawer they are in, the door in front of them — and on the whole piece otherwise: the lid of a deep toy
+  box is not where the car goes. It is a hull of every mesh with its normals averaged per corner, grown
+  `HOME_OUTLINE_PX` in screen space and drawn `HOME_OUTLINE_PULL` nearer the eye, so the carcass round a flush drawer
+  front does not hide it; a mask pass marks the piece's own pixels in the stencil first, so the line is only ever
+  round the outside. The hull is drawn twice: once with no depth test at `OUTLINE_THROUGH_ALPHA`
+  (`world/outline_through.gdshader`), so walls, floors and doors do not hide it, and once over that at full strength
+  where it is really in sight (`world/outline_seen.gdshader`), so "over there" still reads differently from "right
+  here". A pin (`ui/HomePins.gd`) puts the picture of what goes there over the next free slot, while it is on screen.
 
-`WayHome` looks again every `WAY_INTERVAL`. With a member of all 55 sets in hand, from the attic, a look
-takes 1.9 ms on the author's machine (`way.time`); a real load is a handful of rooms.
+**The set looked for.** Picking a set in the ledger (`Ledger.set_picked` -> `Hud` -> `WayHome.track`) outlines every
+member of it that is neither home nor in hand, wherever it lies, in amber and a little wider
+(`Balance.SOUGHT_OUTLINE_PX`; a thin line round a small item across the house is a speck — the complaint made of
+Unpacking's outline). Picking it again puts it down, and completing it puts it down by itself. The tracker's top row
+and the map's amber badges say which set and where (`ClutterCensus.rooms_of`). This is the one thing that says where
+an item lies, and it is the player asking: it is the pattern PowerWash Simulator's "select a part to highlight it"
+and Unpacking's outline of a misplaced item are built on, and the author asked for it "for full convenience and
+comfort". The guidance setting does not touch it, because it is a request, not guidance.
+
+`WayHome` looks again every `WAY_INTERVAL`. With a member of all 56 sets in hand, a look takes 3.3 ms on the
+author's machine (`way.time`), 1.2 ms before the aim slid along the route; a real load is a handful of rooms.
 
 `dev/WayProbe.tscn` (headless, the real house): `way.route` walks from the middle of every room, carrying a
-member of every set, to wherever the marker aims, up and down flights, until it is in the home room — 1320
-routes, the longest 11 markers; `way.clear` casts a ray through the built house, furniture left out, from the
+member of every set, to wherever the marker aims, up and down flights, until it is in the home room — 1344
+routes, the longest 10 markers; `way.clear` casts a ray through the built house, furniture left out, from the
 eye to every place a marker aims, so the plan's walls choose and the built walls, flights and railings check;
 `way.outline` finds, in every home room, no marker, a pin, and exactly one outline, on the part holding the
-slots and drawn round them; `way.names` finds nothing with the guidance set to names. `RunTests` checks the
+slots and drawn round them; `way.through` finds the same pin and the same one outline from a room on another floor,
+drawn with the through-the-house pass; `way.held` carries two items bound for two other rooms and finds the marker on
+the one in hand, following it when the hand changes, and both pins; `way.sought` looks for a set and finds exactly its members that are neither
+home nor in hand outlined, counted by the census in the rooms they lie in, put down when picked again and when the
+set completes; `way.names` finds nothing with the guidance set to names, except the set the player asked for. `RunTests` checks the
 compass's left and right. Each was shown red.
 
 ### Item pictures
@@ -605,15 +717,30 @@ HUD from its 1600x900 design size (`display/window/stretch`: canvas items, expan
 its native resolution. Every key named on screen comes from `InputNames.of(action)`, never a literal.
 Labels under `Screen` do not auto-translate: the code translates, and translating twice is wrong.
 
-`dev/HudProbe.tscn` builds the HUD with the 55 sets of `docs/CONTENT.md`, every room counted, the
-finale's 56 slots nearly full and an item under the crosshair, at 1280x720, 1280x800, 1920x1080 and
+`dev/HudProbe.tscn` builds the HUD with the 56 sets of `docs/CONTENT.md`, every room counted, the
+finale's 57 slots nearly full and an item under the crosshair, at 1280x720, 1280x800, 1920x1080 and
 2560x1440, each laid out at the size the window's stretch gives it, and then again with Godot's
 pseudolocalization making every string 40% longer: `hud.fits`, `hud.clear` (room tag, tracker, card,
-carry bar, prompt, notice and compass pairwise, but the notice and the compass, which take turns; overview vs
-notice, carry bar, room tag), `hud.rows`, `hud.short`, `hud.overview`, `hud.here`, `hud.card`, `hud.bar`,
-`hud.place`, `hud.compass` (four markers, two of them on nearly one bearing: inside the compass, apart, in
-bearing order, the nearest shown). Each was shown red. `--screenshot=
---backdrop= [--overview] [--long] [--size=]` renders it; legibility is only proven by looking.
+carry bar, prompt, notice and compass pairwise, but the notice and the compass, which take turns; ledger vs
+notice and carry bar), `hud.short`, `hud.here`, `hud.card`, `hud.prompt` (each refusal in words of
+its own, with no key to press and the card still up), `hud.bar`, `hud.place`, `hud.compass` (one marker at a time, ahead, to the right, behind and at the band's edge: it and its words inside
+the compass, its picture exactly under its bearing, or at the edge for one behind), `hud.ledger` (one press opens it on the player's room in place of the tracker and tag, the next press or Escape puts
+it away, and the player is held still meanwhile, with the crosshair, prompt, card and
+pins hidden and back after; the wheel steps the room and is handled before the player's input, and the floor steps on
+the arrows, on W/S and on the page keys, each pressed as a key so the binding itself is checked; floor tabs count;
+rings on the carried items' rooms), `ledger.map` (every storey's rooms drawn one for one
+from their polygons at one shape-keeping scale, inside the map; footprint plus the floor's own zones spans the map),
+`ledger.sets` (stepped through all 25 rooms, the probe's first holding seven sets: each room's sets in content
+order under one group and only those, every set once, the room's count, every card inside the list without
+scrolling and apart), `ledger.click` (a click sent through the screen on a floor's tab, a room of the map, a filter's
+chip and a set's tile does what it should, the map holds the room the pointer is over — the one room that carries
+its figure — a tile pointed at is the one the detail line describes, it asks for its set when clicked, and a
+complete set is never asked for) and `ledger.filter` (number key and shoulder pick a filter and are handled; each
+chip carries its name alone and its groups run in plan and content order from the selected room's group on;
+stepping lands on the next group and the list starts there, under a heading that names the room and counts nothing;
+a complete set's card says its slot). Each was
+shown red. `--screenshot= --backdrop= [--ledger [--filter=<0-4>]] [--long] [--size=]` renders it;
+legibility is only proven by looking.
 
 **`ProgressSave`** is the bridge between the house and the save file, and `Autosave` writes it
 whenever an item is put away or put back, and when the window closes. A carried item is saved where
@@ -658,8 +785,13 @@ aiming, for a bookshelf or a row of mugs where any free position is equally corr
 
 **The interaction, frame by frame:**
 
-1. While carrying, a spherical query around the player finds `PlaceSlotGroup`s within reach whose
-   `accepts` matches a carried item, skipping groups whose `requires_open` container is closed.
+1. While carrying, every `PlaceSlotGroup` whose `accepts` matches a carried item is asked for the slot it
+   would fill — for a NEAREST group the free slot nearest the line of sight — skipping groups whose
+   `requires_open` container is closed. The slot is in reach when the item there would be no further from the
+   eye than an item can be picked up from (`INTERACT_REACH`), and it is offered only when no wall or floor of
+   the house stands between (`Interactor._in_sight`); the piece itself never hides its own slots. This was
+   1.6 m from the eye to the group's origin, and 93 of the 250 items could not be put away from anywhere a
+   body fits: a toy box's floor is further below a standing eye than that (`dev/HomeProbe.tscn`, 2026-09-17).
 2. The camera ray picks the group being aimed at; the group resolves the target slot from its
    `fill_order`. **Pointing at a group selects an item it takes** (`Interactor._offer`) unless the
    selected one already is: the first one after it in the row, so a handful of spoons goes into the
@@ -705,8 +837,10 @@ silently teleported.
 An item leaves the hands two ways: into a slot, or let go of. Q drops the selected item in front of
 the eye; holding the right mouse button winds up a throw and releasing it throws along the view
 (`Interactor`, `CarryComponent`). A throw gives the item the player's effort, not a speed: effort grows
-over `Balance.THROW_CHARGE_TIME` from a lob to a full throw, and the item leaves at `sqrt(2E/m)`,
-capped, so a dumbbell lands short where a spoon flies (`ItemDef.mass`, from `tools/content_model.py`).
+over `Balance.THROW_CHARGE_TIME` from a quick throw to a full one, and the item leaves at `sqrt(2E/m)`,
+capped, so a dumbbell lands short where a spoon flies (`ItemDef.mass`, from `tools/content_model.py`), turning
+end over end in proportion to its speed (`THROW_SPIN`). The author found the first numbers a toss rather than a
+throw (2026-09-17): a tap now throws at 6 m/s and a full throw at 18.
 
 **Every item is a `RigidBody3D`, frozen unless it is loose** (`ItemNode.Hold`: `STILL`, `CARRIED`,
 `LOOSE`). An item put away or lying where it was authored is frozen and stays exactly where it is,
@@ -733,6 +867,20 @@ floor built like the house's):
   through it to the floor. `ContainerComponent` gives the moving part its meshes as a solid on
   `Layers.TRAY`, which only items collide with, so an open door changes nothing for the player.
 - Window glass did not collide; a thrown spoon went out through the office window. It does now.
+- **Items meet what is drawn, and only the body meets boxes** (2026-09-17). A piece's collision was hand-sized
+  boxes, and items landed on them: a book the author dropped lay through a basin whose box covered it, a
+  stuffed animal hung over a bathtub whose box filled it, and 15 authored starts had been dropped onto boxes
+  instead of the pieces. Now a piece's boxes (`FurnitureNode.add_box`) are on `Layers.BULK`, which only the
+  player's capsule collides with, and the triangles of every mesh on its static half are on `Layers.SURFACE`
+  (`add_surface`), which items and the interaction ray collide with; its moving parts were already exact on
+  `TRAY`. A flight's treads, rails and balusters, the deck and outside steps, casings and skirting, ceiling
+  lights, the deck frame and the roof's edge are on `SURFACE` too, and the hidden ramps and stair guards on
+  `BULK`. The triangles are gathered on the generation worker threads (`FurnitureNode.gather_surface`), where
+  the mesh read-back is paid; 608 000 of them, 0.55 s on the main thread in order, about 0.25 s on the pool and
+  0.03 s to make them solid. The game's world was ready in 3.4-3.6 s on a warm shader cache afterwards (three
+  boots, 2026-09-17): inside the 4 s budget, and slower than the 1.8-2.2 s measured before U2-U4, of which the
+  collision is the 0.25 s measured here and the rest is not yet measured. Pool water is
+  the one drawn thing an item passes through.
 - Jolt, at 240 physics ticks, with a penetration slop of 0.5 mm and no collision margin
   (`project.godot`). At 60 ticks and the default 2 cm slop, 16 of 165 drops lay up to 3.7 cm into the
   floor; at 120 ticks three still did. At 240 all lie within 2.8 mm. The player's own frame cost did not
@@ -785,15 +933,16 @@ collision boxes, its containers (`<piece id>_<part>` — a save key) and its anc
 an anchor; an anchor on a moving part names the container that moves it, which is what a group's
 `requires_open` asks, and what a start on it rides.
 
-**A piece the player reaches into is hollow, in two layers.** The interaction ray is stopped by everything
-on `Layers.WORLD`, so a cupboard given one solid collision box hides everything inside it: the spoon that
-has started in the kitchen's cupboard since Phase 3 could never have been picked up, and nothing measured
-it until `InteractProbe`'s `start.reachable` (2026-09-16). `FurnitureNode.add_hollow` gives the piece two
-bodies instead: its whole volume on `Layers.BULK`, which only the player's capsule collides with, and its
-panels on `Layers.WORLD`, which stop the ray — with the faces it is open on left out. A closed door still
-stops the ray, because a container's handle box covers its front and swings away with it. The kitchen runs,
-the sideboard, the range, the washer, the grill, the recycling bin and the bathtub are built this way; the
-tub's walls are as thick as its own rims, because a rim is a surface the ducks stand on.
+**The body meets a piece as boxes; items and the crosshair meet it as it is drawn.** A cupboard given one solid
+collision box hid everything inside it from the ray, and a tub given one held items over its well. A family
+gives its piece boxes for the body (`add_box`, `Layers.BULK`: the whole of a cupboard, open front and all) and
+nothing else; its drawn meshes are what the ray and items meet (`Layers.SURFACE`, "Loose items"). A closed door
+still stops the ray, because a container's handle box covers its front and swings away with it.
+
+**A door opens clear.** Doors open square to their front, and a piece says which side each door hinges on
+where its default would open a pull into a wall or into a neighbouring door (`Props.hinged_left`, the `hinges`
+parameter of `BaseRun` and `Vanity`). A lid hinged at a piece's back swings behind its hinge, so a toy box and
+the grill stand off their walls (`FurnitureDef.out`). `FurnitureProbe`'s `container.swing` swings every one.
 
 ### The toolkit a family builds from
 

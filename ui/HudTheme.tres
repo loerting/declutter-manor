@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=8 format=3]
+[gd_resource type="Theme" load_steps=13 format=3]
 
 [sub_resource type="FontVariation" id="Bold"]
 variation_embolden = 0.6
@@ -61,6 +61,22 @@ content_margin_top = 1.0
 content_margin_right = 9.0
 content_margin_bottom = 1.0
 
+[sub_resource type="StyleBoxFlat" id="ChipOn"]
+bg_color = Color(0.961, 0.937, 0.894, 0.16)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.961, 0.937, 0.894, 0.8)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 9.0
+content_margin_top = 1.0
+content_margin_right = 9.0
+content_margin_bottom = 1.0
+
 [sub_resource type="StyleBoxFlat" id="MeterBack"]
 bg_color = Color(0.961, 0.937, 0.894, 0.2)
 corner_radius_top_left = 3
@@ -77,6 +93,70 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
+[sub_resource type="StyleBoxFlat" id="Tile"]
+bg_color = Color(0.961, 0.937, 0.894, 0.05)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.961, 0.937, 0.894, 0.14)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="TileHover"]
+bg_color = Color(0.961, 0.937, 0.894, 0.14)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.961, 0.937, 0.894, 0.85)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="TileSought"]
+bg_color = Color(1, 0.71, 0.24, 0.14)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.71, 0.24, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="Sought"]
+bg_color = Color(1, 0.71, 0.24, 0.12)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.71, 0.24, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+
 [resource]
 default_font_size = 17
 Big/base_type = &"Label"
@@ -84,12 +164,14 @@ Big/font_sizes/font_size = 30
 Big/fonts/font = SubResource("Bold")
 Chip/base_type = &"PanelContainer"
 Chip/styles/panel = SubResource("Chip")
+ChipOn/base_type = &"PanelContainer"
+ChipOn/styles/panel = SubResource("ChipOn")
 Dim/base_type = &"Label"
 Dim/colors/font_color = Color(0.961, 0.937, 0.894, 0.62)
 Key/base_type = &"PanelContainer"
 Key/styles/panel = SubResource("Key")
 KeyLabel/base_type = &"Label"
-KeyLabel/font_sizes/font_size = 13
+KeyLabel/font_sizes/font_size = 15
 KeyLabel/fonts/font = SubResource("Bold")
 Label/colors/font_color = Color(0.961, 0.937, 0.894, 1)
 Label/colors/font_outline_color = Color(0, 0, 0, 0.55)
@@ -101,6 +183,8 @@ OverWorld/base_type = &"Label"
 OverWorld/constants/outline_size = 5
 OverWorld/fonts/font = SubResource("Bold")
 PanelContainer/styles/panel = SubResource("Glass")
+Sought/base_type = &"PanelContainer"
+Sought/styles/panel = SubResource("Sought")
 Strong/base_type = &"Label"
 Strong/fonts/font = SubResource("Bold")
 Tape/base_type = &"PanelContainer"
@@ -108,6 +192,12 @@ Tape/styles/panel = SubResource("Tape")
 TapeInk/base_type = &"Label"
 TapeInk/colors/font_color = Color(0.165, 0.141, 0.094, 1)
 TapeInk/fonts/font = SubResource("Bold")
+Tile/base_type = &"PanelContainer"
+Tile/styles/panel = SubResource("Tile")
+TileHover/base_type = &"PanelContainer"
+TileHover/styles/panel = SubResource("TileHover")
+TileSought/base_type = &"PanelContainer"
+TileSought/styles/panel = SubResource("TileSought")
 Title/base_type = &"Label"
 Title/font_sizes/font_size = 21
 Title/fonts/font = SubResource("Bold")

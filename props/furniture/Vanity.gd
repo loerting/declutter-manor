@@ -5,6 +5,8 @@ extends FurnitureGenerator
 ##     width     float     default 0.8
 ##     basins    int       1 or 2, default 1
 ##     finish    String    "white" or "oak", default "white"
+##     hinges    String    the side each door hinges on, "l" or "r" from the left (`Props.hinged_left`); by
+##                         default each basin's pair opens away from its middle
 ##
 ## Parts, numbered from the left seen from the front, starting at 1; each basin stands over two doors:
 ##
@@ -24,7 +26,10 @@ const STONE := 0.03
 const STONE_OVERHANG := 0.015
 const PANEL := 0.018
 const BACK := 0.008
-const DOOR_SWING_DEG := 100.0
+## A door opens square to its front and no further: past square, the end door of a run against a wall swung
+## into the wall and the two middle doors of a double vanity into each other (`FurnitureProbe`,
+## `container.swing`, 2026-09-17).
+const DOOR_SWING_DEG := 90.0
 const PULL_LENGTH := 0.14
 const PULL_DOWN := 0.1
 ## The basin turned in (radius, height): up its outside from the foot, over the rim, down the inside to
@@ -85,7 +90,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	var front := Vector2(width / float(bays) - Props.FRONT_REVEAL * 2.0, under - PLINTH - Props.FRONT_REVEAL * 2.0)
 	for bay in range(bays):
 		var n := bay + 1
-		var hinge_left := bay % 2 == 0
+		var hinge_left := Props.hinged_left(Params.text(def.params, "hinges", ""), bay, bay % 2 == 0)
 		var cx := -width * 0.5 + width * (float(bay) + 0.5) / float(bays)
 		var hinge := Vector3(cx + (-front.x * 0.5 if hinge_left else front.x * 0.5), (PLINTH + under) * 0.5, case_depth + Props.FRONT_PANEL)
 		var mover := Props.cabinet_door(front, hinge_left, face, PULL_LENGTH, front.y * 0.5 - PULL_DOWN - PULL_LENGTH * 0.5)

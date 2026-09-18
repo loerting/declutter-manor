@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemDef" format=3]
+
+[ext_resource type="Script" path="res://data/ItemDef.gd" id="1_8k2ks"]
+[ext_resource type="Script" path="res://data/ItemPlacement.gd" id="2_sq6ya"]
+
+[sub_resource type="Resource" id="Resource_gkcch"]
+script = ExtResource("2_sq6ya")
+room = &"garage"
+xform = Transform3D(-0.85908556, 0, 0.51183206, 0, 1, 0, -0.51183206, 0, -0.85908556, 21.615032, 0.119600005, 8.870697)
+
+[resource]
+script = ExtResource("1_8k2ks")
+id = &"table_tennis_03"
+name_key = "item.table_tennis_ball"
+mass = 0.003
+set_id = &"table_tennis"
+generator = &"table_tennis"
+params = {
+"kind": "ball"
+}
+home = &"table_tennis_ball_home"
+start = SubResource("Resource_gkcch")

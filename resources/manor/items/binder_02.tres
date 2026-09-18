@@ -6,7 +6,7 @@
 [sub_resource type="Resource" id="Resource_usjga"]
 script = ExtResource("2_fcalp")
 room = &"kids_room"
-xform = Transform3D(-1.24096085e-08, -0.28389874, 0.95885426, 1, -4.371139e-08, 0, 4.1912852e-08, 0.95885426, 0.28389874, 4.544355, 3.934, 9.807262)
+xform = Transform3D(-3.059088e-08, -0.69983774, -0.7143018, 1, -4.371139e-08, 0, -3.1223124e-08, -0.7143018, 0.69983774, 5.1275134, 3.534, 8.45401)
 
 [resource]
 script = ExtResource("1_usjga")

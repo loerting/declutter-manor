@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://ui/Hud.gd" id="1"]
 [ext_resource type="Theme" path="res://ui/HudTheme.tres" id="2"]
@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://ui/CarryBar.tscn" id="5"]
 [ext_resource type="Script" path="res://ui/Compass.gd" id="6"]
 [ext_resource type="Script" path="res://ui/HomePins.gd" id="7"]
+[ext_resource type="PackedScene" path="res://ui/Ledger.tscn" id="8"]
+[ext_resource type="Script" path="res://ui/Glyph.gd" id="9"]
 
 [node name="Hud" type="CanvasLayer"]
 script = ExtResource("1")
@@ -53,7 +55,7 @@ anchor_right = 0.5
 offset_left = -380.0
 offset_top = 24.0
 offset_right = 380.0
-offset_bottom = 156.0
+offset_bottom = 180.0
 grow_horizontal = 2
 mouse_filter = 2
 script = ExtResource("6")
@@ -153,7 +155,17 @@ layout_mode = 2
 size_flags_horizontal = 0
 mouse_filter = 2
 
-[node name="RoomCount" type="Label" parent="Screen/RoomTag/RoomCountPanel"]
+[node name="RoomCountLine" type="HBoxContainer" parent="Screen/RoomTag/RoomCountPanel"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RoomTidy" type="Control" parent="Screen/RoomTag/RoomCountPanel/RoomCountLine"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9")
+
+[node name="RoomCount" type="Label" parent="Screen/RoomTag/RoomCountPanel/RoomCountLine"]
 unique_name_in_owner = true
 layout_mode = 2
 
@@ -164,7 +176,7 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -372.0
+offset_left = -312.0
 offset_top = 30.0
 offset_right = -32.0
 grow_horizontal = 0
@@ -180,54 +192,75 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 6
 
+[node name="SetsGlyph" type="Control" parent="Screen/Tracker/Rows/Head"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9")
+font_size = 26
+
 [node name="SetsDone" type="Label" parent="Screen/Tracker/Rows/Head"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"Big"
 
-[node name="SetsOf" type="Label" parent="Screen/Tracker/Rows/Head"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 8
-theme_type_variation = &"Dim"
-text_overrun_behavior = 3
-
-[node name="Spacer" type="Control" parent="Screen/Tracker/Rows/Head"]
+[node name="Gap" type="Control" parent="Screen/Tracker/Rows/Head"]
+custom_minimum_size = Vector2(20, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
+
+[node name="SlotsGlyph" type="Control" parent="Screen/Tracker/Rows/Head"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9")
+shape = 1
+font_size = 26
 
 [node name="Slots" type="Label" parent="Screen/Tracker/Rows/Head"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"Big"
 
-[node name="SlotsWord" type="Label" parent="Screen/Tracker/Rows/Head"]
+[node name="Sought" type="PanelContainer" parent="Screen/Tracker/Rows"]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 8
-theme_type_variation = &"Dim"
-
-[node name="PutAway" type="Label" parent="Screen/Tracker/Rows"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"Dim"
-text_overrun_behavior = 3
-
-[node name="Meter" type="ProgressBar" parent="Screen/Tracker/Rows"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 5)
+visible = false
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"Meter"
-show_percentage = false
+theme_type_variation = &"Sought"
+
+[node name="SoughtLine" type="HBoxContainer" parent="Screen/Tracker/Rows/Sought"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="SoughtPicture" type="TextureRect" parent="Screen/Tracker/Rows/Sought/SoughtLine"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+mouse_filter = 2
+texture_filter = 5
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SoughtGlyph" type="Control" parent="Screen/Tracker/Rows/Sought/SoughtLine"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9")
+shape = 3
+color = Color(1, 0.71, 0.24, 1)
+
+[node name="SoughtText" type="Label" parent="Screen/Tracker/Rows/Sought/SoughtLine"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Strong"
+text_overrun_behavior = 3
 
 [node name="Active" type="VBoxContainer" parent="Screen/Tracker/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
 [node name="Hint" type="HBoxContainer" parent="Screen/Tracker/Rows"]
 layout_mode = 2
@@ -251,53 +284,18 @@ size_flags_horizontal = 3
 theme_type_variation = &"Dim"
 text_overrun_behavior = 3
 
-[node name="Overview" type="PanelContainer" parent="Screen"]
+[node name="Ledger" parent="Screen" instance=ExtResource("8")]
 unique_name_in_owner = true
-visible = false
-material = ExtResource("3")
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_top = 140.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 104.0
+offset_right = -32.0
+offset_bottom = -176.0
 grow_horizontal = 2
-mouse_filter = 2
-
-[node name="Lists" type="VBoxContainer" parent="Screen/Overview"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 0
-
-[node name="SetsTitle" type="Label" parent="Screen/Overview/Lists"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"Dim"
-
-[node name="Sets" type="GridContainer" parent="Screen/Overview/Lists"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/h_separation = 24
-theme_override_constants/v_separation = 0
-columns = 4
-
-[node name="Gap" type="Control" parent="Screen/Overview/Lists"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="RoomsTitle" type="Label" parent="Screen/Overview/Lists"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"Dim"
-
-[node name="Rooms" type="GridContainer" parent="Screen/Overview/Lists"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/h_separation = 24
-theme_override_constants/v_separation = 0
-columns = 4
+grow_vertical = 2
 
 [node name="Notice" type="PanelContainer" parent="Screen"]
 unique_name_in_owner = true
@@ -311,11 +309,30 @@ offset_top = 30.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="NoticeText" type="Label" parent="Screen/Notice"]
+[node name="NoticeLine" type="HBoxContainer" parent="Screen/Notice"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="NoticePicture" type="TextureRect" parent="Screen/Notice/NoticeLine"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+mouse_filter = 2
+texture_filter = 5
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NoticeGlyph" type="Control" parent="Screen/Notice/NoticeLine"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9")
+
+[node name="NoticeText" type="Label" parent="Screen/Notice/NoticeLine"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"Strong"
-horizontal_alignment = 1
+size_flags_vertical = 4
+theme_type_variation = &"Title"
 
 [node name="CarryBar" parent="Screen" instance=ExtResource("5")]
 unique_name_in_owner = true

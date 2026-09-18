@@ -1,10 +1,10 @@
 class_name CarryBar
 extends PanelContainer
-## How full the player's hands are: slots used of capacity and how many are free, a cell per slot with
-## each carried item covering what it costs and showing its picture, which item is selected, and the keys that drop and throw it.
+## How full the player's hands are: a cell per slot with each carried item covering what it costs and showing its
+## picture, and beside the cells "6/10"; under them, the selected item's name and the keys that drop and throw it. The
+## empty cells are what is free, so it is not said again.
 
 @onready var _used: Label = %Used
-@onready var _free: Label = %Free
 @onready var _cells: CarryCells = %Cells
 @onready var _selected: Control = %Selected
 @onready var _selected_name: Label = %SelectedName
@@ -21,8 +21,7 @@ func show_load(carried: Array[ItemDef], capacity: int, selected: int, pictures: 
 	for def: ItemDef in carried:
 		costs.append(def.slot_cost)
 		used += def.slot_cost
-	_used.text = NumberFormatter.slots_of(used, capacity)
-	_free.text = tr("hud.free") % NumberFormatter.count(capacity - used)
+	_used.text = NumberFormatter.fraction(used, capacity)
 	_cells.show_load(costs, capacity, selected, pictures)
 	_drop_key.text = InputNames.of(&"drop_item")
 	_drop_text.text = tr("hud.drop")

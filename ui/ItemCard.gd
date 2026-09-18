@@ -1,40 +1,40 @@
 class_name ItemCard
 extends PanelContainer
-## What the crosshair is on, once the player has found it: its picture, its name, what it costs to carry, the room and
-## the piece it belongs on, and how much of its set is there already. It describes an item the player is
-## already looking at, so nothing of the search is given away (`docs/VISION.md`, "Findability").
+## What the crosshair is on, once the player has found it, read at a glance: its picture and name, a slot sign with
+## what it costs to carry, a house sign with the room and piece it belongs on, and its set as pips with how many are
+## home. It describes an item the player is already looking at, so nothing of the search is given away
+## (`docs/VISION.md`, "Findability").
 
 @onready var _picture: TextureRect = %Picture
 @onready var _name: Label = %Name
 @onready var _cost: Label = %Cost
-@onready var _home_key: Label = %HomeKey
+@onready var _cost_glyph: Glyph = %CostGlyph
 @onready var _home: Label = %Home
-@onready var _set_key: Label = %SetKey
 @onready var _dots: SetDots = %Dots
 @onready var _count: Label = %Count
-@onready var _at_home: Label = %AtHome
+@onready var _at_home: Control = %AtHome
+@onready var _at_home_text: Label = %AtHomeText
 
 func _ready() -> void:
-	_home_key.text = tr("hud.card_home")
-	_set_key.text = tr("hud.card_set")
-	_at_home.text = tr("hud.at_home")
+	_at_home_text.text = tr("hud.is_put_away")
 
 ## `carried` is how many members of its set the player is holding; `picture` is its item type's picture, or
 ## null while there is none (`Portraits.of`), and its place stays kept.
 func show_item(def: ItemDef, content: Catalogue, plan: FloorPlan, carried: int, picture: Texture2D) -> void:
 	_picture.texture = picture
 	_name.text = tr(def.name_key)
-	# Too big for the free slots: the cost says by how much, in words as well as in colour.
+	# The sign and the number are the cost; it turns to a warning when the hands cannot take it, and the prompt
+	# under the crosshair is what says why (`Hud.PROMPTS`), so the card never spells the same refusal twice.
 	var fits := Inventory.can_take(def)
-	_cost.text = NumberFormatter.slots(def.slot_cost) if fits else tr("hud.pair") % [
-			NumberFormatter.slots(def.slot_cost), tr("hud.free") % NumberFormatter.count(Inventory.free_slots())]
-	_cost.theme_type_variation = &"" if fits else &"Warning"
+	_cost.text = NumberFormatter.count(def.slot_cost)
+	_cost.theme_type_variation = &"Strong" if fits else &"Warning"
+	_cost_glyph.color = get_theme_color(&"font_color", &"Warning" if not fits else &"Label")
 	_home.text = HomeName.of(def.home, content, plan)
 	_at_home.visible = SetTracker.at_home(def.id)
 	var total := SetTracker.total(def.set_id)
 	var home := SetTracker.placed(def.set_id)
 	_dots.show_progress(home, carried, total)
-	_count.text = tr("hud.set_home") % NumberFormatter.of_total(home, total)
+	_count.text = NumberFormatter.fraction(home, total)
 
 func picture() -> Texture2D:
 	return _picture.texture

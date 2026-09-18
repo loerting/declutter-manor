@@ -14,7 +14,8 @@
     "living",
     "living"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "umbrella",
@@ -30,7 +31,8 @@
     "mudroom",
     "powder"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "winter_coat",
@@ -47,7 +49,8 @@
     "kids_room",
     "master_bed"
    ],
-   "absurd": "on a sun lounger"
+   "absurd": "on a sun lounger",
+   "kinds": []
   },
   {
    "id": "laptop",
@@ -61,7 +64,8 @@
    "starts": [
     "mudroom"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "binder",
@@ -80,7 +84,8 @@
     "storage",
     "utility"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "tv",
@@ -94,7 +99,8 @@
    "starts": [
     "master_bed"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "tv_remote",
@@ -108,7 +114,8 @@
    "starts": [
     "living"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "game_controller",
@@ -123,7 +130,8 @@
     "entry_hall",
     "living"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "cushion",
@@ -140,7 +148,8 @@
     "entry_hall",
     "living"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "throw_blanket",
@@ -154,7 +163,8 @@
    "starts": [
     "office"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "book",
@@ -182,7 +192,8 @@
     "utility",
     "utility"
    ],
-   "absurd": "in the freezer"
+   "absurd": "in the freezer",
+   "kinds": []
   },
   {
    "id": "picture_frame",
@@ -199,7 +210,8 @@
     "mudroom",
     "office"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "dinner_plate",
@@ -220,7 +232,8 @@
     "side_garden",
     "workshop"
    ],
-   "absurd": "on the lawn, like a frisbee"
+   "absurd": "on the lawn, like a frisbee",
+   "kinds": []
   },
   {
    "id": "spoon",
@@ -245,7 +258,8 @@
     "side_garden",
     "workshop"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "mug",
@@ -266,7 +280,8 @@
     "storage",
     "storage"
    ],
-   "absurd": "in a flower pot"
+   "absurd": "in a flower pot",
+   "kinds": []
   },
   {
    "id": "glass",
@@ -287,7 +302,8 @@
     "pool_area",
     "pool_area"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "toaster",
@@ -301,7 +317,8 @@
    "starts": [
     "attic"
    ],
-   "absurd": "on the trunk"
+   "absurd": "on the trunk",
+   "kinds": []
   },
   {
    "id": "sneakers",
@@ -322,7 +339,8 @@
     "storage",
     "storage"
    ],
-   "absurd": "in the oven"
+   "absurd": "in the oven",
+   "kinds": []
   },
   {
    "id": "backpack",
@@ -337,7 +355,8 @@
     "dining",
     "garage"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "dog_leash",
@@ -351,7 +370,8 @@
    "starts": [
     "office"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "dog_toy",
@@ -367,7 +387,8 @@
     "garage",
     "powder"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "hand_towel",
@@ -382,7 +403,8 @@
     "kitchen",
     "office"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "bicycle",
@@ -397,7 +419,8 @@
     "rec_room",
     "workshop"
    ],
-   "absurd": "against the sofa"
+   "absurd": "against the sofa",
+   "kinds": []
   },
   {
    "id": "bike_helmet",
@@ -414,7 +437,8 @@
     "master_bed",
     "workshop"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "soda_can",
@@ -437,7 +461,8 @@
     "utility",
     "workshop"
    ],
-   "absurd": "on the shoe shelf"
+   "absurd": "on the shoe shelf",
+   "kinds": []
   },
   {
    "id": "laundry_basket",
@@ -452,7 +477,8 @@
     "pool_area",
     "master_bed"
    ],
-   "absurd": "at the shallow end steps"
+   "absurd": "at the shallow end steps",
+   "kinds": []
   },
   {
    "id": "paint_can",
@@ -469,7 +495,8 @@
     "entry_hall",
     "kids_room"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "light_bulb",
@@ -486,7 +513,8 @@
     "driveway",
     "office"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "screwdriver",
@@ -505,7 +533,8 @@
     "utility",
     "utility"
    ],
-   "absurd": "in the sideboard with the good plates"
+   "absurd": "in the sideboard with the good plates",
+   "kinds": []
   },
   {
    "id": "wrench",
@@ -522,7 +551,8 @@
     "mudroom",
     "utility"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "suitcase",
@@ -537,7 +567,8 @@
     "driveway",
     "master_bed"
    ],
-   "absurd": "at the kerb"
+   "absurd": "at the kerb",
+   "kinds": []
   },
   {
    "id": "decoration_box",
@@ -553,7 +584,8 @@
     "dining",
     "workshop"
    ],
-   "absurd": "on the diving board end"
+   "absurd": "on the diving board end",
+   "kinds": []
   },
   {
    "id": "sleeping_bag",
@@ -570,7 +602,8 @@
     "mudroom",
     "side_garden"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "board_game",
@@ -589,7 +622,8 @@
     "master_bath",
     "powder"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "bath_towel",
@@ -610,7 +644,8 @@
     "rec_room",
     "side_garden"
    ],
-   "absurd": "over the grill lid"
+   "absurd": "over the grill lid",
+   "kinds": []
   },
   {
    "id": "pillow",
@@ -627,7 +662,8 @@
     "powder",
     "utility"
    ],
-   "absurd": "on the car roof"
+   "absurd": "on the car roof",
+   "kinds": []
   },
   {
    "id": "phone_charger",
@@ -642,7 +678,8 @@
     "deck",
     "landing"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "hanger",
@@ -670,7 +707,8 @@
     "utility",
     "workshop"
    ],
-   "absurd": "hung on the hose reel"
+   "absurd": "hung on the hose reel",
+   "kinds": []
   },
   {
    "id": "dress_shoes",
@@ -687,7 +725,8 @@
     "office",
     "pool_area"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "perfume",
@@ -703,7 +742,8 @@
     "closet",
     "workshop"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "toy_car",
@@ -728,7 +768,8 @@
     "powder",
     "utility"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "plush_toy",
@@ -749,7 +790,8 @@
     "laundry",
     "living"
    ],
-   "absurd": "clamped in the vise"
+   "absurd": "clamped in the vise",
+   "kinds": []
   },
   {
    "id": "school_book",
@@ -767,7 +809,8 @@
     "master_bath",
     "side_garden"
    ],
-   "absurd": "on the toilet tank"
+   "absurd": "on the toilet tank",
+   "kinds": []
   },
   {
    "id": "dumbbell",
@@ -782,7 +825,8 @@
     "dining",
     "entry_hall"
    ],
-   "absurd": "in the fruit bowl"
+   "absurd": "in the fruit bowl",
+   "kinds": []
   },
   {
    "id": "rubber_duck",
@@ -801,7 +845,8 @@
     "storage",
     "workshop"
    ],
-   "absurd": "in the fridge door"
+   "absurd": "in the fridge door",
+   "kinds": []
   },
   {
    "id": "toilet_roll",
@@ -820,7 +865,8 @@
     "rec_room",
     "side_garden"
    ],
-   "absurd": "inside the grill"
+   "absurd": "inside the grill",
+   "kinds": []
   },
   {
    "id": "shampoo",
@@ -836,7 +882,8 @@
     "kids_room",
     "kids_room"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "photo_album",
@@ -853,7 +900,8 @@
     "kitchen",
     "powder"
    ],
-   "absurd": "in the recycling bin"
+   "absurd": "in the recycling bin",
+   "kinds": []
   },
   {
    "id": "garden_gnome",
@@ -869,7 +917,8 @@
     "dining",
     "guest_room"
    ],
-   "absurd": "tucked in on the pillow"
+   "absurd": "tucked in on the pillow",
+   "kinds": []
   },
   {
    "id": "grill_tool",
@@ -885,7 +934,8 @@
     "mudroom",
     "office"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "deck_cushion",
@@ -902,7 +952,8 @@
     "mudroom",
     "office"
    ],
-   "absurd": "in the washer"
+   "absurd": "in the washer",
+   "kinds": []
   },
   {
    "id": "pool_noodle",
@@ -919,7 +970,8 @@
     "laundry",
     "master_bed"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
   },
   {
    "id": "goggles",
@@ -936,7 +988,8 @@
     "rec_room",
     "storage"
    ],
-   "absurd": "in the fruit bowl"
+   "absurd": "in the fruit bowl",
+   "kinds": []
   },
   {
    "id": "garden_hose",
@@ -950,7 +1003,8 @@
    "starts": [
     "hall_bath"
    ],
-   "absurd": "coiled in the bathtub"
+   "absurd": "coiled in the bathtub",
+   "kinds": []
   },
   {
    "id": "watering_can",
@@ -964,7 +1018,50 @@
    "starts": [
     "master_bed"
    ],
-   "absurd": ""
+   "absurd": "",
+   "kinds": []
+  },
+  {
+   "id": "table_tennis",
+   "name": "Table tennis equipment",
+   "count": 6,
+   "slot_cost": 2,
+   "kg": 0.25,
+   "home_zone": "rec_room",
+   "home": "table tennis table",
+   "tier": 3,
+   "starts": [
+    "dining",
+    "driveway",
+    "garage",
+    "guest_room",
+    "kitchen",
+    "landing"
+   ],
+   "absurd": "",
+   "kinds": [
+    {
+     "kind": "bat",
+     "name": "Table tennis bat",
+     "count": 2,
+     "kg": 0.09,
+     "slot_cost": 1
+    },
+    {
+     "kind": "ball",
+     "name": "Table tennis ball",
+     "count": 3,
+     "kg": 0.003,
+     "slot_cost": 1
+    },
+    {
+     "kind": "net",
+     "name": "Table tennis net",
+     "count": 1,
+     "kg": 0.25,
+     "slot_cost": 2
+    }
+   ]
   }
  ]
 }

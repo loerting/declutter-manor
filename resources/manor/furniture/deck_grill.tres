@@ -22,5 +22,5 @@ id = &"deck_grill"
 generator = &"grill"
 room = &"deck"
 along = 2
-out = 0.12
+out = 0.25
 slots = Array[ExtResource("2_psg")]([SubResource("Resource_deck_grill_0")])

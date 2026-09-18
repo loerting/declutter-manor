@@ -119,14 +119,7 @@ func build(def: FurnitureDef) -> FurnitureNode:
 	piece.add_child(Props.mi(Props.bake(chrome), Mats.of("metal_brushed", CHROME, 0.15)))
 	piece.add_child(Props.mi(_curtain(end, front), Mats.of("pillow_fabric", CURTAIN, 0.95)))
 
-	# The tub stops the body as a block and the ray as a shell, so a hose coiled in it can be picked up
-	# (2026-09-16). Each wall is as thick as its own rim, whose top is the surface the ducks stand on.
-	piece.add_bulk(Vector3(LENGTH, HEIGHT, WIDTH), Vector3(0, HEIGHT * 0.5, cz))
-	piece.add_box(Vector3(LENGTH, FLOOR_Y, WIDTH), Vector3(0, FLOOR_Y * 0.5, cz))
-	piece.add_box(Vector3(LENGTH, HEIGHT, RIM.x), Vector3(0, HEIGHT * 0.5, WIDTH - RIM.x * 0.5))
-	piece.add_box(Vector3(LENGTH, HEIGHT, RIM.y), Vector3(0, HEIGHT * 0.5, RIM.y * 0.5))
-	piece.add_box(Vector3(RIM.z, HEIGHT, WIDTH), Vector3(-LENGTH * 0.5 + RIM.z * 0.5, HEIGHT * 0.5, cz))
-	piece.add_box(Vector3(RIM.w, HEIGHT, WIDTH), Vector3(LENGTH * 0.5 - RIM.w * 0.5, HEIGHT * 0.5, cz))
+	piece.add_box(Vector3(LENGTH, HEIGHT, WIDTH), Vector3(0, HEIGHT * 0.5, cz))
 	piece.add_anchor(&"rim", Transform3D(Basis.IDENTITY, Vector3(-end + RIM.w + RIM_PLACE_FROM, HEIGHT, WIDTH - RIM.x * 0.5)), piece)
 	piece.add_anchor(&"shelf", Transform3D(Basis.IDENTITY, Vector3(shelf_x - SHELF.x * 0.5 + SHELF_PLACE_FROM, SHELF_Y + ROD, SHELF.y * 0.5)), piece)
 	piece.add_anchor(&"well", Transform3D(Basis.IDENTITY, Vector3(well_mid.x + FLOOR_SHIFT, FLOOR_Y, cz + well_mid.y)), piece)
